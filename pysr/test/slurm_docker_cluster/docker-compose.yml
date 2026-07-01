@@ -1,0 +1,47 @@
+services:
+  slurmctld:
+    image: pysr-slurm:local
+    command: ["slurmctld"]
+    hostname: slurmctld
+    working_dir: /data
+    volumes:
+      - etc_munge:/etc/munge
+      - etc_slurm:/etc/slurm
+      - ${PYSR_SLURM_TEST_DATA_DIR}:/data
+      - ${PYSR_SLURM_TEST_JULIA_DEPOT_DIR}:/root/.julia
+    expose:
+      - "6817"
+
+  c1:
+    image: pysr-slurm:local
+    command: ["slurmd"]
+    hostname: c1
+    working_dir: /data
+    cpus: 2
+    privileged: true
+    volumes:
+      - etc_munge:/etc/munge
+      - etc_slurm:/etc/slurm
+      - ${PYSR_SLURM_TEST_DATA_DIR}:/data
+      - ${PYSR_SLURM_TEST_JULIA_DEPOT_DIR}:/root/.julia
+    depends_on:
+      - slurmctld
+
+  c2:
+    image: pysr-slurm:local
+    command: ["slurmd"]
+    hostname: c2
+    working_dir: /data
+    cpus: 2
+    privileged: true
+    volumes:
+      - etc_munge:/etc/munge
+      - etc_slurm:/etc/slurm
+      - ${PYSR_SLURM_TEST_DATA_DIR}:/data
+      - ${PYSR_SLURM_TEST_JULIA_DEPOT_DIR}:/root/.julia
+    depends_on:
+      - slurmctld
+
+volumes:
+  etc_munge:
+  etc_slurm:

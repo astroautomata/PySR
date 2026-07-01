@@ -2,6 +2,8 @@
   - Creating the Search Space:
     - binary_operators
     - unary_operators
+    - operators
+    - expression_spec
     - maxsize
     - maxdepth
   - Setting the Search Size:
@@ -12,6 +14,8 @@
   - The Objective:
     - elementwise_loss
     - loss_function
+    - loss_function_expression
+    - loss_scale
     - model_selection
     - dimensional_constraint_penalty
     - dimensionless_constants_only
@@ -22,6 +26,7 @@
     - complexity_of_operators
     - complexity_of_constants
     - complexity_of_variables
+    - complexity_mapping
     - warmup_maxsize_by
     - use_frequency
     - use_frequency_in_tournament
@@ -34,7 +39,9 @@
     - weight_do_nothing
     - weight_mutate_constant
     - weight_mutate_operator
+    - weight_mutate_feature
     - weight_swap_operands
+    - weight_rotate_tree
     - weight_randomize
     - weight_simplify
     - weight_optimize
@@ -42,6 +49,7 @@
     - annealing
     - alpha
     - perturbation_factor
+    - probability_negate_constant
     - skip_mutation_failures
   - Tournament Selection:
     - tournament_selection_n
@@ -49,12 +57,14 @@
   - Constant Optimization:
     - optimizer_algorithm
     - optimizer_nrestarts
+    - optimizer_f_calls_limit
     - optimize_probability
     - optimizer_iterations
     - should_optimize_constants
   - Migration between Populations:
     - fraction_replaced
     - fraction_replaced_hof
+    - fraction_replaced_guesses
     - migration
     - hof_migration
     - topn
@@ -66,33 +76,39 @@
   - timeout_in_seconds
   - early_stop_condition
 - Performance and Parallelization:
+  - parallelism
   - procs
-  - multithreading
   - cluster_manager
   - heap_size_hint_in_bytes
+  - worker_timeout
+  - worker_imports
   - batching
   - batch_size
   - precision
   - fast_cycle
   - turbo
   - bumper
-  - enable_autodiff
+  - autodiff_backend
 - Determinism:
   - random_state
   - deterministic
   - warm_start
+  - guesses
 - Monitoring:
   - verbosity
   - update_verbosity
   - print_precision
   - progress
+  - logger_spec
+  - input_stream
 - Environment:
   - temp_equation_file
   - tempdir
   - delete_tempfiles
   - update
 - Exporting the Results:
-  - equation_file
+  - output_directory
+  - run_id
   - output_jax_format
   - output_torch_format
   - extra_sympy_mappings

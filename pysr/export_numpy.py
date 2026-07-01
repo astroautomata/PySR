@@ -1,7 +1,8 @@
 """Code for exporting discovered expressions to numpy"""
 
+from __future__ import annotations
+
 import warnings
-from typing import List, Union
 
 import numpy as np
 import pandas as pd
@@ -17,8 +18,8 @@ class CallableEquation:
     """Simple wrapper for numpy lambda functions built with sympy"""
 
     _sympy: Expr
-    _sympy_symbols: List[Symbol]
-    _selection: Union[NDArray[np.bool_], None]
+    _sympy_symbols: list[Symbol]
+    _selection: NDArray[np.bool_] | None
 
     def __init__(self, eqn, sympy_symbols, selection=None):
         self._sympy = eqn

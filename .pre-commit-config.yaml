@@ -1,33 +1,33 @@
 repos:
   # General linting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
   # General formatting
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 26.3.0
     hooks:
       - id: black
       - id: black-jupyter
         exclude: pysr/test/test_nb.ipynb
   # Stripping notebooks
   - repo: https://github.com/kynan/nbstripout
-    rev: 0.7.1
+    rev: 0.9.1
     hooks:
       - id: nbstripout
         exclude: pysr/test/test_nb.ipynb
   # Unused imports
   - repo: https://github.com/hadialqattan/pycln
-    rev: "v2.4.0"
+    rev: "v2.6.0"
     hooks:
       - id: pycln
   # Sorted imports
   - repo: https://github.com/PyCQA/isort
-    rev: "5.13.2"
+    rev: "8.0.1"
     hooks:
       - id: isort
         additional_dependencies: [toml]

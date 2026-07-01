@@ -1,37 +1,64 @@
-name: docs
+name: Documentation
 
 on:
   push:
     branches:
-      - 'master'
+      - master
+    tags: "*"
     paths:
       - 'pysr/**'
       - '.github/workflows/docs.yml'
       - 'docs/**'
-      - 'setup.py'
       - 'README.md'
-      - 'mkdocs.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'pysr/**'
+      - '.github/workflows/docs.yml'
+      - 'docs/**'
+      - 'README.md'
   workflow_dispatch:
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
+permissions:
+  contents: write
+  pull-requests: read
+  statuses: write
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [primary, secondary]
     steps:
-      - uses: actions/checkout@v4
-      - name: "Set up Python"
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
-          python-version: 3.9
-          cache: pip
-      - name: "Install packages for docs building"
-        run: pip install -r docs/requirements.txt
-      - name: "Install PySR"
-        run: pip install . && python -c 'import pysr'
-      - name: "Build API docs"
-        run: cd docs && ./gen_docs.sh
-      - name: "Deploy documentation"
-        run: mkdocs gh-deploy --force
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install julia deps
+        run: julia --project=docs -e 'using Pkg; Pkg.instantiate()'
+      - name: Install python deps
+        run: pip install -e .[docs]
+      - name: Install npm deps
+        run: npm ci
+        working-directory: docs
+      - name: Generate documentation markdown
+        run: npm run gen:params && npm run gen:api && npm run gen:index && npm run gen:papers
+        working-directory: docs
+      - name: Deploy
+        # Fork PRs don't receive repository secrets; only deploy on push/tag runs.
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAMTP_DEPLOY_KEY: ${{ secrets.DAMTP_DEPLOY_KEY }}
+          DEPLOYMENT_TARGET: ${{ matrix.target }}
+        run: julia --project=docs docs/deploy.jl

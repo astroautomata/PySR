@@ -7,24 +7,25 @@ from pathlib import Path
 class TestDev(unittest.TestCase):
     def test_simple_change_to_backend(self):
         """Test that we can use a development version of SymbolicRegression.jl"""
-        PYSR_TEST_JULIA_VERSION = os.environ.get("PYSR_TEST_JULIA_VERSION", "1.6")
-        PYSR_TEST_PYTHON_VERSION = os.environ.get("PYSR_TEST_PYTHON_VERSION", "3.9")
+        PYSR_TEST_JULIA_VERSION = os.environ.get("PYSR_TEST_JULIA_VERSION", "1.11")
+        PYSR_TEST_PYTHON_VERSION = os.environ.get("PYSR_TEST_PYTHON_VERSION", "3.12")
+        repo_root = Path(__file__).parent.parent.parent
+
         build_result = subprocess.run(
             [
                 "docker",
-                "build",
-                "-t",
-                "pysr-dev",
-                "--build-arg",
-                f"JLVERSION={PYSR_TEST_JULIA_VERSION}",
-                "--build-arg",
-                f"PYVERSION={PYSR_TEST_PYTHON_VERSION}",
+                "buildx",
+                "bake",
                 "-f",
-                "pysr/test/test_dev_pysr.dockerfile",
-                ".",
+                "docker-bake.hcl",
+                "pysr-dev",
+                "--set",
+                f"pysr-dev.args.JLVERSION={PYSR_TEST_JULIA_VERSION}",
+                "--set",
+                f"pysr-dev.args.PYVERSION={PYSR_TEST_PYTHON_VERSION}",
             ],
             env=os.environ,
-            cwd=Path(__file__).parent.parent.parent,
+            cwd=repo_root,
             universal_newlines=True,
         )
         self.assertEqual(build_result.returncode, 0)
@@ -41,7 +42,7 @@ class TestDev(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=os.environ,
-            cwd=Path(__file__).parent.parent.parent,
+            cwd=repo_root,
         )
         self.assertEqual(test_result.returncode, 0)
         self.assertEqual(test_result.stdout.decode("utf-8").strip(), "2.3")

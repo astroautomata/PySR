@@ -1,9 +1,11 @@
 name: Deploy PyPI
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      publish_ref:
+        description: Tag or ref to publish manually (for backfills, e.g. v1.5.10)
+        required: true
+        type: string
 
 jobs:
   pypi:
@@ -12,26 +14,29 @@ jobs:
       name: pypi
       url: https://pypi.org/p/pysr
     permissions:
+      contents: read
       id-token: write
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-      - name: "Set up Python"
-        uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.publish_ref }}
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: 3.10.8
-      - name: "Install building tools"
+      - name: Install building tools
         run: pip install build
-      - name: "Build package"
+      - name: Build package
         run: python -m build
-      - name: "Publish distribution 📦 to Test PyPI"
+      - name: Publish distribution 📦 to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
           verbose: true
-      - name: "Publish distribution 📦 to PyPI"
+      - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}

@@ -13,6 +13,7 @@ on:
       - 'master'
     paths:
       - '**'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -24,11 +25,11 @@ jobs:
     strategy:
       matrix:
         julia-version: ['1']
-        python-version: ['3.12']
+        python-version: ['3.13']
         os: [windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: "Set up Julia"
         uses: julia-actions/setup-julia@v2
         with:
@@ -39,15 +40,14 @@ jobs:
           cache-name: ${{ matrix.os }}-test-${{ matrix.julia-version }}-${{ matrix.python-version }}
           cache-packages: false
       - name: "Set up Python"
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: "Install PySR"
         run: |
             python -m pip install --upgrade pip
-            pip install pytest nbval "numpy<2.0.0"
-            pip install .
+            pip install '.[dev]'
             python -c 'import pysr'
       - name: "Run tests"
         run: |

@@ -1,0 +1,93 @@
+name: Paper PR image cleanup
+
+on:
+  pull_request_target:
+    types: [labeled, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: paper-image-cleanup-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  paper-image-cleanup:
+    if: >-
+      github.event.pull_request != null &&
+      contains(github.event.pull_request.labels.*.name, 'paper-image-sync')
+    runs-on: ubuntu-latest
+
+    steps:
+      # IMPORTANT: pull_request_target runs with elevated permissions.
+      # We only checkout the base repo (trusted) and we never execute code from the PR.
+      - name: Checkout base repo
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pillow pyyaml requests
+
+      - name: Process paper images and open docs PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+
+          # Write the would-be PR comment body to this file, so we can update an
+          # existing comment (instead of creating a new one on every run).
+          COMMENT_BODY_PATH: paper-image-bot-comment.md
+
+          # Token with permissions to push a branch + open PR in the docs repo.
+          # Create as a fine-grained PAT or GitHub App token.
+          PYSR_DOCS_TOKEN: ${{ secrets.PYSR_DOCS_TOKEN }}
+          PYSR_DOCS_REPO: MilesCranmer/PySR_Docs
+
+          # Where images live in the docs repo:
+          PYSR_DOCS_IMAGES_DIR: images
+
+          # Resizing/compression targets:
+          # Use PNG (lossless) to avoid blurry diagrams; still resize large images for reasonable file sizes.
+          MAX_WIDTH: "1200"
+          MIN_WIDTH: "800"
+          # Best-effort target size (PNG is lossless so some images may remain above this):
+          TARGET_KB: "300"
+          PNG_COMPRESS_LEVEL: "6"
+          # Optional: helps a lot for plot/diagram-like images; 0 disables.
+          QUANTIZE_COLORS: "256"
+        run: |
+          python scripts/paper_image_sync.py
+
+      - name: Check for paper-image bot comment body
+        id: comment-body
+        run: |
+          if [ -f paper-image-bot-comment.md ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find existing paper-image bot comment
+        id: find-comment
+        if: steps.comment-body.outputs.exists == 'true'
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "<!-- pysr-paper-image-bot -->"
+
+      - name: Create or update paper-image bot comment
+        if: steps.comment-body.outputs.exists == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          body-path: paper-image-bot-comment.md

@@ -1,0 +1,21 @@
+{
+  "scripts": {
+    "gen:api": "python gen_api.py",
+    "gen:index": "python gen_vitepress_index.py",
+    "gen:papers": "python generate_papers.py",
+    "gen:params": "python gen_param_docs.py",
+    "build:vitepress": "vitepress build src",
+    "docs:dev": "vitepress dev src",
+    "docs:build": "npm run gen:params && npm run gen:api && npm run gen:index && npm run gen:papers && vitepress build src",
+    "docs:preview": "vitepress preview src"
+  },
+  "dependencies": {
+    "@nolebase/vitepress-plugin-enhanced-readabilities": "^2.14.0",
+    "d3-format": "^3.1.2",
+    "markdown-it": "^14.2.0",
+    "markdown-it-footnote": "^4.0.0",
+    "markdown-it-mathjax3": "^5.2.0",
+    "vitepress": "^1.6.3",
+    "vitepress-plugin-tabs": "^0.9.0"
+  }
+}

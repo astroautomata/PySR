@@ -75,7 +75,7 @@ plt.show()
 
 Which gives us:
 
-![Truth vs Prediction](images/example_plot.png)
+![Truth vs Prediction](/images/example_plot.png)
 
 We may also plot the output of a particular expression
 by passing the index of the expression to `predict` (or
@@ -175,7 +175,7 @@ If all goes well, you should find that it predicts the correct input equation, w
 
 ## 7. Julia packages and types
 
-PySR uses [SymbolicRegression.jl](https://github.com/MilesCranmer/SymbolicRegression.jl)
+PySR uses [SymbolicRegression.jl](https://github.com/astroautomata/SymbolicRegression.jl)
 as its search backend. This is a pure Julia package, and so can interface easily with any other
 Julia package.
 For some tasks, it may be necessary to load such a package.
@@ -345,7 +345,7 @@ a real number from the loss function). But, you don't need to worry about this, 
 make sure to return a scalar number of type `L`.
 
 The `tree` argument is the current expression being evaluated. You can read
-about the `tree` fields [here](https://astroautomata.com/SymbolicRegression.jl/stable/types/).
+about the `tree` fields [here](https://ai.damtp.cam.ac.uk/symbolicregression/stable/types/).
 
 For example, let's fix a symbolic form of an expression,
 as a rational function. i.e., $P(X)/Q(X)$ for polynomials $P$ and $Q$.
@@ -525,53 +525,340 @@ Note that you can also search for exclusively dimensionless constants by setting
 
 ## 11. Sequences
 
-Note that most of the functionality
-of PySRSequenceRegressor is inherited
-from [PySRRegressor](options.md).
-
-### 1. Simple Search
-
-Here's a simple example where we
-find the expression $f(n) = f(n-1) + f(n-2)$.
+`PySRSequenceRegressor` searches for recurrence relations without a separate
+target array. For example, this finds a Fibonacci-style relation:
 
 ```python
-X = np.array([1, 1])
-for i in range(20):
-    X = np.append(X, X[-1] + X[-2])
-X.reshape(-1, 1)  # lots of samples with one data point, not the other way
-model = PySRSequenceRegressor(
-    recursive_history_length=2,
-    binary_operators=["+", "-", "*", "/"]
-)
-model.fit(X)  # no y needed
-print(model)
-```
-
-### 2. Multidimensionality
-
-Here we find a 2D recurrence relation
-with two data points at a time:
-$f_0(n) = f_0(n-1) + f_1(n-2)$
-$f_1(n) = f_1(n-1) + f_0(n-2)$
-
-```python
-X = np.array([[1, 2], [3, 4]])
-for i in range(100):
-    X = np.append(X, [
-        X[-1][0] + X[-2][1],
-        X[-1][1] - X[-2][0]
-    ])
+X = [1, 1]
+for _ in range(20):
+    X.append(X[-1] + X[-2])
 
 model = PySRSequenceRegressor(
     recursive_history_length=2,
-    binary_operators=["+", "*"],
+    binary_operators=["+", "-", "*", "/"],
 )
-
 model.fit(X)
 print(model)
 ```
 
-## 12. Additional features
+Rows may contain multiple features; each output is learned from the requested
+number of previous rows. The remaining options are inherited from
+`PySRRegressor`.
+
+## 12. Expression Specifications
+
+PySR 1.0 introduces powerful expression specifications that allow you to define structured equations. Here are two examples:
+
+### Template Expressions
+
+`TemplateExpressionSpec` allows you to define a specific structure for the equation.
+For example, let's say we want to learn an equation of the form:
+
+$$ y = \sin(f(x_1, x_2)) + g(x_3) $$
+
+We can do this as follows:
+
+```python
+import numpy as np
+from pysr import PySRRegressor, TemplateExpressionSpec
+
+# Create data
+X = np.random.randn(1000, 3)
+y = np.sin(X[:, 0] + X[:, 1]) + X[:, 2]**2
+
+# Define template: we want sin(f(x1, x2)) + g(x3)
+template = TemplateExpressionSpec(
+    expressions=["f", "g"],
+    variable_names=["x1", "x2", "x3"],
+    combine="sin(f(x1, x2)) + g(x3)",
+)
+
+model = PySRRegressor(
+    expression_spec=template,
+    binary_operators=["+", "*", "-", "/"],
+    unary_operators=["sin"],
+    maxsize=10,
+)
+model.fit(X, y)
+```
+
+### Parametric Expressions
+
+When your data has categories with shared equation structure but different parameters,
+you can use the `parameters` argument of `TemplateExpressionSpec` to specify learned category-specific parameters.
+
+For example, let's say we want to learn an equation of the form:
+
+$$ y = \alpha \sin(x_1) + \beta $$
+
+where $\alpha$ and $\beta$ are different for each category.
+
+Further, let's say we have 3 categories,
+with $\alpha \in \{0.1, 1.5, -0.5\}$ and $\beta \in \{1.0, 2.0, 0.5\}$.
+
+```python
+import numpy as np
+from pysr import PySRRegressor, TemplateExpressionSpec
+
+# Create data with 2 features and 3 categories
+X = np.random.uniform(-3, 3, (1000, 2))
+category = np.random.randint(0, 3, 1000)
+
+# Parameters for each category
+offsets = [0.1, 1.5, -0.5]
+scales = [1.0, 2.0, 0.5]
+
+# y = scale[category] * sin(x1) + offset[category]
+y = np.array([
+    scales[c] * np.sin(x1) + offsets[c]
+    for x1, c in zip(X[:, 0], category)
+])
+```
+
+Now, let's define our parametric expression:
+
+```python
+template = TemplateExpressionSpec(
+    expressions=["f"],
+    variable_names=["x1", "x2", "category"],
+    parameters={"p1": 3, "p2": 3},  # One parameter per category
+    combine="f(x1, x2, p1[category], p2[category])"
+)
+```
+
+Next, we pass the category as a _column_ in `X`
+corresponding to the index we defined in `variable_names`.
+
+**Note that because Julia is 1-indexed, we need to add 1 to the category index.**
+
+```python
+category_p_one = category + 1
+X_with_category = np.column_stack([X, category])
+```
+
+Now, we can fit our model:
+
+```python
+model = PySRRegressor(
+    expression_spec=template,
+    binary_operators=["+", "*", "-", "/"],
+    unary_operators=["sin"],
+    maxsize=10,
+)
+model.fit(X_with_category, y)
+
+# Predicting on new data
+# model.predict(X_test_with_category)
+```
+
+See [Expression Specifications](/api/#expression-specifications) for more details.
+
+You can use this approach for more complex cases,
+where you have multiple expressions in the template and parameters that vary by category.
+
+
+## 13. Using TensorBoard for Logging
+
+You can use TensorBoard to visualize the search progress, as well as
+record hyperparameters and final metrics (like `min_loss` and `pareto_volume` - the latter of which
+is a performance measure of the entire Pareto front).
+
+```python
+import numpy as np
+from pysr import PySRRegressor, TensorBoardLoggerSpec
+
+rstate = np.random.RandomState(42)
+
+# Uniform dist between -3 and 3:
+X = rstate.uniform(-3, 3, (1000, 2))
+y = np.exp(X[:, 0]) + X[:, 1]
+
+# Create a logger that writes to "logs/run*":
+logger_spec = TensorBoardLoggerSpec(
+    log_dir="logs/run",
+    log_interval=10,  # Log every 10 iterations
+)
+
+model = PySRRegressor(
+    binary_operators=["+", "*", "-", "/"],
+    logger_spec=logger_spec,
+)
+model.fit(X, y)
+```
+
+You can then view the logs with:
+
+```bash
+tensorboard --logdir logs/
+```
+
+## 14. Vector-valued expressions
+
+You can use `TemplateExpressionSpec` to find expressions for vector-valued data,
+where each component might share a common structure.
+The trick is to put each vector element into your feature matrix `X`,
+and then use a template expression to define the relationships.
+
+For example, say we have 3-dimensional vectors where each component
+follows a pattern with a shared term. Say the true model is:
+
+$$\begin{align*}
+y_1 &= \exp(x_1) + x_2^2 \\
+y_2 &= \exp(x_1) + \sin(x_3) \\
+y_3 &= \exp(x_1) + x_1 \cdot x_2
+\end{align*}$$
+
+Let's set this up:
+
+```python
+import numpy as np
+from pysr import PySRRegressor, TemplateExpressionSpec
+
+n = 200
+rstate = np.random.RandomState(0)
+x1 = rstate.uniform(-2, 2, n)
+x2 = rstate.uniform(-2, 2, n)
+x3 = rstate.uniform(-2, 2, n)
+
+# True model with shared component exp(x1):
+y1 = np.exp(x1) + x2**2
+y2 = np.exp(x1) + np.sin(x3)
+y3 = np.exp(x1) + x1 * x2
+
+# Add some noise
+y1 += 0.05 * rstate.randn(n)
+y2 += 0.05 * rstate.randn(n)
+y3 += 0.05 * rstate.randn(n)
+```
+
+Now, we put everything in `X`; BOTH features and targets:
+
+```python
+X = np.column_stack([x1, x2, x3, y1, y2, y3])
+```
+
+Now, we can define our template expression:
+
+```python
+spec = TemplateExpressionSpec(
+    expressions=["f1", "f2", "f3", "shared"],
+    variable_names=["x1", "x2", "x3", "y1", "y2", "y3"],
+    combine="""
+        v = shared(x1, x2, x3)
+        y1_predicted = v + f1(x1, x2, x3)
+        y2_predicted = v + f2(x1, x2, x3)
+        y3_predicted = v + f3(x1, x2, x3)
+
+        residuals = (
+            abs2(y1 - y1_predicted) +
+            abs2(y2 - y2_predicted) +
+            abs2(y3 - y3_predicted)
+        )
+
+        residuals
+    """
+)
+```
+
+Now, we can fit our model using this template. Since
+we already computed the per-row squared error inside the template,
+we can pass a dummy `y` to the `fit` method, and also define
+an `elementwise_loss` that simply returns the residuals (which get
+summed over the data):
+
+```python
+model = PySRRegressor(
+    expression_spec=spec,
+    binary_operators=["+", "-", "*", "/"],
+    unary_operators=["exp", "sin"],
+    maxsize=20,
+    niterations=50,
+    elementwise_loss="(pred, target) -> pred",
+)
+
+dummy_y = np.zeros(n)
+model.fit(X, dummy_y)
+```
+
+After running, PySR should find both the shared component (`exp(x1)`) as well as individual components (`square(x2)`, `sin(x3)`, and `x1 * x2`).
+
+You can access the individual expressions through the Julia objects:
+
+```python
+# Simply get the expression with the highest score:
+idx = model.equations_.score.idxmax()
+
+# Extract the Julia object:
+julia_expr = model.equations_.loc[idx, 'julia_expression']
+
+# Access individual subexpressions:
+for name in ['f1', 'f2', 'f3', 'shared']:
+    tree = getattr(julia_expr.trees, name)
+    print(f"{name}: {tree}")
+```
+
+We can also evaluate individual expressions:
+
+```python
+from pysr import jl
+from pysr.julia_helpers import jl_array
+
+SR = jl.SymbolicRegression
+
+# Get individual trees
+f1_tree = julia_expr.trees.f1
+shared_tree = julia_expr.trees.shared
+
+# Evaluate at specific points (x1=1, x2=2, x3=3)
+test_inputs = jl_array(np.array([[1.0], [2.0], [3.0]]))
+f1_result, _ = SR.eval_tree_array(f1_tree, test_inputs, model.julia_options_)
+shared_result, _ = SR.eval_tree_array(shared_tree, test_inputs, model.julia_options_)
+
+print(f"f1 at (1,2,3): {f1_result[0]}")  # Should be ~4.0 for x2^2
+print(f"shared at (1,2,3): {shared_result[0]}")  # Should be ~2.718 for exp(1)
+```
+
+## 15. Using differential operators
+
+As part of the `TemplateExpressionSpec` described above,
+you can also use differential operators within the template.
+The operator for this is `D` which takes an expression as the first argument,
+and the argument _index_ we are differentiating as the second argument.
+This lets you compute integrals via evolution.
+
+For example, let's say we wish to find the integral of $\frac{1}{x^2 \sqrt{x^2 - 1}}$
+in the range $x > 1$.
+We can compute the derivative of a function $f(x)$, and compare that
+to numerical samples of $\frac{1}{x^2\sqrt{x^2-1}}$. Then, by extension,
+$f(x)$ represents the indefinite integral of it with some constant offset!
+
+```python
+import numpy as np
+from pysr import PySRRegressor, TemplateExpressionSpec
+
+x = np.random.uniform(1, 10, (1000,))  # Integrand sampling points
+y = 1 / (x**2 * np.sqrt(x**2 - 1))     # Evaluation of the integrand
+
+expression_spec = TemplateExpressionSpec(
+    expressions=["f"],
+    variable_names=["x"],
+    combine="df = D(f, 1); df(x)",
+)
+
+model = PySRRegressor(
+    binary_operators=["+", "-", "*", "/"],
+    unary_operators=["sqrt"],
+    expression_spec=expression_spec,
+    maxsize=20,
+)
+model.fit(x[:, np.newaxis], y)
+```
+
+If everything works, you should find something that simplifies to $\frac{\sqrt{x^2 - 1}}{x}$.
+
+Here, we write out a full function in Julia.
+
+## 16. Additional features
 
 For the many other features available in PySR, please
 read the [Options section](options.md).

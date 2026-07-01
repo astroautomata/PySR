@@ -1,9 +1,10 @@
 {
-    "julia": "~1.6.7, ~1.7, ~1.8, ~1.9, =1.10.0, ~1.10.3",
+    "julia": "=1.10.0, 1.10.3",
     "packages": {
         "SymbolicRegression": {
             "uuid": "8254be44-1295-4e6a-a16d-46603ac705cb",
-            "version": "=0.24.5"
+            "url": "https://github.com/astroautomata/SymbolicRegression.jl",
+            "rev": "v2.0.0-alpha.9"
         },
         "Serialization": {
             "uuid": "9e88b42a-f829-5b0c-bbe9-9e923198166b",

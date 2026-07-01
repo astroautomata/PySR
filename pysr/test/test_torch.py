@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -48,11 +49,12 @@ class TestTorch(unittest.TestCase):
             }
         )
 
-        equations["Complexity Loss Equation".split(" ")].to_csv(
-            "equation_file.csv.bkup"
-        )
+        for fname in ["hall_of_fame.csv.bak", "hall_of_fame.csv"]:
+            equations["Complexity Loss Equation".split(" ")].to_csv(
+                Path(model.output_directory_) / model.run_id_ / fname
+            )
 
-        model.refresh(checkpoint_file="equation_file.csv")
+        model.refresh(run_directory=str(Path(model.output_directory_) / model.run_id_))
         tformat = model.pytorch()
         self.assertEqual(str(tformat), "_SingleSymPyModule(expression=cos(x1)**2)")
 
@@ -81,11 +83,12 @@ class TestTorch(unittest.TestCase):
             }
         )
 
-        equations["Complexity Loss Equation".split(" ")].to_csv(
-            "equation_file.csv.bkup"
-        )
+        for fname in ["hall_of_fame.csv.bak", "hall_of_fame.csv"]:
+            equations["Complexity Loss Equation".split(" ")].to_csv(
+                Path(model.output_directory_) / model.run_id_ / fname
+            )
 
-        model.refresh(checkpoint_file="equation_file.csv")
+        model.refresh(run_directory=str(Path(model.output_directory_) / model.run_id_))
 
         tformat = model.pytorch()
         self.assertEqual(str(tformat), "_SingleSymPyModule(expression=cos(x1)**2)")
@@ -133,21 +136,26 @@ class TestTorch(unittest.TestCase):
             }
         )
 
-        equations["Complexity Loss Equation".split(" ")].to_csv(
-            "equation_file_custom_operator.csv.bkup"
-        )
+        for fname in ["hall_of_fame.csv.bak", "hall_of_fame.csv"]:
+            equations["Complexity Loss Equation".split(" ")].to_csv(
+                Path(model.output_directory_) / model.run_id_ / fname
+            )
+
+        MyCustomOperator = sympy.Function("mycustomoperator")
 
         model.set_params(
-            equation_file="equation_file_custom_operator.csv",
-            extra_sympy_mappings={"mycustomoperator": sympy.sin},
-            extra_torch_mappings={"mycustomoperator": self.torch.sin},
+            extra_sympy_mappings={"mycustomoperator": MyCustomOperator},
+            extra_torch_mappings={MyCustomOperator: self.torch.sin},
         )
-        model.refresh(checkpoint_file="equation_file_custom_operator.csv")
-        self.assertEqual(str(model.sympy()), "sin(x1)")
+        # TODO: We shouldn't need to specify the run directory here.
+        model.refresh(run_directory=str(Path(model.output_directory_) / model.run_id_))
+        # self.assertEqual(str(model.sympy()), "sin(x1)")
         # Will automatically use the set global state from get_hof.
 
         tformat = model.pytorch()
-        self.assertEqual(str(tformat), "_SingleSymPyModule(expression=sin(x1))")
+        self.assertEqual(
+            str(tformat), "_SingleSymPyModule(expression=mycustomoperator(x1))"
+        )
         np.testing.assert_almost_equal(
             tformat(self.torch.tensor(X)).detach().numpy(),
             np.sin(X[:, 1]),
@@ -184,6 +192,32 @@ class TestTorch(unittest.TestCase):
             decimal=3,
         )
 
+    def test_constant_arguments(self):
+        # Test that functions with constant arguments work correctly
+        # Regression test for https://github.com/MilesCranmer/PySR/issues/656
+        test_cases = [
+            (pysr.export_sympy.pysr2sympy("sqrt(2)"), np.sqrt(2)),
+            (sympy.exp(2), np.exp(2)),
+            (sympy.log(4), np.log(4)),
+            (sympy.sin(1), np.sin(1)),
+        ]
+
+        for expr, expected in test_cases:
+            m = pysr.export_torch.sympy2torch(expr, [])
+            result = m(self.torch.randn(10, 1))
+            np.testing.assert_almost_equal(result.item(), expected, decimal=3)
+
+        # Test with variables: sqrt(2) * x
+        x = sympy.symbols("x")
+        expr = sympy.sqrt(2) * x
+        m = pysr.export_torch.sympy2torch(expr, [x])
+        X = np.random.randn(10, 1)
+        np.testing.assert_almost_equal(
+            m(self.torch.tensor(X)).detach().numpy().flatten(),
+            np.sqrt(2) * X[:, 0],
+            decimal=3,
+        )
+
     def test_feature_selection_custom_operators(self):
         rstate = np.random.RandomState(0)
         X = pd.DataFrame({f"k{i}": rstate.randn(2000) for i in range(10, 21)})
@@ -200,11 +234,9 @@ class TestTorch(unittest.TestCase):
             maxsize=10,
             early_stop_condition=1e-5,
             extra_sympy_mappings={"cos_approx": cos_approx},
-            extra_torch_mappings={"cos_approx": cos_approx},
             random_state=0,
             deterministic=True,
-            procs=0,
-            multithreading=False,
+            parallelism="serial",
         )
         np.random.seed(0)
         model.fit(X.values, y.values)

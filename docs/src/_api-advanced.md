@@ -14,9 +14,9 @@
 ::: pysr.export_latex
     options:
         members:
-            - to_latex
-            - generate_single_table
-            - generate_multiple_tables
+            - sympy2latex
+            - sympy2latextable
+            - sympy2multilatextable
             - generate_table_environment
         heading_level: 3
 

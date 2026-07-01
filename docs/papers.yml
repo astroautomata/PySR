@@ -2,6 +2,153 @@
 # information to generate the "Research Showcase"
 
 papers:
+  - title: Discovering data-driven microbial growth models with symbolic regression
+    authors:
+      - T. Anthony Sun (1)
+      - Dovydas Kičiatovas (1)
+      - Inga-Katariina Aapalampi (2)
+      - Teemu Kuosmanen (1)
+      - Teppo Hiltunen (2)
+      - Ville Mustonen (1)
+    affiliations:
+      1: Department of Organismal and Evolutionary Biology & Department of Computer Science, University of Helsinki
+      2: Department of Biology, University of Turku
+    link: https://doi.org/10.1111/2041-210x.70335
+    abstract: "1. Connecting mathematical models with empirically measured microbial growth has remained challenging, as numerous competing models based on different theoretical approaches can fit observations. Therefore, we develop a method to automatically propose growth models from microbial data alone. We validate this approach using an available dataset of E. coli grown on known resources, and study 14 species across various concentrations of a rich medium. 2. The inherently interpretable approach of symbolic regression infers explicit dynamical models directly from growth data. Using symbolic regression natively, does not favour biologically interpretable models, but we find cumulative population gain to be a more informative machine learning feature than population size. 3. Random Forest machine learning allows us to relate this finding to the approximation of a constant-rate per capita resource consumption. This suggests that the area under the growth curve (AUC) measured in routine experiments provides information on the effective resource dynamics governing microbial growth. Finally, we use theoretical insights to inform the symbolic regression algorithm and favour biologically interpretable models. 4. Overall, we found that balancing between data fit, parsimony and biological relevance favoured both the simplest, linear approximation and models based on Monod dynamics, with either one or two underlying resources. Therefore, our approach to read growth laws off of microbial batch cultures provides insights on data-driven modelling."
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/48020babcca1e73d2f5bbbd4ef3f0ec3265c59fb/images/pr1200_microbial_growth_models.png
+    date: 2026-06-01
+  - title: Distilling human mobility models with symbolic regression
+    authors:
+      - Hao Guo (1)
+      - Weiyu Zhang (1)
+      - Junjie Yang (1)
+      - Yuanqiao Hou (1)
+      - Lei Dong (1)
+      - Yu Liu (1)
+    affiliations:
+      1: Peking University
+    link: https://onlinelibrary.wiley.com/doi/10.1111/gean.70043
+    abstract: "Human mobility is a fundamental aspect of social behavior, with broad applications in transportation, urban planning, and epidemic modeling. Represented by the gravity model and the radiation model, established analytical models for mobility phenomena are often discovered by analogy to physical processes. Such discoveries can be challenging and rely on intuition, while the potential of emerging social observation data in model discovery is largely unexploited. Here, we propose a systematic approach that leverages symbolic regression to automatically discover interpretable models from human mobility data. Our approach finds several well-known formulas, such as the distance decay effect and classical gravity models, as well as previously unknown ones, such as an exponential-power-law decay that can be explained by the maximum entropy principle. By relaxing the constraints on the complexity of model expressions, we further show how key variables of human mobility are progressively incorporated into the model, making this framework a powerful tool for revealing the underlying mathematical structures of complex social phenomena directly from observational data."
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/48020babcca1e73d2f5bbbd4ef3f0ec3265c59fb/images/pr1188_human_mobility_models.png
+    date: 2026-05-04
+  - title: An Engineering Model for Static Yawed Wind Turbines Based on Actuator Line Simulations and Symbolic Regression
+    authors:
+      - Haoyuan Sun (1)
+      - Andrea Sciacchitano (1)
+      - Wei Yu (1)
+    affiliations:
+      1: Faculty of Aerospace Engineering, Delft University of Technology
+    link: http://dx.doi.org/10.1002/we.70118
+    abstract: "Yaw engineering models are commonly used as add-ons to the industrial Blade Element Momentum (BEM) framework to improve load and power predictions by accounting for the skewed wake effect. However, existing yaw engineering models show noticeable limitations in accurately predicting the induced velocity distribution across the blade span. In this study, we employ a genetic symbolic regression approach to develop a new set of yaw engineering models for both the normal and tangential induced velocities of a static yawed wind turbine. The model regression is performed using simulation data from Reynolds-Averaged Navier-Stokes (RANS) simulations with an actuator line model (ALM) of the NREL 5 MW wind turbine, covering a range of yaw angles ($\\gamma$) and thrust coefficients ($C_T$) over which the skewed wake effect is dominant. The regressed models are selected based on an optimal trade-off between accuracy and complexity, with complexity constrained to remain comparable to Branlard's yaw engineering model. The selected models are subsequently verified using three unseen cases that span different operating conditions and wind turbine models. Verification is performed through a series of evaluations, including generalization performance tests, implementation within the BEM framework to assess their aerodynamic performances, and quantitative errors and loading analyses. The results demonstrate that the proposed models improve both the amplitude accuracy and azimuthal phase of induced velocities compared to the existing models of Coleman and Branlard, enabling it to accurately capture the phase of the peak aerodynamic forces across each annulus and to predict the non-restoring yaw moment occurring in the inboard region of the turbine, which other models fail to reproduce."
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/48020babcca1e73d2f5bbbd4ef3f0ec3265c59fb/images/pr1183_yawed_wind_turbines.png
+    date: 2026-04-16
+  - title: Symbolic regression analysis of dynamical dark energy with DESI-DR2 and SN data
+    authors:
+      - Agripino Sousa-Neto (1)
+      - Carlos Bengaly (1)
+      - Javier E. Gonzalez (2)
+      - Jailson Alcaniz (1)
+    affiliations:
+      1: Observatório Nacional
+      2: Universidade Federal de Sergipe
+    link: https://doi.org/10.1016/j.dark.2025.102108
+    abstract: "Recent measurements of Baryon Acoustic Oscillations (BAO) from the Dark Energy Spectroscopic Survey (DESI DR2), combined with data from the cosmic microwave background (CMB) and Type Ia supernovae (SNe), challenge the $\\Lambda$-Cold Dark Matter ($\\Lambda$CDM) paradigm. They indicate a potential evolution in the dark energy equation of state (EoS), $w(z)$, as suggested by analyses that employ parametric models. In this paper, we use a model-independent approach known as high performance symbolic regression (PySR) to reconstruct $w(z)$ directly from observational data, allowing us to bypass prior assumptions about the underlying cosmological model. Our findings confirm that the DESI DR2 data alone agree with the $\\Lambda$CDM model ($w(z) = -1$) at the redshift range considered. Additionally, when combining DESI data with existing compilations of SN distance measurements, such as Pantheon+ and DESY5, we observe no deviation from the $\\Lambda$CDM model within $3\\sigma$ (C.L.) for the interval of values of present-day matter density parameter $\\Omega_m$ and the sound horizon at the drag epoch $r_d$ currently constrained by observational data. Therefore, similarly to the DESI DR1 case, these results suggest that it is still premature to claim statistically significant evidence for a dynamical EoS or deviations from the $\\Lambda$CDM model based on the current DESI data in combination with supernova measurements."
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/48020babcca1e73d2f5bbbd4ef3f0ec3265c59fb/images/pr1195_dynamical_dark_energy_sr.png
+    date: 2025-09-23
+  - title: Machine learning framework to predict product distribution of lignocellulosic biomass pyrolysis
+    authors:
+      - Leonardo Voltolini (1)
+      - Fernando Arrais Romero Dias Lima (1,3)
+      - Carine Menezes Rebello (3)
+      - Ivaldo Itabaiana Jr. (1)
+      - Idelfonso B.R. Nogueira (3)
+      - Argimiro Resende Secchi (1,2)
+      - Maurício B. de Souza Jr. (1,2)
+    affiliations:
+      1: School of Chemistry, EPQB, Universidade Federal do Rio de Janeiro (UFRJ)
+      2: Chemical Engineering Program, PEQ/COPPE, Universidade Federal do Rio de Janeiro (UFRJ)
+      3: Chemical Engineering Department, Norwegian University of Science and Technology (NTNU)
+    link: https://www.sciencedirect.com/science/article/abs/pii/S0960852425007126
+    abstract: Machine learning methods have become a trend to model distinct chemical processes, as an alternative to complex first-principles models. Given the complexity of biomass pyrolysis mechanisms, these methods offer a promising approach but often face challenges regarding data scarcity and lack of interpretability. This study aims to develop an interpretable framework for modeling biomass pyrolysis using data from fixed-bed lignocellulosic biomass pyrolysis experiments. A mass change basis was proposed to construct machine learning models, including artificial neural network (ANN) and symbolic regression (SR) models. Feature importance was assessed using Shapley Additive Explanations (SHAP) and compared to Partial Least Squares (PLS) regression, with PLS consistently identifying the best features for symbolic regression. Both ANN and SR models showed similar accuracy, achieving coefficient of determination (R$^2$) greater than 0.85 across all phase products in the testing set. Additionally, an uncertainty assessment of SR parameters was conducted to improve model robustness ensuring prediction stability. SR models exhibited superior generalization capacity during extrapolation tests, achieving R$^2$ values above 0.9 for char and gas phases. For oil values exceeding 10 grams, the SR models struggled with generalization. Overall, the proposed framework provides a valuable tool for interpreting and modeling pyrolysis process data, enabling its use in the decision-making process.
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/48020babcca1e73d2f5bbbd4ef3f0ec3265c59fb/images/pr994_biomass_pyrolysis_framework.png
+    date: 2025-06-14
+  - title: Data-driven skin friction estimation for UAV wings in subsonic flows
+    authors:
+      - Christos Pliakos (1)
+      - Giorgos Efrem (1)
+      - Dimitrios Terzis (1)
+      - Pericles Panagiotou (1)
+    affiliations:
+      1: Laboratory of Fluid Mechanics and Turbomachinery, Department of Mechanical Engineering, Aristotle University of Thessaloniki, 54124 Thessaloniki, Greece
+    link: https://www.aifluids.net/proceedings/S6P16.pdf
+    abstract: Accurate estimation of the skin friction coefficient (𝐶𝑓) is essential for estimating the wall shear stresses (𝜏𝑤) and ultimately the first-layer cell height (𝑦) in wall-resolved RANS simulations of wings, where turbulence models are used, demanding a specific grid resolution near walls (primarily the 𝑦𝑡𝑎𝑟𝑔𝑒𝑡⁺). Conventional flat-plate correlations often fail to account for the three-dimensional nature of real wing flows, introducing uncertainties in 𝐶𝑓 predictions and leading to multiple CFD analyses and mesh refinements to meet the targets. In this work, we propose a machine-learning-based approach exploring symbolic regression to derive a model that correlates wing-specific parameters (e.g., Reynolds number, angle of attack, thickness-to-chord ratio, wing sweep angle) with 𝐶𝑓 at the Mean Aerodynamic Chord (MAC). Data are acquired from an in-house database of over 5,000 RANS simulations for UAV wings operating in the low subsonic regime, covering a wide design space, all conducted following best-practice CFD guidelines to ensure high fidelity. These analyses are performed at various flow conditions covering Reynolds numbers from 10⁵ to 10⁷ and include the complete drag polar for each wing. The proposed correlation provides improved agreement with CFD data and enables more accurate 𝑦⁺ estimations. Validation on different wing geometries, including the ONERA M6 and in-house UAV wings, confirmed the robustness of the model, which improves boundary-layer resolution with only a marginal (~2%) increase in total mesh size, while achieving an R² of 0.68 with negligible computational inference cost. This explicit, data-driven equation offers an efficient method for streamlining mesh generation in aerodynamic simulations.
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/48020babcca1e73d2f5bbbd4ef3f0ec3265c59fb/images/pr1127_skin_friction.png
+    date: 2025-05-30
+  - title: Angular Coefficients from Interpretable Machine Learning with Symbolic Regression
+    authors:
+      - Josh Bendavid (1)
+      - Daniel Conde (2)
+      - Manuel Morales-Alvarado (3)
+      - Veronica Sanz (2)
+      - Maria Ubiali (4)
+    affiliations:
+      1: CERN, European Organization for Nuclear Research, Geneva
+      2: Universidad de Valencia
+      3: Istituto Nazionale di Fisica Nucleare
+      4: University of Cambridge
+    link: https://arxiv.org/abs/2508.00989v3
+    abstract: We explore the use of symbolic regression to derive compact analytical expressions for angular observables relevant to electroweak boson production at the Large Hadron Collider (LHC). Focusing on the angular coefficients that govern the decay distributions of W and Z bosons, we investigate whether symbolic models can well approximate these quantities, typically computed via computationally costly numerical procedures, with high fidelity and interpretability. Using the PySR package, we first validate the approach in controlled settings, namely in angular distributions in lepton-lepton collisions in QED and in leading-order Drell-Yan production at the LHC. We then apply symbolic regression to extract closed-form expressions for the angular coefficients as functions of transverse momentum, rapidity, and invariant mass, using next-to-leading order simulations of Drell-Yan events. Our results demonstrate that symbolic regression can produce accurate and generalisable expressions that match Monte Carlo predictions within uncertainties, while preserving interpretability and providing insight into the kinematic dependence of angular observables.
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/48020babcca1e73d2f5bbbd4ef3f0ec3265c59fb/images/pr1096_angular_coefficients_sr.png
+    date: 2024-12-04
+  - title: Individual chaotic behaviour of the S-stars in the Galactic centre
+    authors:
+      - Sam J. Beckers (1)
+      - Colin M. Poppelaars (1)
+      - Veronica S. Ulibarrena (1)
+      - Tjarda N. Boekholt (2)
+      - Simon F. Portegies Zwart (1)
+    affiliations:
+      1: Leiden Observatory, Leiden University
+      2: NASA Ames Research Center
+    link: https://www.aanda.org/articles/aa/full_html/2024/05/aa48361-23/aa48361-23.html
+    abstract: Located at the core of the Galactic centre, the S-star cluster serves as a remarkable illustration of chaos in dynamical systems. The long-term chaotic behaviour of this system can be studied with gravitational $N$-body simulations. By applying a small perturbation to the initial position of star S5, we can compare the evolution of this system to its unperturbed evolution. This results in two solutions that diverge exponentially, defined by the separation in position space $\delta_{r}$, with an average Lyapunov timescale of $\sim$420 yr, corresponding to the largest positive Lyapunov exponent. Even though the general trend of the chaotic evolution is governed in part by the supermassive black hole Sagittarius $\rm A^{*}$ (Sgr $\rm A^{*}$), individual differences between the stars can be noted in the behaviour of their phase-space curves. We present an analysis of the individual behaviour of the stars in this Newtonian chaotic dynamical system. The individuality of their behaviour is evident from offsets in the position space separation curves of the S-stars and the black hole. We propose that the offsets originate from the initial orbital elements of the S-stars, where Sgr $\rm A^{*}$ is considered in one of the focal points of the Keplerian orbits. Methods were considered to find a relation between these elements and the separation in position space. Symbolic regression provides the clearest diagnostics for finding an interpretable expression for the problem. Our symbolic regression model indicates that $\left\langle\delta_r\right\rangle \propto e^{2.3}$, implying that the time-averaged individual separation in position space increases rapidly with the initial eccentricity of the S-stars.
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/48020babcca1e73d2f5bbbd4ef3f0ec3265c59fb/images/pr813_s_stars_chaos.png
+    date: 2024-02-15
+  - title: Discovering parametrizations of implied volatility with symbolic regression
+    authors:
+      - Martin Keller-Ressel (1,2)
+      - Hannes Nikulski (1)
+    affiliations:
+      1: Department of Mathematics, TU Dresden
+      2: ScaDS.AI (Center for Scalable Data Analytics and Artificial Intelligence) Dresden/Leipzig,
+    link: https://arxiv.org/abs/2603.21892
+    abstract: "We investigate the data-driven discovery of parametric representations for implied volatility slices. Using symbolic regression, we search for simple analytic formulas that approximate the total implied variance as a function of log-moneyness and maturity. Our approach generates candidate parametrizations directly from market data without imposing a predefined functional form. We compare the resulting formulas with the widely used SVI parametrization in terms of accuracy and simplicity. Numerical experiments indicate that symbolic regression can identify compact parametrizations with competitive fitting performance."
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/29fc1b43ab0d9f07ce7356c6506414d19f43d55e/images/volatility_fits.png
+    date: 2026-03-31
+  - title: Discovering mathematical concepts through a multi-agent system
+    authors:
+      - Daattavya Aggarwal (1)
+      - Oisin Kim (1)
+      - Carl Henrik Ek (1)
+      - Challenger Mishra (1)
+    affiliations:
+      1: Department of Computer Science & Technology, University of Cambridge
+    link: https://arxiv.org/abs/2603.04528
+    abstract: "Mathematical concepts emerge through an interplay of processes, including experimentation, efforts at proof, and counterexamples. In this paper, we present a new multi-agent model for computational mathematical discovery based on this observation. Our system, conceived with research in mind, poses its own conjectures and then attempts to prove them, making decisions informed by this feedback and an evolving data distribution. Inspired by the history of Euler's conjecture for polyhedra and an open challenge in the literature, we benchmark with the task of autonomously recovering the concept of homology from polyhedral data and knowledge of linear algebra. Our system completes this learning problem. Most importantly, the experiments are ablations, statistically testing the value of the complete dynamic and controlling for experimental setup. They support our main claim: that the optimisation of the right combination of local processes can lead to surprisingly well-aligned notions of mathematical interestingness."
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/cdb95956495a5f2f92b83ec968bc3fca0a71a689/images/conjecturing_agent.png
+    date: 2026-03-04
+  - title: Learning Microstructure in Active Matter
+    authors:
+      - Writu Dasgupta (1)
+      - Suvendu Mandal (1)
+      - Aritra K. Mukhopadhyay (1)
+      - Benno Liebchen (1)
+    affiliations:
+       1: Institute for Condensed Matter Physics, Technische Universität Darmstadt
+    link: https://arxiv.org/abs/2601.05894
+    abstract: Understanding microstructure in terms of closed-form expressions is an open challenge in nonequilibrium statistical physics. We propose a simple and generic method that combines particle-resolved simulations, deep neural networks, and symbolic regression to predict the pair-correlation function of passive and active particles. Our analytical closed-form results closely agree with Brownian dynamics simulations, even at relatively large packing fractions and for strong activity. The proposed method is broadly applicable, computationally efficient, and can be used to enhance the predictive power of nonequilibrium continuum theories and for designing pattern formation.
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/471fb8825e597896f0a098fefe239deb021aaa3a/images/microstructure_active_matter.png
+    date: 2026-01-13
   - title: Discovery of a Planar Black Hole Mass Scaling Relation for Spiral Galaxies
     authors:
       - Benjamin L. Davis (1)
@@ -245,3 +392,95 @@ papers:
     abstract: "How can we find interpretable, domain-appropriate models of natural phenomena given some complex, raw data such as images? Can we use such models to derive scientific insight from the data? In this paper, we propose some methods for achieving this. In particular, we implement disentangled representation learning, sparse deep neural network training and symbolic regression, and assess their usefulness in forming interpretable models of complex image data. We demonstrate their relevance to the field of bioimaging using a well-studied test problem of classifying cell states in microscopy data. We find that such methods can produce highly parsimonious models that achieve ~98% of the accuracy of black-box benchmark models, with a tiny fraction of the complexity. We explore the utility of such interpretable models in producing scientific explanations of the underlying biological phenomenon."
     image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/master/images/cell_state_classification.jpg
     date: 2024-02-05
+  - title: Analytical formulae for design of one-dimensional sonic crystals with smooth geometry based on symbolic regression
+    authors:
+      - Viktor Hruška (1)
+      - Aneta Furmanová (1)
+      - Michal Bednařík (1)
+    affiliations:
+       1: Czech Technical University in Prague, Faculty of Electrical Engineering
+    link: https://doi.org/10.1016/j.jsv.2024.118821
+    abstract: Even though locally periodic structures have been studied for more than three decades, the known analytical expressions relating the waveguide geometry and the acoustic transmission are limited to a few special cases. Having an access to numerical model is a great opportunity for data-driven discovery. Our choice of cubic splines to parametrize the waveguide unit cell geometry offers enough variability for waveguide design. Using Webster equation for unit cell and Floquet–Bloch theory for periodic structures, a dataset of numerical solutions was prepared. Employing the methods of physics-informed machine learning, we have extracted analytical formulae relating the waveguide geometry and the corresponding dispersion relation or directly the bandgap widths. The results contribute to the overall readability of the system and enable a deeper understanding of the underlying principles. Specifically, it allows for assessing the influence of the waveguide geometry, offering more efficient alternative to computationally demanding numerical optimization.
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/refs/heads/master/images/sonic_crystals.jpg
+    date: 2024-11-15
+  - title: "SymbolFit: Automatic Parametric Modeling with Symbolic Regression"
+    authors:
+      - Ho Fung Tsoi (1)
+      - Dylan Rankin (1)
+      - Cecile Caillol (2)
+      - Miles Cranmer (3)
+      - Sridhara Dasu (4)
+      - Javier Duarte (5)
+      - Philip Harris (6, 7)
+      - Elliot Lipeles (1)
+      - Vladimir Loncar (6, 8)
+    affiliations:
+      1: University of Pennsylvania
+      2: European Organization for Nuclear Research (CERN)
+      3: University of Cambridge
+      4: University of Wisconsin-Madison
+      5: University of California San Diego
+      6: Massachusetts Institute of Technology
+      7: Institute for Artificial Intelligence and Fundamental Interactions
+      8: Institute of Physics Belgrade
+    link: https://arxiv.org/abs/2411.09851
+    abstract: "We introduce SymbolFit, a framework that automates parametric modeling by using symbolic regression to perform a machine-search for functions that fit the data, while simultaneously providing uncertainty estimates in a single run. Traditionally, constructing a parametric model to accurately describe binned data has been a manual and iterative process, requiring an adequate functional form to be determined before the fit can be performed. The main challenge arises when the appropriate functional forms cannot be derived from first principles, especially when there is no underlying true closed-form function for the distribution. In this work, we address this problem by utilizing symbolic regression, a machine learning technique that explores a vast space of candidate functions without needing a predefined functional form, treating the functional form itself as a trainable parameter. Our approach is demonstrated in data analysis applications in high-energy physics experiments at the CERN Large Hadron Collider (LHC). We demonstrate its effectiveness and efficiency using five real proton-proton collision datasets from new physics searches at the LHC, namely the background modeling in resonance searches for high-mass dijet, trijet, paired-dijet, diphoton, and dimuon events. We also validate the framework using several toy datasets with one and more variables."
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/refs/heads/master/images/symbolfit_sampling.png
+    date: 2024-11-15
+  - title: "The automated discovery of kinetic rate models – methodological frameworks"
+    authors:
+      - Miguel Ángel de Carvalho Servia (1)
+      - Ilya Orson Sandoval (1)
+      - King Kuok (Mimi) Hii (1)
+      - Klaus Hellgardt (1)
+      - Dongda Zhang (2)
+      - Ehecatl Antonio del Rio Chanona (1)
+    affiliations:
+      1: Imperial College London
+      2: University of Manchester
+    link: https://arxiv.org/abs/2301.11356
+    abstract: "The industrialization of catalytic processes requires reliable kinetic models for their design, optimization and control. Mechanistic models require significant domain knowledge, while data-driven and hybrid models lack interpretability. Automated knowledge discovery methods, such as ALAMO (Automated Learning of Algebraic Models for Optimization), SINDy (Sparse Identification of Nonlinear Dynamics), and genetic programming, have gained popularity but suffer from limitations such as needing model structure assumptions, exhibiting poor scalability, and displaying sensitivity to noise. To overcome these challenges, we propose two methodological frameworks, ADoK-S and ADoK-W (Automated Discovery of Kinetic rate models using a Strong/Weak formulation of symbolic regression), for the automated generation of catalytic kinetic models using a robust criterion for model selection. We leverage genetic programming for model generation and a sequential optimization routine for model refinement. The frameworks are tested against three case studies of increasing complexity, demonstrating their ability to retrieve the underlying kinetic rate model with limited noisy data from the catalytic systems, showcasing their potential for chemical reaction engineering applications."
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/refs/heads/master/images/adok_s_results.jpg
+    date: 2024-03-22
+  - title: Symbolic regression for precision LHC physics
+    authors:
+      - Manuel Morales-Alvarado (1)
+      - Daniel Conde (2)
+      - Josh Bendavid (3)
+      - Veronica Sanz (2)
+      - Maria Ubiali (4)
+    affiliations:
+       1: Istituto Nazionale di Fisica Nucleare
+       2: Universidad de Valencia
+       3: Massachusetts Institute of Technology
+       4: University of Cambridge
+    link: https://inspirehep.net/literature/2858279
+    abstract: We study the potential of symbolic regression (SR) to derive compact and precise analytic expressions that can improve the accuracy and simplicity of phenomenological analyses at the Large Hadron Collider (LHC). As a benchmark, we apply SR to equation recovery in quantum electrodynamics (QED), where established analytical results from quantum field theory provide a reliable framework for evaluation. This benchmark serves to validate the performance and reliability of SR before extending its application to structure functions in the Drell-Yan process mediated by virtual photons, which lack analytic representations from first principles. By combining the simplicity of analytic expressions with the predictive power of machine learning techniques, SR offers a useful tool for facilitating phenomenological analyses in high energy physics.
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/refs/heads/master/images/hep_sr_img.png
+    date: 2024-12-10
+  - title: "Symbolic Regression for State Estimation of Lithium-ion Battery"
+    authors:
+      - Shubham Sambhaji Patil (1)
+      - Anubhav Kamal (1)
+      - Sagar Bharathraj (1)
+      - Ankur Deshwal (1)
+      - Shashishekar P. Adiga (1)
+    affiliations:
+      1: Samsung Semiconductor India Research
+    link: https://ieeexplore.ieee.org/document/11202751
+    abstract: "Modeling lithium-ion batteries has been a challenging problem. One of the critical tasks among many is state estimation, as it enables researchers to design better battery management systems (BMS). Understanding important battery parameters allows researchers to monitor battery health, predict performance, and optimize battery operation. Traditionally, mathematical models using partial differential equations (PDEs) such as the pseudo two-dimensional model (P2D) have been widely used to estimate physical quantities within the battery. However, deployment of P2D for real-time prediction is limited by the high computational cost, instability of numerical techniques, and the requirement of specialized software. Recent studies have successfully applied various machine learning algorithms achieving high predictive accuracy in many cases. These algorithms, however, suffer from limitations on generalizability and high computation requirements, which limit their deployment. We investigate the applicability of symbolic regression (SR), a branch of symbolic AI techniques, to the problem. The results demonstrate equivalent accuracy with P2D while offering orders of magnitude faster execution. As this study uses simulated P2D data, the findings should be interpreted as a proof-of-concept indicating that symbolic regression can yield interpretable, computationally efficient surrogates with promising BMS relevance."
+    image:  https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/15df563f28d9f044a68eae40c045adb2d3c04c03/images/SR_for_battery.png
+    date: 2025-10-20
+  - title: "Tantalizing Evidence of Reionization Relics in the eBOSS DR16 Lyα Forest Correlations: a Preference for Early Reionization"
+    authors:
+      - Yifan Zheng (1)
+      - Paulo Montero-Camacho (2)
+      - Zheng Cai (1, 2)
+      - Yi Mao (1)
+    affiliations:
+      1: Tsinghua University
+      2: Peng Cheng Laboratory
+    link: https://arxiv.org/abs/2503.09971
+    abstract: "Cosmic reionization of HI leaves enduring relics in the post-reionization intergalactic medium, potentially influencing the Lyman-α (Lyα) forest down to redshifts as low as z≈2, which is the so-called ''memory of reionization'' effect. Here, we re-analyze the baryonic acoustic oscillation (BAO) measurements from Lyα absorption and quasar correlations using data from the extended Baryonic Oscillation Spectroscopic Survey (eBOSS) Data Release 16 (DR16), incorporating for the first time the memory of reionization in the Lyα forest. Three distinct scenarios of reionization timeline are considered in our analyses. We find that the recovered BAO parameters (α∥, α⊥) remain consistent with the original eBOSS DR16 analysis. However, models incorporating reionization relics provide a better fit to the data, with a tantalizing preference for early reionization, consistent with recent findings from the James Webb Space Telescope. Furthermore, the inclusion of reionization relics significantly impacts the non-BAO parameters. For instance, we report deviations of up to 3σ in the Lyα redshift-space distortion parameter and ∼7σ in the linear Lyα bias for the late reionization scenario. Our findings suggest that the eBOSS Lyα data is more accurately described by models that incorporate a broadband enhancement to the Lyα forest power spectrum, highlighting the importance of accounting for reionization relics in cosmological analyses."
+    image: https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/paper-images/pr-1098/images/wedges.png
+    date: 2025-11-14

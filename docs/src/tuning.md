@@ -8,10 +8,12 @@ When running PySR, I usually do the following:
 
 I run from IPython (Jupyter Notebooks don't work as well[^1]) on the head node of a slurm cluster. Passing `cluster_manager="slurm"` will make PySR set up a run over the entire allocation. I set `procs` equal to the total number of cores over my entire allocation.
 
-[^1]: Jupyter Notebooks are supported by PySR, but miss out on some useful features available in IPython and Python: the progress bar, and early stopping with "q". In Jupyter you cannot interrupt a search once it has started; you have to restart the kernel. See [this issue](https://github.com/MilesCranmer/PySR/issues/260) for updates.
+I use the [tensorboard feature](https://ai.damtp.cam.ac.uk/pysr/examples/#12-using-tensorboard-for-logging) for experiment tracking.
 
-1. Use the default parameters.
-2. Use only the operators I think it needs and no more.
+[^1]: Jupyter Notebooks are supported by PySR, but miss out on some useful features available in IPython and Python: the progress bar, and early stopping with "q". In Jupyter you cannot interrupt a search once it has started; you have to restart the kernel. See [this issue](https://github.com/astroautomata/PySR/issues/260) for updates.
+
+1. I start by using the default parameters.
+2. I use only the operators I think it needs and no more.
 3. Increase `populations` to `3*num_cores`.
 4. If my dataset is more than 1000 points, I either subsample it (low-dimensional and not much noise) or set `batching=True` (high-dimensional or very noisy, so it needs to evaluate on all the data).
 5. While on a laptop or single node machine, you might leave the default `ncycles_per_iteration`, on a cluster with ~100 cores I like to set `ncycles_per_iteration` to maybe `5000` or so, until the head node occupation is under `10%`. (A larger value means the workers talk less frequently to eachother, which is useful when you have many workers!)
@@ -20,7 +22,7 @@ I run from IPython (Jupyter Notebooks don't work as well[^1]) on the head node o
 8. I typically don't use `maxdepth`, but if I do, I set it strictly, while also leaving a bit of room for exploration. e.g., if you want a final equation limited to a depth of `5`, you might set this to `6` or `7`, so that it has a bit of room to explore.
 9.  Set `parsimony` equal to about the minimum loss you would expect, divided by 5-10. e.g., if you expect the final equation to have a loss of `0.001`, you might set `parsimony=0.0001`.
 10. Set `weight_optimize` to some larger value, maybe `0.001`. This is very important if `ncycles_per_iteration` is large, so that optimization happens more frequently.
-11. Set `bumper` to `True`. This turns on bump allocation but is experimental. It should give you a nice 20% speedup.
+11. Set `turbo` to `True`. This turns on advanced loop vectorization, but is still quite experimental. It should give you a nice 20% or more speedup.
 12. For final runs, after I have tuned everything, I typically set `niterations` to some very large value, and just let it run for a week until my job finishes (genetic algorithms tend not to converge, they can look like they settle down, but then find a new family of expression, and explore a new space). If I am satisfied with the current equations (which are visible either in the terminal or in the saved csv file), I quit the job early.
 
 Since I am running in IPython, I can just hit `q` and then `<enter>` to stop the job, tweak the hyperparameters, and then start the search again.
@@ -45,5 +47,5 @@ Once a run is finished, I use the `PySRRegressor.from_file` function to load the
 
 ## More Tips
 
-You might also wish to explore the [discussions](https://github.com/MilesCranmer/PySR/discussions/) page for more tips, and to see if anyone else has had similar questions.
+You might also wish to explore the [discussions](https://github.com/astroautomata/PySR/discussions/) page for more tips, and to see if anyone else has had similar questions.
 Be sure to also read through the [reference](api.md).

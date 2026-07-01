@@ -1,17 +1,22 @@
 """Define utilities to export to sympy"""
 
-from typing import Callable, Dict, List, Optional
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import sympy  # type: ignore
 from sympy import sympify
+from sympy.codegen.cfunctions import log2, log10  # type: ignore
 
 from .utils import ArrayLike
 
 sympy_mappings = {
     "div": lambda x, y: x / y,
+    "inv": lambda x: 1 / x,
     "mult": lambda x, y: x * y,
     "sqrt": lambda x: sympy.sqrt(x),
     "sqrt_abs": lambda x: sympy.sqrt(abs(x)),
+    "cbrt": lambda x: sympy.sign(x) * sympy.cbrt(abs(x)),
     "square": lambda x: x**2,
     "cube": lambda x: x**3,
     "plus": lambda x, y: x + y,
@@ -39,8 +44,8 @@ sympy_mappings = {
     "erf": sympy.erf,
     "erfc": sympy.erfc,
     "log": lambda x: sympy.log(x),
-    "log10": lambda x: sympy.log(x, 10),
-    "log2": lambda x: sympy.log(x, 2),
+    "log10": lambda x: log10(x),
+    "log2": lambda x: log2(x),
     "log1p": lambda x: sympy.log(x + 1),
     "log_abs": lambda x: sympy.log(abs(x)),
     "log10_abs": lambda x: sympy.log(abs(x), 10),
@@ -51,40 +56,48 @@ sympy_mappings = {
     "sign": sympy.sign,
     "gamma": sympy.gamma,
     "round": lambda x: sympy.ceiling(x - 0.5),
-    "max": lambda x, y: sympy.Piecewise((y, x < y), (x, True)),
-    "min": lambda x, y: sympy.Piecewise((x, x < y), (y, True)),
+    "max": lambda *args: sympy.Max(*args),
+    "min": lambda *args: sympy.Min(*args),
     "greater": lambda x, y: sympy.Piecewise((1.0, x > y), (0.0, True)),
+    "less": lambda x, y: sympy.Piecewise((1.0, x < y), (0.0, True)),
+    "greater_equal": lambda x, y: sympy.Piecewise((1.0, x >= y), (0.0, True)),
+    "less_equal": lambda x, y: sympy.Piecewise((1.0, x <= y), (0.0, True)),
     "cond": lambda x, y: sympy.Piecewise((y, x > 0), (0.0, True)),
     "logical_or": lambda x, y: sympy.Piecewise((1.0, (x > 0) | (y > 0)), (0.0, True)),
     "logical_and": lambda x, y: sympy.Piecewise((1.0, (x > 0) & (y > 0)), (0.0, True)),
     "relu": lambda x: sympy.Piecewise((0.0, x < 0), (x, True)),
+    "fma": lambda x, y, z: x * y + z,
+    "muladd": lambda x, y, z: x * y + z,
+    "clamp": lambda x, min_val, max_val: sympy.Piecewise(
+        (min_val, x < min_val), (max_val, x > max_val), (x, True)
+    ),
 }
 
 
 def create_sympy_symbols_map(
     feature_names_in: ArrayLike[str],
-) -> Dict[str, sympy.Symbol]:
+) -> dict[str, sympy.Symbol]:
     return {variable: sympy.Symbol(variable) for variable in feature_names_in}
 
 
 def create_sympy_symbols(
     feature_names_in: ArrayLike[str],
-) -> List[sympy.Symbol]:
+) -> list[sympy.Symbol]:
     return [sympy.Symbol(variable) for variable in feature_names_in]
 
 
 def pysr2sympy(
-    equation: str,
+    equation: str | float | int,
     *,
-    feature_names_in: Optional[ArrayLike[str]] = None,
-    extra_sympy_mappings: Optional[Dict[str, Callable]] = None,
+    feature_names_in: ArrayLike[str] | None = None,
+    extra_sympy_mappings: dict[str, Callable] | None = None,
 ):
     if feature_names_in is None:
         feature_names_in = []
     local_sympy_mappings = {
         **create_sympy_symbols_map(feature_names_in),
-        **(extra_sympy_mappings if extra_sympy_mappings is not None else {}),
         **sympy_mappings,
+        **(extra_sympy_mappings if extra_sympy_mappings is not None else {}),
     }
 
     try:

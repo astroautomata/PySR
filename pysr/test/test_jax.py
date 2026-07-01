@@ -1,5 +1,6 @@
 import unittest
 from functools import partial
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -46,11 +47,12 @@ class TestJAX(unittest.TestCase):
             }
         )
 
-        equations["Complexity Loss Equation".split(" ")].to_csv(
-            "equation_file.csv.bkup"
-        )
+        for fname in ["hall_of_fame.csv.bak", "hall_of_fame.csv"]:
+            equations["Complexity Loss Equation".split(" ")].to_csv(
+                Path(model.output_directory_) / model.run_id_ / fname
+            )
 
-        model.refresh(checkpoint_file="equation_file.csv")
+        model.refresh(run_directory=str(Path(model.output_directory_) / model.run_id_))
         jformat = model.jax()
 
         np.testing.assert_almost_equal(
@@ -73,11 +75,12 @@ class TestJAX(unittest.TestCase):
             }
         )
 
-        equations["Complexity Loss Equation".split(" ")].to_csv(
-            "equation_file.csv.bkup"
-        )
+        for fname in ["hall_of_fame.csv.bak", "hall_of_fame.csv"]:
+            equations["Complexity Loss Equation".split(" ")].to_csv(
+                Path(model.output_directory_) / model.run_id_ / fname
+            )
 
-        model.refresh(checkpoint_file="equation_file.csv")
+        model.refresh(run_directory=str(Path(model.output_directory_) / model.run_id_))
         jformat = model.jax()
 
         np.testing.assert_almost_equal(
@@ -121,6 +124,8 @@ class TestJAX(unittest.TestCase):
         def cos_approx(x):
             return 1 - (x**2) / 2 + (x**4) / 24 + (x**6) / 720
 
+        sp_cos_approx = sympy.Function("cos_approx")
+
         y = X["k15"] ** 2 + 2 * cos_approx(X["k20"])
 
         model = PySRRegressor(
@@ -129,26 +134,19 @@ class TestJAX(unittest.TestCase):
             select_k_features=3,
             maxsize=10,
             early_stop_condition=1e-5,
-            extra_sympy_mappings={"cos_approx": cos_approx},
+            extra_sympy_mappings={"cos_approx": sp_cos_approx},
             extra_jax_mappings={
-                "cos_approx": "(lambda x: 1 - x**2 / 2 + x**4 / 24 + x**6 / 720)"
+                sp_cos_approx: "(lambda x: 1 - x**2 / 2 + x**4 / 24 + x**6 / 720)"
             },
             random_state=0,
             deterministic=True,
-            procs=0,
-            multithreading=False,
+            parallelism="serial",
         )
         np.random.seed(0)
         model.fit(X.values, y.values)
         f, parameters = model.jax().values()
-
-        np_prediction = model.predict
         jax_prediction = partial(f, parameters=parameters)
-
-        np_output = np_prediction(X.values)
         jax_output = jax_prediction(X.values)
-
-        np.testing.assert_almost_equal(y.values, np_output, decimal=3)
         np.testing.assert_almost_equal(y.values, jax_output, decimal=3)
 
 

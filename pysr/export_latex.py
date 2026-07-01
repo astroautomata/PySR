@@ -1,6 +1,6 @@
 """Functions to help export PySR equations to LaTeX."""
 
-from typing import List, Optional, Tuple
+from __future__ import annotations
 
 import pandas as pd
 import sympy  # type: ignore
@@ -28,8 +28,8 @@ def sympy2latex(expr, prec=3, full_prec=True, **settings) -> str:
 
 
 def generate_table_environment(
-    columns: List[str] = ["equation", "complexity", "loss"]
-) -> Tuple[str, str]:
+    columns: list[str] = ["equation", "complexity", "loss"]
+) -> tuple[str, str]:
     margins = "c" * len(columns)
     column_map = {
         "complexity": "Complexity",
@@ -61,11 +61,11 @@ def generate_table_environment(
 
 def sympy2latextable(
     equations: pd.DataFrame,
-    indices: Optional[List[int]] = None,
+    indices: list[int] | None = None,
     precision: int = 3,
-    columns: List[str] = ["equation", "complexity", "loss", "score"],
+    columns: list[str] = ["equation", "complexity", "loss", "score"],
     max_equation_length: int = 50,
-    output_variable_name: str = "y",
+    output_variable_name: str | None = "y",
 ) -> str:
     """Generate a booktabs-style LaTeX table for a single set of equations."""
     assert isinstance(equations, pd.DataFrame)
@@ -76,7 +76,7 @@ def sympy2latextable(
     if indices is None:
         indices = list(equations.index)
 
-    if output_variable_name == None:
+    if output_variable_name is None:
         output_variable_name = "y"
 
     for i in indices:
@@ -131,11 +131,11 @@ def sympy2latextable(
 
 
 def sympy2multilatextable(
-    equations: List[pd.DataFrame],
-    indices: Optional[List[List[int]]] = None,
+    equations: list[pd.DataFrame],
+    indices: list[list[int]] | None = None,
     precision: int = 3,
-    columns: List[str] = ["equation", "complexity", "loss", "score"],
-    output_variable_names: Optional[List[str]] = None,
+    columns: list[str] = ["equation", "complexity", "loss", "score"],
+    output_variable_names: list[str] | None = None,
 ) -> str:
     """Generate multiple latex tables for a list of equation sets."""
     # TODO: Let user specify custom output variable

@@ -5,4 +5,4 @@ These are sorted by the date of release, with most recent papers at the top.
 
 
 If you have used PySR in your research,
-please submit a pull request to add your paper to [this file](https://github.com/MilesCranmer/PySR/blob/master/docs/papers.yml).
+please submit a pull request to add your paper to [this file](https://github.com/astroautomata/PySR/blob/master/docs/papers.yml).

@@ -18,6 +18,12 @@ pysr.egg-info
 Manifest.toml
 workflow
 docs/index.md
+docs/src/index.md
+docs/src/_api.md
+docs/src/api.md
+docs/src/api-advanced.md
+docs/src/.vitepress/cache/
+docs/node_modules/
 site
 **/.DS_Store
 **/*.code-workspace
@@ -25,4 +31,6 @@ site
 venv
 requirements-dev.lock
 requirements.lock
+outputs
+.mypy_cache
 .eggs/

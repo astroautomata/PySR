@@ -15,8 +15,7 @@ def get_runtests():
             self.cli_runner = click_testing.CliRunner()
 
         def test_help_on_all_commands(self):
-            expected = dedent(
-                """
+            expected = dedent("""
                     Usage: pysr [OPTIONS] COMMAND [ARGS]...
 
                     Options:
@@ -25,15 +24,13 @@ def get_runtests():
                     Commands:
                       install  DEPRECATED (dependencies are now installed at import).
                       test     Run parts of the PySR test suite.
-                """
-            )
+                """)
             result = self.cli_runner.invoke(pysr, ["--help"])
             self.assertEqual(result.output.strip(), expected.strip())
             self.assertEqual(result.exit_code, 0)
 
         def test_help_on_install(self):
-            expected = dedent(
-                """
+            expected = dedent("""
                 Usage: pysr install [OPTIONS]
 
                   DEPRECATED (dependencies are now installed at import).
@@ -44,27 +41,24 @@ def get_runtests():
                   --precompile
                   --no-precompile
                   --help              Show this message and exit.
-                """
-            )
+                """)
             result = self.cli_runner.invoke(pysr, ["install", "--help"])
             self.assertEqual(result.output.strip(), expected.strip())
             self.assertEqual(result.exit_code, 0)
 
         def test_help_on_test(self):
-            expected = dedent(
-                """
+            expected = dedent("""
                 Usage: pysr test [OPTIONS] TESTS
 
                   Run parts of the PySR test suite.
 
-                  Choose from main, jax, torch, cli, dev, and startup. You can give multiple
-                  tests, separated by commas.
+                  Choose from main, jax, torch, autodiff, cli, dev, startup, and slurm. You can
+                  give multiple tests, separated by commas.
 
                 Options:
                   -k TEXT  Filter expressions to select specific tests.
                   --help   Show this message and exit.
-                """
-            )
+                """)
             result = self.cli_runner.invoke(pysr, ["test", "--help"])
             self.assertEqual(result.output.strip(), expected.strip())
             self.assertEqual(result.exit_code, 0)

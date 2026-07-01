@@ -13,6 +13,7 @@ on:
       - 'master'
     paths:
       - '**'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -27,7 +28,7 @@ jobs:
         arch: ['linux/amd64']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build docker
         run: docker build --platform=${{ matrix.arch }} -t pysr .
       - name: Test docker

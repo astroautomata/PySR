@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from sklearn.base import BaseEstimator
+from sklearn.utils.validation import check_array
 
 from .sr import PySRRegressor
 from .utils import ArrayLike, _subscriptify
@@ -141,7 +142,7 @@ class PySRSequenceRegressor(BaseEstimator):
         self : object
             Fitted estimator.
         """
-        X = self._validate_data(X, ensure_2d=False)
+        X = check_array(X, ensure_2d=False)
         if X.ndim == 1:
             X = X.reshape(-1, 1)
         assert X.ndim == 2
@@ -209,7 +210,7 @@ class PySRSequenceRegressor(BaseEstimator):
         ValueError
             Raises if the `best_equation` cannot be evaluated.
         """
-        X = self._validate_data(X, ensure_2d=False)
+        X = check_array(X, ensure_2d=False)
         if X.ndim == 1:
             X = X.reshape(-1, 1)
         assert X.ndim == 2

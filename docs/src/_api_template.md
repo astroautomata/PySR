@@ -1,4 +1,4 @@
-# PySRRegressor Reference
+# API Reference
 
 `PySRRegressor` has many options for controlling a symbolic regression search.
 Let's look at them below.
@@ -56,6 +56,46 @@ PARAMSKEY
         show_root_full_path: false
 
 ::: pysr.PySRRegressor.refresh
+    options:
+        show_root_heading: true
+        heading_level: 3
+        show_root_full_path: false
+
+## Expression Specifications
+
+::: pysr.ExpressionSpec
+    options:
+        show_root_heading: true
+        heading_level: 3
+        show_root_full_path: false
+
+::: pysr.TemplateExpressionSpec
+    options:
+        show_root_heading: true
+        heading_level: 3
+        show_root_full_path: false
+
+::: pysr.ParametricExpressionSpec
+    options:
+        show_root_heading: true
+        heading_level: 3
+        show_root_full_path: false
+
+::: pysr.AbstractExpressionSpec
+    options:
+        show_root_heading: true
+        heading_level: 3
+        show_root_full_path: false
+
+## Logger Specifications
+
+::: pysr.TensorBoardLoggerSpec
+    options:
+        show_root_heading: true
+        heading_level: 3
+        show_root_full_path: false
+
+::: pysr.AbstractLoggerSpec
     options:
         show_root_heading: true
         heading_level: 3

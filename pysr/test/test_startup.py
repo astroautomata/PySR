@@ -9,8 +9,9 @@ from pathlib import Path
 
 import numpy as np
 
-from pysr import PySRRegressor
+from pysr import PySRRegressor, jl
 from pysr.julia_import import jl_version
+from pysr.julia_registry_helpers import PREFERENCE_KEY, try_with_registry_fallback
 
 from .params import DEFAULT_NITERATIONS, DEFAULT_POPULATIONS
 
@@ -43,7 +44,8 @@ class TestStartup(unittest.TestCase):
             )
             model.warm_start = True
             model.temp_equation_file = False
-            model.equation_file = Path(tmpdirname) / "equations.csv"
+            model.output_directory = tmpdirname
+            model.run_id = "test"
             model.deterministic = True
             model.multithreading = False
             model.random_state = 0
@@ -67,8 +69,7 @@ class TestStartup(unittest.TestCase):
                 [
                     sys.executable,
                     "-c",
-                    textwrap.dedent(
-                        f"""
+                    textwrap.dedent(f"""
                         from pysr import PySRRegressor
                         import numpy as np
 
@@ -76,7 +77,9 @@ class TestStartup(unittest.TestCase):
                         y = np.load("{y_file}")
 
                         print("Loading model from file")
-                        model = PySRRegressor.from_file("{model.equation_file}")
+                        model = PySRRegressor.from_file(
+                            run_directory="{str(Path(tmpdirname) / model.run_id_)}"
+                        )
 
                         assert model.julia_state_ is not None
 
@@ -94,8 +97,7 @@ class TestStartup(unittest.TestCase):
                         best_loss = model.equations_.iloc[-1]["loss"]
 
                         assert best_loss <= {best_loss}
-                    """
-                    ),
+                    """),
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -130,8 +132,6 @@ class TestStartup(unittest.TestCase):
             self.assertIn(warning_test["msg"], result.stderr.decode())
 
     def test_notebook(self):
-        if jl_version < (1, 9, 0):
-            self.skipTest("Julia version too old")
         if platform.system() == "Windows":
             self.skipTest("Notebook test incompatible with Windows")
         if not os.access(Path(__file__).parent, os.W_OK):
@@ -158,8 +158,73 @@ class TestStartup(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
 
 
+class TestRegistryHelper(unittest.TestCase):
+    """Test the custom Julia registry preference handling."""
+
+    def setUp(self):
+        self.old_value = os.environ.get(PREFERENCE_KEY, None)
+        self.recorded_env_vars = []
+        self.hits = 0
+
+        def failing_operation():
+            self.recorded_env_vars.append(os.environ[PREFERENCE_KEY])
+            self.hits += 1
+            # Just add some package I know will not exist and also not be in the dependency chain:
+            jl.Pkg.add(name="AirspeedVelocity", version="100.0.0")
+
+        self.failing_operation = failing_operation
+
+    def tearDown(self):
+        if self.old_value is not None:
+            os.environ[PREFERENCE_KEY] = self.old_value
+        else:
+            os.environ.pop(PREFERENCE_KEY, None)
+
+    def test_successful_operation(self):
+        self.assertEqual(try_with_registry_fallback(lambda s: s, "success"), "success")
+
+    def test_non_julia_errors_reraised(self):
+        with self.assertRaises(SyntaxError) as context:
+            try_with_registry_fallback(lambda: exec("invalid syntax !@#$"))
+        self.assertNotIn("JuliaError", str(context.exception))
+
+    def test_julia_error_triggers_fallback(self):
+        os.environ[PREFERENCE_KEY] = "conservative"
+
+        with self.assertWarns(Warning) as warn_context:
+            with self.assertRaises(Exception) as error_context:
+                try_with_registry_fallback(self.failing_operation)
+
+        self.assertIn(
+            "Unsatisfiable requirements detected", str(error_context.exception)
+        )
+        self.assertIn(
+            "Initial Julia registry operation failed. Attempting to use the `eager` registry flavor of the Julia",
+            str(warn_context.warning),
+        )
+
+        # Verify both modes are tried in order
+        self.assertEqual(self.recorded_env_vars, ["conservative", "eager"])
+        self.assertEqual(self.hits, 2)
+
+        # Verify environment is restored
+        self.assertEqual(os.environ[PREFERENCE_KEY], "conservative")
+
+    def test_eager_mode_fails_directly(self):
+        os.environ[PREFERENCE_KEY] = "eager"
+
+        with self.assertRaises(Exception) as context:
+            try_with_registry_fallback(self.failing_operation)
+
+        self.assertIn("Unsatisfiable requirements detected", str(context.exception))
+        self.assertEqual(
+            self.recorded_env_vars, ["eager"]
+        )  # Should only try eager mode
+        self.assertEqual(self.hits, 1)
+
+
 def runtests(just_tests=False):
-    tests = [TestStartup]
+    tests = [TestStartup, TestRegistryHelper]
     if just_tests:
         return tests
     suite = unittest.TestSuite()

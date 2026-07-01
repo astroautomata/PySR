@@ -2,10 +2,11 @@ name: test
 channels:
   - conda-forge
 dependencies:
-  - python>=3.8
+  - python>=3.9
   - sympy>=1.0.0,<2.0.0
-  - pandas>=0.21.0,<3.0.0
-  - numpy>=1.20.0,<2.0.0
+  - pandas>=0.21.0,<4.0.0
+  - numpy>=1.20.0,<3.0.0
   - scikit-learn>=1.0.0,<2.0.0
-  - pyjuliacall>=0.9.21,<0.9.22
+  - pyjuliacall>=0.9.28,<0.9.29
   - click>=7.0.0,<9.0.0
+  - typing-extensions>=4.0.0,<5.0.0

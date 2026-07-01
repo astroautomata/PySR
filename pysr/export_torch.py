@@ -5,6 +5,7 @@ import functools as ft
 
 import numpy as np  # noqa: F401
 import sympy  # type: ignore
+from sympy.codegen.cfunctions import log2, log10  # type: ignore
 
 
 def _reduce(fn):
@@ -41,6 +42,8 @@ def _initialize_torch():
             sympy.ceiling: torch.ceil,
             sympy.floor: torch.floor,
             sympy.log: torch.log,
+            log2: torch.log2,
+            log10: torch.log10,
             sympy.exp: torch.exp,
             sympy.sqrt: torch.sqrt,
             sympy.cos: torch.cos,
@@ -94,8 +97,8 @@ def _initialize_torch():
                     self._torch_func = lambda: self._value
                     self._args = ()
                 elif issubclass(expr.func, sympy.Rational):
-                    # This is some fraction fixed in the operator.
-                    self._value = float(expr)
+                    # Includes Integer, since Integer is a subclass of Rational
+                    self.register_buffer("_value", torch.tensor(float(expr)))
                     self._torch_func = lambda: self._value
                     self._args = ()
                 elif issubclass(expr.func, sympy.UnevaluatedExpr):
@@ -108,15 +111,9 @@ def _initialize_torch():
                     self.register_buffer("_value", torch.tensor(float(expr.args[0])))
                     self._torch_func = lambda: self._value
                     self._args = ()
-                elif issubclass(expr.func, sympy.Integer):
-                    # Can get here if expr is one of the Integer special cases,
-                    # e.g. NegativeOne
-                    self._value = int(expr)
-                    self._torch_func = lambda: self._value
-                    self._args = ()
                 elif issubclass(expr.func, sympy.NumberSymbol):
                     # Can get here from exp(1) or exact pi
-                    self._value = float(expr)
+                    self.register_buffer("_value", torch.tensor(float(expr)))
                     self._torch_func = lambda: self._value
                     self._args = ()
                 elif issubclass(expr.func, sympy.Symbol):

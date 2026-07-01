@@ -16,43 +16,31 @@ jobs:
     timeout-minutes: 60
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-        os: ['ubuntu-latest']
-        use-mamba: [true, false]
-        include:
-          - python-version: 3.9
-            os: 'windows-latest'
-            use-mamba: true
-          - python-version: 3.12
-            os: 'windows-latest'
-            use-mamba: true
-          - python-version: 3.9
-            os: 'macos-latest'
-            use-mamba: true
-          - python-version: 3.12
-            os: 'macos-latest'
-            use-mamba: true
+        # NOTE: pin to avoid free-threaded Python variants (e.g. 3.14t)
+        python-version: ['3.10', '3.13']
+        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
 
     steps:
       - name: "Set up Conda"
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-variant: Mambaforge
+          miniforge-variant: Miniforge3
           miniforge-version: latest
           auto-activate-base: true
           python-version: ${{ matrix.python-version }}
           activate-environment: pysr-test
-      - name: "Install pysr with mamba"
-        run: conda activate pysr-test && mamba install pysr
-        if: ${{ matrix.use-mamba }}
-      - name: "Install pysr with conda"
-        run: conda activate pysr-test && conda install pysr
-        if: ${{ !matrix.use-mamba }}
+      - name: "Install pysr"
+        run: |
+          conda install -y pysr
+          python -c "import pysr"
+          echo "Finished."
       - name: "Run tests"
         run: |
+          echo "Running tests"
           pip install pytest nbval
           python -m pysr test main,startup
+          echo "Finished."

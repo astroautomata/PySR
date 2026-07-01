@@ -14,3 +14,26 @@ updates:
     schedule:
       # Check for updates to GitHub Actions every weekday
       interval: "daily"
+
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    target-branch: "release-v1"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "release-v1"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    target-branch: "release-v1"
+    schedule:
+      interval: "daily"

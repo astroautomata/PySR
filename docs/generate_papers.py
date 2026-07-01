@@ -6,7 +6,7 @@ import yaml
 
 data_file = "papers.yml"
 papers_header = Path("stylesheets") / "papers_header.txt"
-output_file = "papers.md"
+output_file = Path("src") / "papers.md"
 
 # Load YAML file:
 with open(data_file, "r") as stream:
@@ -39,26 +39,23 @@ with open(output_file, "w") as f:
         if image_file.startswith("http"):
             absolute_image_file = image_file
         else:
-            absolute_image_file = f"images/{image_file}"
+            absolute_image_file = f"/images/{image_file}"
 
         # Begin:
         paper_snippet = f"""
 
-<figure markdown>
-![]({absolute_image_file}){{ width="500"}}
-<figcaption>
-<!-- Large font: -->
-<h2>
-<a href="{link}">{title}</a>
-</h2>
-</figcaption>
-</figure>
-
-<center>
-{authors}
-
-<small>{affiliations}</small>
-</center>
+<div style="text-align: center; margin: 2rem 0;">
+  <img src="{absolute_image_file}" alt="{title}" style="max-width: 500px; width: 100%; height: auto; margin: 0 auto; display: block;">
+  <h2 style="margin-top: 1rem;">
+    <a href="{link}">{title}</a>
+  </h2>
+  <div style="margin: 1rem 0;">
+    {authors}
+  </div>
+  <div style="font-size: 0.9em; color: #666;">
+    {affiliations}
+  </div>
+</div>
 
 **Abstract:** {abstract}\n\n
 """

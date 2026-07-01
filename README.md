@@ -4,14 +4,14 @@
 
 PySR searches for symbolic expressions which optimize a particular objective.
 
-https://github.com/MilesCranmer/PySR/assets/7593028/c8511a49-b408-488f-8f18-b1749078268f
+https://github.com/astroautomata/PySR/assets/7593028/c8511a49-b408-488f-8f18-b1749078268f
 
 
 # PySR: High-Performance Symbolic Regression in Python and Julia
 
 | **Docs** | **Forums** | **Paper** | **colab demo** |
 |:---:|:---:|:---:|:---:|
-|[![Documentation](https://github.com/MilesCranmer/PySR/actions/workflows/docs.yml/badge.svg)](https://astroautomata.com/PySR/)|[![Discussions](https://img.shields.io/badge/discussions-github-informational)](https://github.com/MilesCranmer/PySR/discussions)|[![Paper](https://img.shields.io/badge/arXiv-2305.01582-b31b1b)](https://arxiv.org/abs/2305.01582)|[![Colab](https://img.shields.io/badge/colab-notebook-yellow)](https://colab.research.google.com/github/MilesCranmer/PySR/blob/master/examples/pysr_demo.ipynb)|
+|[![Documentation](https://github.com/astroautomata/PySR/actions/workflows/docs.yml/badge.svg)](https://ai.damtp.cam.ac.uk/pysr/)|[![Discussions](https://img.shields.io/badge/discussions-github-informational)](https://github.com/astroautomata/PySR/discussions)|[![Paper](https://img.shields.io/badge/arXiv-2305.01582-b31b1b)](https://arxiv.org/abs/2305.01582)|[![Colab](https://img.shields.io/badge/colab-notebook-yellow)](https://colab.research.google.com/github/astroautomata/PySR/blob/master/examples/pysr_demo.ipynb)|
 
 | **pip** | **conda** | **Stats** |
 | :---: | :---: | :---: |
@@ -20,14 +20,14 @@ https://github.com/MilesCranmer/PySR/assets/7593028/c8511a49-b408-488f-8f18-b174
 </div>
 
 If you find PySR useful, please cite the paper [arXiv:2305.01582](https://arxiv.org/abs/2305.01582).
-If you've finished a project with PySR, please submit a PR to showcase your work on the [research showcase page](https://astroautomata.com/PySR/papers)!
+If you've finished a project with PySR, please submit a PR to showcase your work on the [research showcase page](https://ai.damtp.cam.ac.uk/pysr/papers)!
 
 **Contents**:
 
 - [Why PySR?](#why-pysr)
 - [Installation](#installation)
 - [Quickstart](#quickstart)
-- [→ Documentation](https://astroautomata.com/PySR)
+- [→ Documentation](https://ai.damtp.cam.ac.uk/pysr)
 - [Contributors](#contributors-)
 
 <div align="center">
@@ -36,9 +36,9 @@ If you've finished a project with PySR, please submit a PR to showcase your work
 
 | **Linux** | **Windows** | **macOS** |
 |---|---|---|
-|[![Linux](https://github.com/MilesCranmer/PySR/actions/workflows/CI.yml/badge.svg)](https://github.com/MilesCranmer/PySR/actions/workflows/CI.yml)|[![Windows](https://github.com/MilesCranmer/PySR/actions/workflows/CI_Windows.yml/badge.svg)](https://github.com/MilesCranmer/PySR/actions/workflows/CI_Windows.yml)|[![macOS](https://github.com/MilesCranmer/PySR/actions/workflows/CI_mac.yml/badge.svg)](https://github.com/MilesCranmer/PySR/actions/workflows/CI_mac.yml)|
+|[![Linux](https://github.com/astroautomata/PySR/actions/workflows/CI.yml/badge.svg)](https://github.com/astroautomata/PySR/actions/workflows/CI.yml)|[![Windows](https://github.com/astroautomata/PySR/actions/workflows/CI_Windows.yml/badge.svg)](https://github.com/astroautomata/PySR/actions/workflows/CI_Windows.yml)|[![macOS](https://github.com/astroautomata/PySR/actions/workflows/CI_mac.yml/badge.svg)](https://github.com/astroautomata/PySR/actions/workflows/CI_mac.yml)|
 | **Docker** | **Conda** | **Coverage** |
-|[![Docker](https://github.com/MilesCranmer/PySR/actions/workflows/CI_docker.yml/badge.svg)](https://github.com/MilesCranmer/PySR/actions/workflows/CI_docker.yml)|[![conda-forge](https://github.com/MilesCranmer/PySR/actions/workflows/CI_conda_forge.yml/badge.svg)](https://github.com/MilesCranmer/PySR/actions/workflows/CI_conda_forge.yml)|[![Coverage Status](https://coveralls.io/repos/github/MilesCranmer/PySR/badge.svg?branch=master&service=github)](https://coveralls.io/github/MilesCranmer/PySR)|
+|[![Docker](https://github.com/astroautomata/PySR/actions/workflows/CI_docker.yml/badge.svg)](https://github.com/astroautomata/PySR/actions/workflows/CI_docker.yml)|[![conda-forge](https://github.com/astroautomata/PySR/actions/workflows/CI_conda_forge.yml/badge.svg)](https://github.com/astroautomata/PySR/actions/workflows/CI_conda_forge.yml)|[![codecov](https://codecov.io/gh/astroautomata/PySR/branch/master/graph/badge.svg)](https://codecov.io/gh/astroautomata/PySR)|
 
 </div>
 
@@ -50,7 +50,7 @@ task where the goal is to find an interpretable symbolic expression that optimiz
 Over a period of several years, PySR has been engineered from the ground up
 to be (1) as high-performance as possible,
 (2) as configurable as possible, and (3) easy to use.
-PySR is developed alongside the Julia library [SymbolicRegression.jl](https://github.com/MilesCranmer/SymbolicRegression.jl),
+PySR is developed alongside the Julia library [SymbolicRegression.jl](https://github.com/astroautomata/SymbolicRegression.jl),
 which forms the powerful search engine of PySR.
 The details of these algorithms are described in the [PySR paper](https://arxiv.org/abs/2305.01582).
 
@@ -155,7 +155,7 @@ to your `.bashrc` or `.zshrc` file.
 
 ## Quickstart
 
-You might wish to try the interactive tutorial [here](https://colab.research.google.com/github/MilesCranmer/PySR/blob/master/examples/pysr_demo.ipynb), which uses the notebook in `examples/pysr_demo.ipynb`.
+You might wish to try the interactive tutorial [here](https://colab.research.google.com/github/astroautomata/PySR/blob/master/examples/pysr_demo.ipynb), which uses the notebook in `examples/pysr_demo.ipynb`.
 
 In practice, I highly recommend using IPython rather than Jupyter, as the printing is much nicer.
 Below is a quick demo here which you can paste into a Python runtime.
@@ -178,6 +178,7 @@ PySR's main interface is in the style of scikit-learn:
 from pysr import PySRRegressor
 
 model = PySRRegressor(
+    maxsize=20,
     niterations=40,  # < Increase me for better results
     binary_operators=["+", "*"],
     unary_operators=[
@@ -254,22 +255,21 @@ model = PySRRegressor.from_file("hall_of_fame.2022-08-10_100832.281.pkl")
 
 There are several other useful features such as denoising (e.g., `denoise=True`),
 feature selection (e.g., `select_k_features=3`).
-For examples of these and other features, see the [examples page](https://astroautomata.com/PySR/examples).
-For a detailed look at more options, see the [options page](https://astroautomata.com/PySR/options).
-You can also see the full API at [this page](https://astroautomata.com/PySR/api).
-There are also tips for tuning PySR on [this page](https://astroautomata.com/PySR/tuning).
+For examples of these and other features, see the [examples page](https://ai.damtp.cam.ac.uk/pysr/examples).
+For a detailed look at more options, see the [options page](https://ai.damtp.cam.ac.uk/pysr/options).
+You can also see the full API at [this page](https://ai.damtp.cam.ac.uk/pysr/api).
+There are also tips for tuning PySR on [this page](https://ai.damtp.cam.ac.uk/pysr/tuning).
 
 ### Detailed Example
 
 The following code makes use of as many PySR features as possible.
 Note that is just a demonstration of features and you should not use this example as-is.
-For details on what each parameter does, check out the [API page](https://astroautomata.com/PySR/api/).
+For details on what each parameter does, check out the [API page](https://ai.damtp.cam.ac.uk/pysr/api/).
 
 ```python
 model = PySRRegressor(
-    procs=4,
     populations=8,
-    # ^ 2 populations per core, so one is always running.
+    # ^ Assuming we have 4 cores, this means 2 populations per core, so one is always running.
     population_size=50,
     # ^ Slightly larger populations, for greater diversity.
     ncycles_per_iteration=500,
@@ -370,8 +370,8 @@ before the `build` and `run` commands.
 
 </div>
 
-We are eager to welcome new contributors! Check out our contributors [guide](https://github.com/MilesCranmer/PySR/blob/master/CONTRIBUTORS.md) for tips 🚀.
-If you have an idea for a new feature, don't hesitate to share it on the [issues](https://github.com/MilesCranmer/PySR/issues) or [discussions](https://github.com/MilesCranmer/PySR/discussions) page.
+We are eager to welcome new contributors! Check out our contributors [guide](https://github.com/astroautomata/PySR/blob/master/CONTRIBUTORS.md) for tips 🚀.
+If you have an idea for a new feature, don't hesitate to share it on the [issues](https://github.com/astroautomata/PySR/issues) or [discussions](https://github.com/astroautomata/PySR/discussions) page.
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
