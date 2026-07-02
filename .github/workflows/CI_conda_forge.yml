@@ -35,7 +35,7 @@ jobs:
           activate-environment: pysr-test
       - name: "Install pysr"
         run: |
-          conda install -y pysr
+          conda install -y pysr 'scikit-learn<1.9'
           python -c "import pysr"
           echo "Finished."
       - name: "Run tests"
