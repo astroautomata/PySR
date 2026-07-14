@@ -1424,7 +1424,11 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         show_pickle_warning = not (
             "show_pickle_warnings_" in state and not state["show_pickle_warnings_"]
         )
-        state_keys_containing_lambdas = ["extra_sympy_mappings", "extra_torch_mappings"]
+        state_keys_containing_lambdas = [
+            "extra_sympy_mappings",
+            "extra_torch_mappings",
+            "extra_jax_mappings",
+        ]
         for state_key in state_keys_containing_lambdas:
             warn_msg = (
                 f"`{state_key}` cannot be pickled and will be removed from the "
@@ -1478,7 +1482,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             try:
                 pkl.dump(self, f)
             except Exception as e:
-                pysr_logger.debug(f"Error checkpointing model: {e}")
+                pysr_logger.warning(
+                    f"Error checkpointing model to {self.get_pkl_filename()}: {e}"
+                )
         self.show_pickle_warnings_ = True
 
     def get_pkl_filename(self) -> Path:

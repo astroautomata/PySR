@@ -1459,6 +1459,23 @@ class TestMiscellaneous(unittest.TestCase):
         # Check that the same operator mapping was used (1/x for inv)
         self.assertEqual(original_result, 0.5 + 3.0)  # 1/2 + 3 = 3.5
 
+    def test_getstate_clears_extra_jax_mappings(self):
+        """Regression test: unpicklable callables in `extra_jax_mappings`
+        must not end up in `__getstate__`'s output, mirroring the existing
+        handling of `extra_sympy_mappings`/`extra_torch_mappings`."""
+        model = PySRRegressor(
+            extra_jax_mappings={(lambda x: x): "(lambda x: x)"},
+        )
+        # A raw dict with a lambda key cannot be pickled at all:
+        with self.assertRaises(Exception):
+            pkl.dumps(model.extra_jax_mappings)
+
+        # But `__getstate__` should have cleared it, so the model itself
+        # pickles fine:
+        state = model.__getstate__()
+        self.assertIsNone(state["extra_jax_mappings"])
+        pkl.dumps(state)
+
     def test_predict_replaces_spaces_in_dataframe_columns(self):
         # Regression for #690.
         model = PySRRegressor(
