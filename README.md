@@ -260,6 +260,15 @@ For a detailed look at more options, see the [options page](https://ai.damtp.cam
 You can also see the full API at [this page](https://ai.damtp.cam.ac.uk/pysr/api).
 There are also tips for tuning PySR on [this page](https://ai.damtp.cam.ac.uk/pysr/tuning).
 
+### For AI agents
+
+If you are an AI agent (or want to teach yours how to use PySR well), there is a self-contained skill file at [`skills/pysr/SKILL.md`](skills/pysr/SKILL.md), distilled from the documentation and hundreds of forum threads. Point your agent at the file, or install it in the [Agent Skills](https://agentskills.io) format:
+
+```bash
+mkdir -p ~/.claude/skills/pysr && curl -o ~/.claude/skills/pysr/SKILL.md \
+    https://raw.githubusercontent.com/astroautomata/PySR/master/skills/pysr/SKILL.md
+```
+
 ### Detailed Example
 
 The following code makes use of as many PySR features as possible.
