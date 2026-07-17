@@ -19,7 +19,7 @@ jobs:
       sha: ${{ steps.release.outputs.sha }}
     steps:
       - id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           target-branch: master
@@ -38,7 +38,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout released revision
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.sha }}
       - name: Set up Python

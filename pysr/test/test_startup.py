@@ -149,7 +149,6 @@ class TestStartup(unittest.TestCase):
                 "-m",
                 "pytest",
                 "--nbval",
-                "--nbval-current-env",
                 str(notebook_file),
                 "--nbval-sanitize-with",
                 str(sanitize_file),

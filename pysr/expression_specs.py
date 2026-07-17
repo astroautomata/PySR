@@ -293,7 +293,7 @@ class TemplateExpressionSpec(AbstractExpressionSpec):
             num_features = if num_features === nothing
                 nothing
             else
-                (; num_features...)
+                NamedTuple(Symbol(k) => v for (k, v) in num_features)
             end
             structure = SymbolicRegression.TemplateStructure{tuple_symbol}(combine, num_features)
             return (; structure)

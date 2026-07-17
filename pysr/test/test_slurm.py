@@ -245,9 +245,6 @@ class TestSlurm(unittest.TestCase):
                         f"{label}: expected {expected_tasks} tasks across {expected_nodes} nodes, got Nodes={nodes}.\n\n{sample}"
                     )
                 if tasks == expected_tasks and nodes == expected_nodes:
-                    if expected_tasks == expected_nodes and expected_tasks > 0:
-                        # With Tasks==Nodes, Slurm must be distributing exactly 1 task per node.
-                        pass
                     if expected_nodelist is not None:
                         node_list = step.get("NodeList")
                         if not node_list:
@@ -361,7 +358,50 @@ class TestSlurm(unittest.TestCase):
 
         def _run_case(*, ntasks_per_node: int, procs: int, seed: int) -> str:
             marker = f"PYSR_SLURM_OK:slurm:{procs}"
+            mismatch_marker = "PYSR_SLURM_MISMATCH_REJECTED"
             job = self.data_dir / f"pysr_slurm_job_{procs}.sh"
+            python_lines = [
+                "import os",
+                "os.environ['JULIA_DEBUG'] = 'SlurmClusterManager'",
+                "import numpy as np",
+                "from pysr import PySRRegressor",
+                f"X = np.random.RandomState({seed}).randn(30, 2)",
+                "y = X[:, 0] + 1.0",
+            ]
+            if procs == 2:
+                python_lines.extend(
+                    [
+                        "from juliacall import JuliaError",
+                        "from pysr.julia_extensions import load_required_packages",
+                        "from pysr.julia_helpers import load_cluster_manager",
+                        "load_required_packages(cluster_manager='slurm')",
+                        "addprocs_slurm = load_cluster_manager('slurm')",
+                        "try:",
+                        "    addprocs_slurm(1)",
+                        "except JuliaError as exc:",
+                        "    expected = 'Requested 1 processes, but Slurm allocation has 2 tasks.'",
+                        "    assert expected in str(exc), str(exc)",
+                        "else:",
+                        "    raise AssertionError('A mismatched procs value was accepted.')",
+                        f"print('{mismatch_marker}')",
+                    ]
+                )
+            python_lines.extend(
+                [
+                    "model = PySRRegressor(",
+                    "    niterations=2,",
+                    "    populations=2,",
+                    "    progress=False,",
+                    "    temp_equation_file=True,",
+                    "    parallelism='multiprocessing',",
+                    f"    procs={procs},",
+                    "    cluster_manager='slurm',",
+                    "    verbosity=0,",
+                    ")",
+                    "model.fit(X, y)",
+                    f"print('{marker}')",
+                ]
+            )
             job.write_text(
                 "\n".join(
                     [
@@ -385,24 +425,7 @@ class TestSlurm(unittest.TestCase):
                         "MONITOR_PID=$!",
                         "trap 'kill $MONITOR_PID 2>/dev/null || true' EXIT",
                         "python3 - <<'PY'",
-                        "import os",
-                        "os.environ['JULIA_DEBUG'] = 'SlurmClusterManager'",
-                        "import numpy as np",
-                        "from pysr import PySRRegressor",
-                        f"X = np.random.RandomState({seed}).randn(30, 2)",
-                        "y = X[:, 0] + 1.0",
-                        "model = PySRRegressor(",
-                        "    niterations=2,",
-                        "    populations=2,",
-                        "    progress=False,",
-                        "    temp_equation_file=True,",
-                        "    parallelism='multiprocessing',",
-                        f"    procs={procs},",
-                        "    cluster_manager='slurm',",
-                        "    verbosity=0,",
-                        ")",
-                        "model.fit(X, y)",
-                        f"print('{marker}')",
+                        *python_lines,
                         "PY",
                     ]
                 )
@@ -427,6 +450,14 @@ class TestSlurm(unittest.TestCase):
                     "not ClusterManagers.\n\n" + output
                 ),
             )
+            if procs == 2:
+                self.assertIn(mismatch_marker, output)
+                before_mismatch = output.split(mismatch_marker, maxsplit=1)[0]
+                self.assertNotRegex(
+                    before_mismatch,
+                    r"Worker \d+ ready on host",
+                    msg="A mismatched procs value launched workers before failing.",
+                )
             return output
 
         cases = [

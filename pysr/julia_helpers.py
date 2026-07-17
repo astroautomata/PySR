@@ -38,7 +38,14 @@ def load_cluster_manager(cluster_manager: str) -> AnyValue:
         jl.seval("using Distributed")
         jl.seval("""
             function addprocs_slurm(numprocs::Integer; exeflags=``, lazy=false, kws...)
-                procs = Distributed.addprocs(SlurmManager(); exeflags=exeflags, lazy=lazy, kws...)
+                manager = SlurmManager()
+                if manager.ntasks != numprocs
+                    error(
+                        "Requested $numprocs processes, but Slurm allocation has $(manager.ntasks) tasks. " *
+                        "Set Slurm `--ntasks`/`--ntasks-per-node` to match, and set `procs` accordingly."
+                    )
+                end
+                procs = Distributed.addprocs(manager; exeflags=exeflags, lazy=lazy, kws...)
                 # SymbolicRegression may serialize the addprocs function to workers. Defining a
                 # stub on the new workers avoids deserialization failures if it gets captured.
                 Distributed.@everywhere procs begin
@@ -50,12 +57,6 @@ def load_cluster_manager(cluster_manager: str) -> AnyValue:
                     )
                         error("addprocs_slurm should only be called on the master process.")
                     end
-                end
-                if length(procs) != numprocs
-                    error(
-                        "Requested $numprocs processes, but Slurm allocation has $(length(procs)) tasks. " *
-                        "Set Slurm `--ntasks`/`--ntasks-per-node` to match, and set `procs` accordingly."
-                    )
                 end
                 return procs
             end

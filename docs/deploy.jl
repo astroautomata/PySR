@@ -22,7 +22,7 @@ using Documenter
 
 # Custom DeployConfig that bypasses PR origin check for cross-repo deployments
 # This allows deploying PR previews to ai.damtp.cam.ac.uk/pysr even though
-# PRs exist in MilesCranmer/PySR (Documenter's security check would normally block this)
+# PRs exist in astroautomata/PySR (Documenter's security check would normally block this)
 struct BypassPRCheckConfig <: Documenter.DeployConfig end
 
 function Documenter.deploy_folder(
@@ -43,7 +43,7 @@ function Documenter.deploy_folder(
     if github_event == "pull_request" && push_preview
         # Security: Verify PR is from trusted repository
         pr_repo = get(ENV, "GITHUB_REPOSITORY", "")
-        if pr_repo != "MilesCranmer/PySR"
+        if pr_repo != "astroautomata/PySR"
             println("BypassPRCheckConfig: Rejecting PR from untrusted repo: $pr_repo")
             return Documenter.DeployDecision(; all_ok = false)
         end
@@ -125,7 +125,7 @@ else
 
     deploy_decision = Documenter.deploy_folder(
         deploy_config;
-        repo="github.com/MilesCranmer/PySR",
+        repo="github.com/astroautomata/PySR",
         devbranch="master",
         devurl="dev",
         push_preview=true,
@@ -247,11 +247,11 @@ if deployment_target == "secondary"
         devbranch="master",
     )
 else
-    # Primary deployment to MilesCranmer/PySR
-    println("Deploying to primary repository (MilesCranmer/PySR)")
+    # Primary deployment to astroautomata/PySR
+    println("Deploying to primary repository (astroautomata/PySR)")
     DocumenterVitepress.deploydocs(;
         root=@__DIR__,
-        repo="github.com/MilesCranmer/PySR.git",
+        repo="github.com/astroautomata/PySR.git",
         deploy_config=deploy_config,  # Use normal GitHubActions config
         push_preview=true,
         target="dist",

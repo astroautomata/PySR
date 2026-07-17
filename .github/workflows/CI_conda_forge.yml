@@ -3,17 +3,25 @@ name: conda-forge
 # This CI tries the conda-forge version of PySR
 
 on:
+  pull_request:
+    branches:
+      - 'master'
+      - 'release-*'
+    paths:
+      - '.github/workflows/CI_conda_forge.yml'
+      - 'environment.yml'
+      - 'pyproject.toml'
+      - 'pysr/juliapkg.json'
   schedule:
-    # Run at the 0th minute of the 10th hour (UTC).
-    # This means the job will run at 5am EST.
-    - cron: "0 10 * * *"
-    # This will automatically run on master branch only.
+    - cron: "0 10 * * 1"
   workflow_dispatch:
 
 jobs:
   conda_test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      SCIPY_ARRAY_API: "1"
     defaults:
       run:
         shell: bash -el {0}

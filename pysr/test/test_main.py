@@ -36,7 +36,7 @@ from pysr.export_latex import sympy2latex
 from pysr.export_sympy import pysr2sympy
 from pysr.expression_specs import parametric_expression_deprecation_warning
 from pysr.feature_selection import _handle_feature_selection, run_feature_selection
-from pysr.julia_helpers import init_julia
+from pysr.julia_helpers import init_julia, jl_is_function, load_cluster_manager
 from pysr.sr import (
     _check_assertions,
     _process_constraints,
@@ -76,6 +76,15 @@ class TestPipeline(unittest.TestCase):
         )
         self.rstate = np.random.RandomState(0)
         self.X = self.rstate.randn(100, 5)
+
+    def test_temp_equation_file_respects_tempdir(self):
+        with tempfile.TemporaryDirectory() as d:
+            tempdir = Path(d) / "pysr-temp"
+            model = PySRRegressor(
+                temp_equation_file=True, tempdir=str(tempdir), run_id="t"
+            )
+            model._setup_equation_file()
+            self.assertEqual(Path(model.output_directory_).parent, tempdir)
 
     def test_linear_relation(self):
         y = self.X[:, 0]
@@ -312,6 +321,34 @@ class TestPipeline(unittest.TestCase):
         y = np.array([0.0, 1.0])
         weights = np.array([1.0, 1.0])
         model.fit(X, y, weights=weights)
+
+    def test_elementwise_loss_float32_probe_accepts_strictly_typed_loss(self):
+        custom_loss = jl.seval(
+            "(prediction::Float32, target::Float32) -> (prediction - target)^2"
+        )
+        _validate_elementwise_loss(
+            custom_loss,
+            has_weights=False,
+            probe_value=np.float32(1.0),
+        )
+
+    def test_elementwise_loss_float32_fit_accepts_strictly_typed_loss(self):
+        model = PySRRegressor(
+            niterations=1,
+            populations=1,
+            procs=0,
+            progress=False,
+            verbosity=0,
+            precision=32,
+            temp_equation_file=True,
+            binary_operators=["+"],
+            elementwise_loss=(
+                "(prediction::Float32, target::Float32) -> (prediction - target)^2"
+            ),
+        )
+        X = np.array([[0.0], [1.0]], dtype=np.float32)
+        y = np.array([0.0, 1.0], dtype=np.float32)
+        model.fit(X, y)
 
     def test_validation_helpers_skip_nonfunction(self):
         _validate_elementwise_loss(jl.seval("1.0"), has_weights=False)
@@ -1512,6 +1549,8 @@ class TestMiscellaneous(unittest.TestCase):
                     warnings.simplefilter("ignore")
                     check(model)
                 print("Passed", check.func.__name__)
+            except unittest.SkipTest as exc:
+                print("Skipped", check.func.__name__, "with:", exc)
             except Exception:
                 error_message = str(traceback.format_exc())
                 exception_messages.append(
@@ -1605,6 +1644,10 @@ class TestMiscellaneous(unittest.TestCase):
         """Test we can load all packages at once."""
         load_all_packages()
         self.assertTrue(jl.seval("ClusterManagers isa Module"))
+        self.assertTrue(jl.seval("SlurmClusterManager isa Module"))
+        self.assertTrue(jl_is_function(load_cluster_manager("slurm")))
+        self.assertTrue(jl_is_function(load_cluster_manager("pbs")))
+        self.assertTrue(jl_is_function(load_cluster_manager("identity")))
 
     def test_get_batch_size(self):
         """Test the _get_batch_size function."""
@@ -2207,6 +2250,17 @@ class TestDimensionalConstraints(unittest.TestCase):
 
 
 class TestTemplateExpressionSpec(unittest.TestCase):
+    def test_num_features_symbol_keys(self):
+        # ponytail: one check — dict keys must reach Julia as Symbols
+        spec = TemplateExpressionSpec(
+            ["f", "g"],
+            "combine(fs, vars) = fs.f(vars[1], vars[2]) + fs.g(vars[3])",
+            {"f": 2, "g": 1},
+        )
+        options = spec.julia_expression_options()
+        names = jl.seval("x -> propertynames(x.structure.num_features)")(options)
+        self.assertEqual(names, (jl.Symbol("f"), jl.Symbol("g")))
+
     def _check_macro_str(self, spec, expected_str):
         self.assertEqual(
             spec._template_macro_str().strip(), dedent(expected_str).strip()

@@ -2,7 +2,7 @@
   "name": "PySR",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "git@github.com:MilesCranmer/PySR.git",
+  "repository": "git@github.com:astroautomata/PySR.git",
   "author": "MilesCranmer <miles.cranmer@gmail.com>",
   "license": "Apache-2.0",
   "devDependencies": {

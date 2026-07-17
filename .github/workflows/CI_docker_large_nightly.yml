@@ -2,11 +2,14 @@ name: Docker_Large_Nightly
 
 on:
   schedule:
-    # Run at the 0th minute of the 10th hour (UTC).
-    # This means the job will run at 5am EST.
-    - cron: "0 10 * * *"
-    # This will automatically run on master branch only.
+    - cron: "0 10 15 * *"
   workflow_dispatch:
+    inputs:
+      include-arm64:
+        description: "Also run a slow linux/arm64 QEMU smoke test"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   test:
@@ -21,11 +24,11 @@ jobs:
         julia-version: ['1.10', '1']
         python-version: ['3.10', '3']
         os: [ubuntu-latest]
-        arch: ['linux/amd64', 'linux/arm64']
+        arch: ${{ fromJSON(github.event_name == 'workflow_dispatch' && github.event.inputs.include-arm64 == 'true' && '["linux/amd64", "linux/arm64"]' || '["linux/amd64"]') }}
 
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
         with:

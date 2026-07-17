@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.0.0a2](https://github.com/MilesCranmer/PySR/compare/v2.0.0a1...v2.0.0a2) (2026-05-15)
+
+This is an alpha release of v2.0.0. It includes backend, packaging, export, and documentation updates since `v2.0.0a1`.
+
+### Backend and Packaging
+
+* update backend to SymbolicRegression.jl v2.0.0-alpha.9 ([#1132](https://github.com/MilesCranmer/PySR/pull/1132))
+* allow pandas `<4.0.0` ([#1129](https://github.com/MilesCranmer/PySR/pull/1129))
+* repair PySR v2 release automation without relying on release-please to publish PEP 440 alpha versions ([#1162](https://github.com/MilesCranmer/PySR/pull/1162), [#1169](https://github.com/MilesCranmer/PySR/pull/1169), [#1185](https://github.com/MilesCranmer/PySR/pull/1185))
+
+### Features
+
+* add Slurm tests using docker compose ([0364d43](https://github.com/MilesCranmer/PySR/commit/0364d43c01ba058784e9e8eaab357f927895ce1e))
+* raise friendly error when loss functions have bad signatures ([#1138](https://github.com/MilesCranmer/PySR/pull/1138))
+
+### Bug Fixes
+
+* correct type in elementwise loss validation ([#1184](https://github.com/MilesCranmer/PySR/pull/1184))
+* normalize DataFrame column spaces in `predict` ([#1136](https://github.com/MilesCranmer/PySR/pull/1136))
+* fix torch export with constant arguments ([bb721b5](https://github.com/MilesCranmer/PySR/commit/bb721b5687248165f4cdbb08807498185947ae4c), [e280034](https://github.com/MilesCranmer/PySR/commit/e280034231acb03b146e6a0333e02d3fc38acebc))
+* fix typing issue in export format ([2b173ff](https://github.com/MilesCranmer/PySR/commit/2b173ffa1fbe8ff6a07ab223f1132343a2b4c324))
+
+### Documentation
+
+* overhaul documentation with VitePress and add language/version picker
+* add example papers for active matter, Lyman-alpha forest analysis, batteries, implied volatility, and math discovery
+
 ## [2.0.0a1] (2025-10-08)
 
 This is an _alpha_ release of v2.0.0. There will still be changes before the release of v2.0.0, likely including new hyperparameter defaults.

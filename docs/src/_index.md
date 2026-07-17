@@ -14,7 +14,7 @@ hero:
       link: /api
     - theme: alt
       text: View on GitHub
-      link: https://github.com/MilesCranmer/PySR
+      link: https://github.com/astroautomata/PySR
   image:
     src: https://ai.damtp.cam.ac.uk/symbolicregression/dev/logo.png
     alt: PySR

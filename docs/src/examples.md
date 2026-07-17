@@ -175,7 +175,7 @@ If all goes well, you should find that it predicts the correct input equation, w
 
 ## 7. Julia packages and types
 
-PySR uses [SymbolicRegression.jl](https://github.com/MilesCranmer/SymbolicRegression.jl)
+PySR uses [SymbolicRegression.jl](https://github.com/astroautomata/SymbolicRegression.jl)
 as its search backend. This is a pure Julia package, and so can interface easily with any other
 Julia package.
 For some tasks, it may be necessary to load such a package.

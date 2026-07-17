@@ -10,7 +10,7 @@ I run from IPython (Jupyter Notebooks don't work as well[^1]) on the head node o
 
 I use the [tensorboard feature](https://ai.damtp.cam.ac.uk/pysr/examples/#12-using-tensorboard-for-logging) for experiment tracking.
 
-[^1]: Jupyter Notebooks are supported by PySR, but miss out on some useful features available in IPython and Python: the progress bar, and early stopping with "q". In Jupyter you cannot interrupt a search once it has started; you have to restart the kernel. See [this issue](https://github.com/MilesCranmer/PySR/issues/260) for updates.
+[^1]: Jupyter Notebooks are supported by PySR, but miss out on some useful features available in IPython and Python: the progress bar, and early stopping with "q". In Jupyter you cannot interrupt a search once it has started; you have to restart the kernel. See [this issue](https://github.com/astroautomata/PySR/issues/260) for updates.
 
 1. I start by using the default parameters.
 2. I use only the operators I think it needs and no more.
@@ -47,5 +47,5 @@ Once a run is finished, I use the `PySRRegressor.from_file` function to load the
 
 ## More Tips
 
-You might also wish to explore the [discussions](https://github.com/MilesCranmer/PySR/discussions/) page for more tips, and to see if anyone else has had similar questions.
+You might also wish to explore the [discussions](https://github.com/astroautomata/PySR/discussions/) page for more tips, and to see if anyone else has had similar questions.
 Be sure to also read through the [reference](api.md).

@@ -3,7 +3,7 @@
     "packages": {
         "SymbolicRegression": {
             "uuid": "8254be44-1295-4e6a-a16d-46603ac705cb",
-            "url": "https://github.com/MilesCranmer/SymbolicRegression.jl",
+            "url": "https://github.com/astroautomata/SymbolicRegression.jl",
             "rev": "v2.0.0-alpha.9"
         },
         "Serialization": {

@@ -31,18 +31,18 @@ ADD ./pysr/_cli/*.py /pysr/pysr/_cli/
 RUN mkdir /pysr/pysr/test
 
 # Now, we create a custom version of SymbolicRegression.jl
-# If PySR pins a backend version/rev, use it; otherwise fall back to the default branch.
-RUN set -eu; \
-    sr_version="$(python3 -c 'import json; pkg = json.load(open("/pysr/pysr/juliapkg.json", "r"))["packages"]["SymbolicRegression"]; print(pkg.get("version") or pkg.get("rev") or "")')"; \
-    sr_version="$(echo "$sr_version" | sed 's/[\\^=~]//g')"; \
-    if [ -n "$sr_version" ]; then \
-        if echo "$sr_version" | grep -q '^v'; then \
-            git clone -b "$sr_version" --single-branch https://github.com/MilesCranmer/SymbolicRegression.jl /srjl; \
-        else \
-            git clone -b "v$sr_version" --single-branch https://github.com/MilesCranmer/SymbolicRegression.jl /srjl; \
-        fi; \
+# First, we get the version or rev from juliapkg.json:
+RUN python3 -c 'import json; pkg = json.load(open("/pysr/pysr/juliapkg.json", "r"))["packages"]["SymbolicRegression"]; print(pkg.get("version", pkg.get("rev", "")))' > /pysr/sr_version
+
+# Remove any = or ^ or ~ from the version:
+RUN cat /pysr/sr_version | sed 's/[\^=~]//g' > /pysr/sr_version_processed
+
+# Now, we check out the version of SymbolicRegression.jl that PySR is using:
+# If sr_version starts with 'v', use it as-is; otherwise prepend 'v'
+RUN if grep -q '^v' /pysr/sr_version_processed; then \
+        git clone -b "$(cat /pysr/sr_version_processed)" --single-branch https://github.com/astroautomata/SymbolicRegression.jl /srjl; \
     else \
-        git clone --single-branch https://github.com/MilesCranmer/SymbolicRegression.jl /srjl; \
+        git clone -b "v$(cat /pysr/sr_version_processed)" --single-branch https://github.com/astroautomata/SymbolicRegression.jl /srjl; \
     fi
 
 # Edit SymbolicRegression.jl to create a new function.

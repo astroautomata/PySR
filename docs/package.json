@@ -11,11 +11,11 @@
   },
   "dependencies": {
     "@nolebase/vitepress-plugin-enhanced-readabilities": "^2.14.0",
-    "d3-format": "^3.1.0",
-    "markdown-it": "^14.1.0",
+    "d3-format": "^3.1.2",
+    "markdown-it": "^14.2.0",
     "markdown-it-footnote": "^4.0.0",
     "markdown-it-mathjax3": "^4.3.2",
     "vitepress": "^1.6.3",
-    "vitepress-plugin-tabs": "^0.6.0"
+    "vitepress-plugin-tabs": "^0.9.0"
   }
 }

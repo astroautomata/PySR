@@ -28,7 +28,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: "Set up Julia"
         uses: julia-actions/setup-julia@v2
         with:

@@ -235,11 +235,15 @@ def _check_assertions(
             )
 
 
-def _validate_elementwise_loss(custom_loss, *, has_weights: bool) -> None:
-    """Validate that a Julia `elementwise_loss` is callable.
+def _validate_elementwise_loss(
+    custom_loss, *, has_weights: bool, probe_value: Any = 1.0
+) -> None:
+    """Check whether a Julia `elementwise_loss` accepts the expected inputs.
 
-    We require exactly 2 args unless the user passed `weights=` to fit,
-    in which case we require 3 args.
+    The function probes the loss with two or three arguments, depending on
+    whether weights are present, using the same dtype that fitting will use.
+    If the probe fails, it raises a `ValueError` describing the expected
+    signature.
     """
 
     # This can be either a LossFunctions.jl object (e.g. `L2DistLoss()`) or a Julia function.
@@ -247,14 +251,18 @@ def _validate_elementwise_loss(custom_loss, *, has_weights: bool) -> None:
     if not jl_is_function(custom_loss):
         return
 
+    probe_args = (
+        (probe_value, probe_value, probe_value)
+        if has_weights
+        else (probe_value, probe_value)
+    )
+    ok = bool(jl.applicable(custom_loss, *probe_args))
     if has_weights:
-        ok = bool(jl.applicable(custom_loss, 1.0, 1.0, 1.0))
         if not ok:
             raise ValueError(
                 "`elementwise_loss` must accept (prediction, target, weight) when `weights` is passed to `fit`."
             )
     else:
-        ok = bool(jl.applicable(custom_loss, 1.0, 1.0))
         if not ok:
             raise ValueError(
                 "`elementwise_loss` must accept (prediction, target). If you intended a full objective, use "
@@ -682,11 +690,11 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         Number of processes to use for parallelism. If `None`, defaults to `cpu_count()`.
         Default is `None`.
     cluster_manager : str
-        For distributed computing, this sets the job queue system. Set
-        to one of "slurm", "pbs", "lsf", "sge", "qrsh", "scyld", or "htc".
-        If set to one of these, PySR will run in distributed
-        mode, and use `procs` to figure out how many processes to launch.
-        Default is `None`.
+        For distributed computing, this sets the job queue system. Set to
+        "slurm" to use all tasks in an existing Slurm allocation; `procs` must
+        match the allocation's task count. Other supported values are "pbs",
+        "lsf", "sge", "qrsh", "scyld", and "htc". A Julia worker-launch
+        function may also be supplied as a string. Default is `None`.
     heap_size_hint_in_bytes : int
         For multiprocessing, this sets the `--heap-size-hint` parameter
         for new Julia processes. This can be configured when using
@@ -1004,11 +1012,11 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         probability_negate_constant: float = 0.00743,
         tournament_selection_n: int = 15,
         tournament_selection_p: float = 0.982,
-        # fmt: off
-        parallelism: Literal["serial", "multithreading", "multiprocessing"] | None = None,
+        parallelism: (
+            Literal["serial", "multithreading", "multiprocessing"] | None
+        ) = None,
         procs: int | None = None,
-        cluster_manager: Literal["slurm", "pbs", "lsf", "sge", "qrsh", "scyld", "htc"] | str | None = None,
-        # fmt: on
+        cluster_manager: str | None = None,
         heap_size_hint_in_bytes: int | None = None,
         worker_timeout: float | None = None,
         worker_imports: list[str] | None = None,
@@ -1580,15 +1588,16 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             if self.output_directory is not None:
                 assert self.output_directory_ == self.output_directory
         else:
-            self.output_directory_ = (
-                tempfile.mkdtemp()
-                if self.temp_equation_file
-                else (
+            if self.temp_equation_file:
+                if self.tempdir is not None:
+                    Path(self.tempdir).mkdir(parents=True, exist_ok=True)
+                self.output_directory_ = tempfile.mkdtemp(dir=self.tempdir)
+            else:
+                self.output_directory_ = (
                     "outputs"
                     if self.output_directory is None
                     else self.output_directory
                 )
-            )
             self.run_id_ = (
                 cast(str, SymbolicRegression.SearchUtilsModule.generate_run_id())
                 if self.run_id is None
@@ -2107,13 +2116,19 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         if isinstance(complexity_of_variables, list):
             complexity_of_variables = jl_array(complexity_of_variables)
 
+        np_dtype = self._get_precision_mapped_dtype(np.array(X))
+
         custom_loss = jl.seval(
             str(self.elementwise_loss)
             if self.elementwise_loss is not None
             else "nothing"
         )
         if self.elementwise_loss is not None:
-            _validate_elementwise_loss(custom_loss, has_weights=weights is not None)
+            _validate_elementwise_loss(
+                custom_loss,
+                has_weights=weights is not None,
+                probe_value=np_dtype(1.0),
+            )
 
         custom_full_objective = jl.seval(
             str(self.loss_function) if self.loss_function is not None else "nothing"
@@ -2225,7 +2240,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                 jl_constraints_dict = jl.Dict(constraints_pairs)
 
         # Call to Julia backend.
-        # See https://github.com/MilesCranmer/SymbolicRegression.jl/blob/master/src/OptionsStruct.jl
+        # See https://github.com/astroautomata/SymbolicRegression.jl/blob/master/src/OptionsStruct.jl
         options = SymbolicRegression.Options(
             operators=jl_operator_enum,
             constraints=jl_constraints_dict,
@@ -2301,8 +2316,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         self.julia_options_stream_ = jl_serialize(options)
 
         # Convert data to desired precision
-        test_X = np.array(X)
-        np_dtype = self._get_precision_mapped_dtype(test_X)
 
         # This converts the data into a Julia array:
         jl_X = jl_array(np.array(X, dtype=np_dtype).T)
@@ -2914,16 +2927,23 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
         equation_file_contents = cast(List[pd.DataFrame], self.equation_file_contents_)
 
-        ret_outputs = [
-            pd.concat(
-                [
-                    output,
-                    *([calculate_scores(output)] if self.loss_scale == "log" else []),
-                    self.expression_spec_.create_exports(
-                        self, output, search_output, i if self.nout_ > 1 else None
-                    ),
-                ],
-                axis=1,
+        ret_outputs: list[pd.DataFrame] = [
+            cast(
+                pd.DataFrame,
+                pd.concat(
+                    [
+                        output,
+                        *(
+                            [calculate_scores(output)]
+                            if self.loss_scale == "log"
+                            else []
+                        ),
+                        self.expression_spec_.create_exports(
+                            self, output, search_output, i if self.nout_ > 1 else None
+                        ),
+                    ],
+                    axis=1,
+                ),
             )
             for i, output in enumerate(equation_file_contents)
         ]
