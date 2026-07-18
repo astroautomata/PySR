@@ -36,7 +36,7 @@ from pysr.export_latex import sympy2latex
 from pysr.export_sympy import pysr2sympy
 from pysr.expression_specs import parametric_expression_deprecation_warning
 from pysr.feature_selection import _handle_feature_selection, run_feature_selection
-from pysr.julia_helpers import init_julia, jl_is_function, load_cluster_manager
+from pysr.julia_helpers import _load_cluster_manager, init_julia
 from pysr.sr import (
     _check_assertions,
     _process_constraints,
@@ -1645,9 +1645,10 @@ class TestMiscellaneous(unittest.TestCase):
         load_all_packages()
         self.assertTrue(jl.seval("ClusterManagers isa Module"))
         self.assertTrue(jl.seval("SlurmClusterManager isa Module"))
-        self.assertTrue(jl_is_function(load_cluster_manager("slurm")))
-        self.assertTrue(jl_is_function(load_cluster_manager("pbs")))
-        self.assertTrue(jl_is_function(load_cluster_manager("identity")))
+
+        with mock.patch.dict(os.environ, {"SLURM_JOB_ID": "1", "SLURM_NTASKS": "2"}):
+            with self.assertRaisesRegex(JuliaError, "allocation has 2 tasks"):
+                _load_cluster_manager("slurm")(1)
 
     def test_get_batch_size(self):
         """Test the _get_batch_size function."""

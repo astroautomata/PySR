@@ -29,45 +29,22 @@ def _escape_filename(filename):
     return str_repr
 
 
-KNOWN_CLUSTERMANAGER_BACKENDS = ["slurm", "pbs", "lsf", "sge", "qrsh", "scyld", "htc"]
-
-
-def load_cluster_manager(cluster_manager: str) -> AnyValue:
+def _load_cluster_manager(cluster_manager: str):
     if cluster_manager == "slurm":
+        jl.seval("using Distributed: addprocs")
         jl.seval("using SlurmClusterManager: SlurmManager")
-        jl.seval("using Distributed")
-        jl.seval("""
-            function addprocs_slurm(numprocs::Integer; exeflags=``, lazy=false, kws...)
+        return jl.seval("""
+            (numprocs; kws...) -> begin
                 manager = SlurmManager()
-                if manager.ntasks != numprocs
-                    error(
-                        "Requested $numprocs processes, but Slurm allocation has $(manager.ntasks) tasks. " *
-                        "Set Slurm `--ntasks`/`--ntasks-per-node` to match, and set `procs` accordingly."
-                    )
-                end
-                procs = Distributed.addprocs(manager; exeflags=exeflags, lazy=lazy, kws...)
-                # SymbolicRegression may serialize the addprocs function to workers. Defining a
-                # stub on the new workers avoids deserialization failures if it gets captured.
-                Distributed.@everywhere procs begin
-                    function addprocs_slurm(
-                        numprocs::Integer;
-                        exeflags=``,
-                        lazy=false,
-                        kws...,
-                    )
-                        error("addprocs_slurm should only be called on the master process.")
-                    end
-                end
-                return procs
+                manager.ntasks == numprocs || error(
+                    "Requested $numprocs processes, but Slurm allocation has $(manager.ntasks) tasks. " *
+                    "Set Slurm `--ntasks`/`--ntasks-per-node` and `procs` to the same value."
+                )
+                addprocs(manager; kws...)
             end
             """)
-        return jl.addprocs_slurm
-    elif cluster_manager in KNOWN_CLUSTERMANAGER_BACKENDS:
-        jl.seval(f"using ClusterManagers: addprocs_{cluster_manager}")
-        return jl.seval(f"addprocs_{cluster_manager}")
-    else:
-        # Assume it's a function
-        return jl.seval(cluster_manager)
+    jl.seval(f"using ClusterManagers: addprocs_{cluster_manager}")
+    return jl.seval(f"addprocs_{cluster_manager}")
 
 
 def jl_array(x, dtype=None):

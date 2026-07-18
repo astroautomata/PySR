@@ -17,7 +17,7 @@ services:
     command: ["slurmd"]
     hostname: c1
     working_dir: /data
-    cpus: 4
+    cpus: 2
     privileged: true
     volumes:
       - etc_munge:/etc/munge
@@ -32,7 +32,7 @@ services:
     command: ["slurmd"]
     hostname: c2
     working_dir: /data
-    cpus: 4
+    cpus: 2
     privileged: true
     volumes:
       - etc_munge:/etc/munge

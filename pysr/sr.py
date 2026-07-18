@@ -45,12 +45,12 @@ from .feature_selection import run_feature_selection
 from .julia_extensions import load_required_packages
 from .julia_helpers import (
     _escape_filename,
+    _load_cluster_manager,
     jl_array,
     jl_deserialize,
     jl_is_function,
     jl_named_tuple,
     jl_serialize,
-    load_cluster_manager,
 )
 from .julia_import import AnyValue, SymbolicRegression, VectorValue, jl
 from .logger_specs import AbstractLoggerSpec
@@ -691,10 +691,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         Default is `None`.
     cluster_manager : str
         For distributed computing, this sets the job queue system. Set to
-        "slurm" to use all tasks in an existing Slurm allocation; `procs` must
-        match the allocation's task count. Other supported values are "pbs",
-        "lsf", "sge", "qrsh", "scyld", and "htc". A Julia worker-launch
-        function may also be supplied as a string. Default is `None`.
+        "slurm" to use an existing Slurm allocation, with `procs` equal to
+        its task count. Other supported values are "pbs", "lsf", "sge",
+        "qrsh", "scyld", and "htc". Default is `None`.
     heap_size_hint_in_bytes : int
         For multiprocessing, this sets the `--heap-size-hint` parameter
         for new Julia processes. This can be configured when using
@@ -1016,7 +1015,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             Literal["serial", "multithreading", "multiprocessing"] | None
         ) = None,
         procs: int | None = None,
-        cluster_manager: str | None = None,
+        cluster_manager: (
+            Literal["slurm", "pbs", "lsf", "sge", "qrsh", "scyld", "htc"] | None
+        ) = None,
         heap_size_hint_in_bytes: int | None = None,
         worker_timeout: float | None = None,
         worker_imports: list[str] | None = None,
@@ -2168,7 +2169,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                 os.environ.setdefault(
                     "JULIA_PROJECT", str(Path(active_project).resolve().parent)
                 )
-            cluster_manager = load_cluster_manager(cluster_manager)
+            cluster_manager = _load_cluster_manager(cluster_manager)
 
         if self.autodiff_backend is not None:
             autodiff_backend = jl.Symbol(self.autodiff_backend)

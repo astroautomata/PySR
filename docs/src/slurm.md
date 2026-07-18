@@ -1,11 +1,11 @@
 # Slurm (Multi-node)
 
-PySR supports running across multiple nodes on Slurm via `cluster_manager="slurm"`.
-This backend is **allocation-based**: you request resources with Slurm (`sbatch`/`salloc`), then PySR launches Julia workers inside that allocation (using `SlurmClusterManager.jl`).
+PySR supports running across multiple nodes in an existing Slurm allocation with
+`cluster_manager="slurm"`. Request the resources with `sbatch` or `salloc`, then
+PySR will launch Julia workers across the allocation using
+`SlurmClusterManager.jl`.
 
-Here is a minimal `sbatch` example using 3 workers on each of 2 nodes (6 workers total).
-
-Save this as `pysr_job.sh`:
+For example, this job requests three workers on each of two nodes:
 
 ```bash
 #!/bin/bash
@@ -19,7 +19,7 @@ set -euo pipefail
 python pysr_script.py
 ```
 
-Save this as `pysr_script.py` in the same directory:
+The corresponding `pysr_script.py` is:
 
 ```python
 import numpy as np
@@ -33,19 +33,18 @@ model = PySRRegressor(
     populations=2,
     parallelism="multiprocessing",
     cluster_manager="slurm",
-    procs=6,  # must match the Slurm allocation's total task count
+    procs=6,
 )
 model.fit(X, y)
 print(model)
 ```
 
-Submit it with:
+Submit the job with:
 
 ```bash
 sbatch pysr_job.sh
 ```
 
-## Notes
-
-- `procs` is the number of Julia worker processes. It must match the Slurm allocation's total tasks (e.g., `--ntasks` or `--nodes * --ntasks-per-node`).
-- Run the Python script once (as the master) inside the allocation; do not wrap it in `srun`.
+`procs` must equal the allocation's total task count, given by `--ntasks` or
+`--nodes` multiplied by `--ntasks-per-node`. Run the Python script once inside
+the allocation; do not wrap it in `srun`.
