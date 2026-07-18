@@ -34,14 +34,17 @@ def _load_cluster_manager(cluster_manager: str):
         jl.seval("using Distributed: addprocs")
         jl.seval("using SlurmClusterManager: SlurmManager")
         return jl.seval("""
-            (numprocs; kws...) -> begin
-                manager = SlurmManager()
-                manager.ntasks == numprocs || error(
-                    "Requested $numprocs processes, but Slurm allocation has $(manager.ntasks) tasks. " *
-                    "Set Slurm `--ntasks`/`--ntasks-per-node` and `procs` to the same value."
-                )
-                addprocs(manager; kws...)
+            if !isdefined(@__MODULE__, :_pysr_addprocs_slurm)
+                function _pysr_addprocs_slurm(numprocs; kws...)
+                    manager = SlurmManager()
+                    manager.ntasks == numprocs || error(
+                        "Requested $numprocs processes, but Slurm allocation has $(manager.ntasks) tasks. " *
+                        "Set Slurm `--ntasks`/`--ntasks-per-node` and `procs` to the same value."
+                    )
+                    addprocs(manager; kws...)
+                end
             end
+            _pysr_addprocs_slurm
             """)
     jl.seval(f"using ClusterManagers: addprocs_{cluster_manager}")
     return jl.seval(f"addprocs_{cluster_manager}")
