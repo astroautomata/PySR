@@ -545,6 +545,34 @@ Rows may contain multiple features; each output is learned from the requested
 number of previous rows. The remaining options are inherited from
 `PySRRegressor`.
 
+Independent trajectories can be pooled without creating history windows across
+their boundaries. For near-identity dynamics, `difference_order` searches for a
+finite difference and converts predictions and symbolic exports back to sequence
+values:
+
+```python
+model = PySRSequenceRegressor(
+    recursive_history_length=1,
+    difference_order=1,
+    linear_guesses=True,
+    binary_operators=["+", "-", "*"],
+)
+model.fit([trajectory_1, trajectory_2, trajectory_3])
+```
+
+For non-homogeneous recurrences, pass the physical coordinate rather than using
+the default integer sequence index:
+
+```python
+model.fit(trajectory, time_values=physical_time)
+model.predict(prefix, num_predictions=100, time_values=prefix_time)
+```
+
+Future coordinate values are extrapolated from the final coordinate step.
+When `difference_order > 0`, `sympy()`, `latex()`, and `predict()` return the
+reconstructed sequence relation; `equations_` and `get_best()` retain the raw
+finite-difference search results.
+
 ## 12. Expression Specifications
 
 PySR 1.0 introduces powerful expression specifications that allow you to define structured equations. Here are two examples:

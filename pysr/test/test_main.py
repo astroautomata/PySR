@@ -1142,16 +1142,228 @@ class TestSequenceRegressor(unittest.TestCase):
         model.fit(
             np.array([[1, 10], [2, 20], [3, 30], [4, 40]]),
             variable_names=["a", "b"],
+            complexity_of_variables=[2, 3, 4, 5],
         )
 
         kwargs = model._regressor.fit.call_args.kwargs
         np.testing.assert_array_equal(
-            kwargs["X"], [[1, 10, 2, 20], [2, 20, 3, 30]]
+            kwargs["X"], [[2, 1, 10, 2, 20], [3, 2, 20, 3, 30]]
         )
         np.testing.assert_array_equal(kwargs["y"], [[3, 30], [4, 40]])
         self.assertEqual(
             kwargs["variable_names"],
+            ["t", "a_tm2", "b_tm2", "a_tm1", "b_tm1"],
+        )
+        self.assertEqual(
+            kwargs["display_variable_names"],
+            ["t", "a[t-2]", "b[t-2]", "a[t-1]", "b[t-1]"],
+        )
+        self.assertEqual(kwargs["complexity_of_variables"], [1, 2, 3, 4, 5])
+
+    def test_sequence_features_include_time(self):
+        model = PySRSequenceRegressor(recursive_history_length=2)
+        X = np.array([[1, 10], [2, 20], [3, 30]])
+
+        np.testing.assert_array_equal(
+            model._sliding_window(X),
+            [[2, 1, 10, 2, 20], [3, 2, 20, 3, 30]],
+        )
+
+    def test_homogenous_sequence_omits_time(self):
+        model = PySRSequenceRegressor(
+            recursive_history_length=2,
+            homogenous=True,
+        )
+        model._regressor.fit = mock.Mock()
+
+        model.fit(
+            np.array([[1, 10], [2, 20], [3, 30], [4, 40]]),
+            variable_names=["a", "b"],
+            complexity_of_variables=[2, 3, 4, 5],
+        )
+
+        kwargs = model._regressor.fit.call_args.kwargs
+        np.testing.assert_array_equal(kwargs["X"], [[1, 10, 2, 20], [2, 20, 3, 30]])
+        self.assertEqual(
+            kwargs["variable_names"],
             ["a_tm2", "b_tm2", "a_tm1", "b_tm1"],
+        )
+        self.assertEqual(
+            kwargs["display_variable_names"],
+            ["a[t-2]", "b[t-2]", "a[t-1]", "b[t-1]"],
+        )
+        self.assertEqual(kwargs["complexity_of_variables"], [2, 3, 4, 5])
+
+    def test_sequence_complexity_includes_time_only_if_not_homogenous(self):
+        with mock.patch("pysr.regressor_sequence.PySRRegressor") as regressor:
+            PySRSequenceRegressor(
+                recursive_history_length=2,
+                complexity_of_variables=[2, 3],
+            )
+            regressor.assert_called_once_with(complexity_of_variables=[1, 2, 3])
+
+            regressor.reset_mock()
+            PySRSequenceRegressor(
+                recursive_history_length=2,
+                homogenous=True,
+                complexity_of_variables=[2, 3],
+            )
+            regressor.assert_called_once_with(complexity_of_variables=[2, 3])
+
+    def test_recursive_prediction_includes_time_only_if_not_homogenous(self):
+        X = np.array([1, 2, 3, 4])
+        for homogenous, expected_observed, expected_recursive in (
+            (False, [[2, 1, 2], [3, 2, 3], [4, 3, 4]], [[5, 4, 30]]),
+            (True, [[1, 2], [2, 3], [3, 4]], [[4, 30]]),
+        ):
+            with self.subTest(homogenous=homogenous):
+                model = PySRSequenceRegressor(
+                    recursive_history_length=2,
+                    homogenous=homogenous,
+                )
+                model._regressor.predict = mock.Mock(
+                    side_effect=[np.array([[10], [20], [30]]), np.array([[40]])]
+                )
+
+                prediction = model.predict(X, num_predictions=4)
+
+                calls = model._regressor.predict.call_args_list
+                np.testing.assert_array_equal(calls[0].kwargs["X"], expected_observed)
+                np.testing.assert_array_equal(calls[1].kwargs["X"], expected_recursive)
+                np.testing.assert_array_equal(prediction, [[10], [20], [30], [40]])
+
+    def test_fit_multiple_sequences_without_crossing_boundaries(self):
+        model = PySRSequenceRegressor(
+            recursive_history_length=1,
+            homogenous=True,
+        )
+        model._regressor.fit = mock.Mock()
+
+        model.fit([np.array([1, 2, 3]), np.array([10, 20, 30])])
+
+        kwargs = model._regressor.fit.call_args.kwargs
+        np.testing.assert_array_equal(kwargs["X"], [[1], [2], [10], [20]])
+        np.testing.assert_array_equal(kwargs["y"], [[2], [3], [20], [30]])
+
+    def test_fit_uses_physical_time_values(self):
+        model = PySRSequenceRegressor(recursive_history_length=1)
+        model._regressor.fit = mock.Mock()
+
+        model.fit(np.array([1, 2, 3]), time_values=np.array([0.0, 0.5, 1.0]))
+
+        kwargs = model._regressor.fit.call_args.kwargs
+        np.testing.assert_array_equal(kwargs["X"], [[0.5, 1], [1.0, 2]])
+        with self.assertRaisesRegex(ValueError, "time_values.*required"):
+            model.predict(np.array([1, 2, 3]))
+
+        model.fit(
+            [np.array([1, 2, 3])],
+            time_values=[np.array([0.0, 0.5, 1.0])],
+        )
+        np.testing.assert_array_equal(
+            model._regressor.fit.call_args.kwargs["X"], [[0.5, 1], [1.0, 2]]
+        )
+
+        model._regressor.predict = mock.Mock(
+            side_effect=[np.array([[10], [20], [30]]), np.array([[40]])]
+        )
+        prediction = model.predict(
+            np.array([1, 2, 3]),
+            num_predictions=4,
+            time_values=np.array([0.0, 0.5, 1.0]),
+        )
+        np.testing.assert_array_equal(prediction, [[10], [20], [30], [40]])
+        np.testing.assert_array_equal(
+            model._regressor.predict.call_args_list[1].kwargs["X"], [[2.0, 30]]
+        )
+
+    def test_difference_targets_predictions_and_symbolic_export(self):
+        model = PySRSequenceRegressor(
+            recursive_history_length=2,
+            homogenous=True,
+            difference_order=2,
+        )
+        model._regressor.fit = mock.Mock()
+        model.fit(np.array([1, 2, 4, 7]), variable_names=["x"])
+
+        kwargs = model._regressor.fit.call_args.kwargs
+        np.testing.assert_array_equal(kwargs["y"], [[1], [1]])
+
+        model._regressor.predict = mock.Mock(return_value=np.array([[1], [1], [1]]))
+        np.testing.assert_array_equal(
+            model.predict(np.array([1, 2, 4, 7]), num_predictions=3),
+            [[4], [7], [11]],
+        )
+
+        model._regressor.sympy = mock.Mock(return_value=sympy.Symbol("residual"))
+        self.assertEqual(
+            model.sympy(),
+            sympy.Symbol("residual")
+            - sympy.Symbol("x_tm2")
+            + 2 * sympy.Symbol("x_tm1"),
+        )
+
+    def test_difference_order_cannot_exceed_history(self):
+        model = PySRSequenceRegressor(
+            recursive_history_length=1,
+            difference_order=2,
+        )
+        with self.assertRaisesRegex(ValueError, "cannot exceed"):
+            model.fit(np.array([1, 2, 3]))
+
+    def test_linear_guesses_require_full_rank(self):
+        model = PySRSequenceRegressor(
+            recursive_history_length=1,
+            homogenous=True,
+            difference_order=1,
+            linear_guesses=True,
+        )
+        model._regressor.fit = mock.Mock()
+        model.fit(np.array([[1, 2], [2, 4], [4, 8], [8, 16]]))
+        self.assertIsNone(model._regressor.guesses)
+
+        model = PySRSequenceRegressor(
+            recursive_history_length=1,
+            homogenous=True,
+            linear_guesses=True,
+            guesses=["x_tm1"],
+        )
+        model._regressor.fit = mock.Mock()
+        model.fit(np.array([1, 2, 4, 8]))
+        self.assertEqual(model._regressor.guesses, ["x_tm1"])
+
+        model = PySRSequenceRegressor(
+            recursive_history_length=1,
+            homogenous=True,
+            difference_order=1,
+            linear_guesses=True,
+        )
+        model._regressor.fit = mock.Mock()
+        model.fit(
+            [
+                np.array([[1, 0], [2, 1], [4, 3]]),
+                np.array([[0, 1], [1, 3], [3, 7]]),
+            ]
+        )
+        self.assertEqual(len(model._regressor.guesses), 2)
+        self.assertIn("x0_tm1", model._regressor.guesses[0][0])
+
+        model.fit(np.array([[1, 2], [2, 4], [4, 8], [8, 16]]))
+        self.assertIsNone(model._regressor.guesses)
+
+    def test_from_file_restores_homogenous_behavior(self):
+        with mock.patch.object(PySRRegressor, "from_file") as from_file:
+            model = PySRSequenceRegressor.from_file(
+                "model.pkl",
+                recursive_history_length=2,
+                homogenous=True,
+            )
+
+        from_file.assert_called_once_with("model.pkl")
+        self.assertTrue(model.homogenous)
+        np.testing.assert_array_equal(
+            model._sliding_window(np.array([[1], [2], [3]])),
+            [[1, 2], [2, 3]],
         )
 
     def test_invalid_history_length(self):
