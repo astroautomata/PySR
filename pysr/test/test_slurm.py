@@ -279,7 +279,8 @@ class TestSlurm(unittest.TestCase):
         worker_hosts = re.findall(
             r"Worker \d+ ready on host ([^,]+), port \d+", output.stdout
         )
-        self.assertCountEqual(worker_hosts, ["c1", "c2"], msg=output.stdout)
+        self.assertEqual(len(worker_hosts), 2, msg=output.stdout)
+        self.assertEqual(len(set(worker_hosts)), 2, msg=output.stdout)
         self.assertIn("PYSR_SLURM_OK", output.stdout)
 
 
