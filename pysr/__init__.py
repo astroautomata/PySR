@@ -14,11 +14,6 @@ if os.environ.get("PYSR_USE_BEARTYPE", "0") == "1":
 
     beartype_this_package()
 
-# This must be imported as early as possible to prevent
-# library linking issues caused by numpy/pytorch/etc. importing
-# old libraries:
-from .julia_import import jl, SymbolicRegression  # isort:skip
-
 # Get the version using importlib.metadata (Python >= 3.8 is required):
 from importlib.metadata import PackageNotFoundError, version
 
@@ -32,7 +27,6 @@ from .expression_specs import (
     ParametricExpressionSpec,
     TemplateExpressionSpec,
 )
-from .julia_extensions import load_all_packages
 from .logger_specs import AbstractLoggerSpec, TensorBoardLoggerSpec
 from .sr import PySRRegressor
 
@@ -41,6 +35,23 @@ try:
 except PackageNotFoundError:  # pragma: no cover
     # package is not installed
     __version__ = "unknown"
+
+
+def __getattr__(name: str):
+    if name in {"jl", "SymbolicRegression"}:
+        # Kept lazy so importing PySRRegressor can remain Julia-free.
+        from .julia_import import SymbolicRegression, jl
+
+        value = {"jl": jl, "SymbolicRegression": SymbolicRegression}[name]
+        globals()[name] = value
+        return value
+    if name == "load_all_packages":
+        from .julia_extensions import load_all_packages
+
+        globals()[name] = load_all_packages
+        return load_all_packages
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "jl",

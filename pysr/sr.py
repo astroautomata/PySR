@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import importlib.util
 import logging
 import os
 import pickle as pkl
@@ -42,17 +43,6 @@ from .expression_specs import (
     parametric_expression_deprecation_warning,
 )
 from .feature_selection import run_feature_selection
-from .julia_extensions import load_required_packages
-from .julia_helpers import (
-    _escape_filename,
-    _load_cluster_manager,
-    jl_array,
-    jl_deserialize,
-    jl_is_function,
-    jl_named_tuple,
-    jl_serialize,
-)
-from .julia_import import AnyValue, SymbolicRegression, VectorValue, jl
 from .logger_specs import AbstractLoggerSpec
 from .utils import (
     ArrayLike,
@@ -75,6 +65,9 @@ try:
 except ImportError:
     from typing_extensions import List
 
+
+AnyValue = Any
+VectorValue = Any
 
 ALREADY_RAN = False
 
@@ -150,6 +143,8 @@ def _maybe_create_inline_operators(
             is_user_defined_operator = "(" in op
 
             if is_user_defined_operator:
+                from .julia_import import jl
+
                 jl.seval(op)
                 # Cut off from the first non-alphanumeric char:
                 first_non_char = [j for j, char in enumerate(op) if char == "("][0]
@@ -245,6 +240,8 @@ def _validate_elementwise_loss(
     If the probe fails, it raises a `ValueError` describing the expected
     signature.
     """
+    from .julia_helpers import jl_is_function
+    from .julia_import import jl
 
     # This can be either a LossFunctions.jl object (e.g. `L2DistLoss()`) or a Julia function.
     # Only validate arity when the evaluated object is actually a function.
@@ -277,6 +274,9 @@ def _validate_custom_objective(
     signature,
     other_alternative=None,
 ) -> None:
+    from .julia_helpers import jl_is_function
+    from .julia_import import jl
+
     if not jl_is_function(custom_objective):
         raise ValueError(f"`{knob}` must evaluate to a callable Julia function.")
 
@@ -387,6 +387,13 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         `'best'` selects the candidate model with the highest score
         among expressions with a loss better than at least 1.5x the
         most accurate model.
+    backend : {"auto", "julia", "rust"}
+        Search backend to use. The default `"auto"` backend uses the optional
+        Rust backend if its `symbolic_regression_rs` module is installed,
+        otherwise it falls back to the full-featured Julia backend. The
+        optional `"rust"` backend targets vanilla symbolic regression through
+        the external `symbolic_regression_rs` package and supports a smaller
+        feature set.
     binary_operators : list[str]
         List of strings for binary operators used in the search.
         See the [operators page](https://ai.damtp.cam.ac.uk/pysr/operators/)
@@ -948,6 +955,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         self,
         model_selection: Literal["best", "accuracy", "score"] = "best",
         *,
+        backend: Literal["auto", "julia", "rust"] = "auto",
         binary_operators: list[str] | None = None,
         unary_operators: list[str] | None = None,
         operators: dict[int, list[str]] | None = None,
@@ -1060,6 +1068,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         **kwargs,
     ):
         # Hyperparameters
+        self.backend = backend
         # - Model search parameters
         self.model_selection = model_selection
         self.binary_operators = binary_operators
@@ -1294,6 +1303,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             with open(pkl_filename, "rb") as f:
                 model = cast("PySRRegressor", pkl.load(f))
 
+            if not hasattr(model, "backend"):
+                model.backend = "julia"
+
             # Update any parameters if necessary, such as
             # extra_sympy_mappings:
             model.set_params(**pysr_kwargs)
@@ -1497,11 +1509,15 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
     @property
     def julia_options_(self):
         """The deserialized julia options."""
+        from .julia_helpers import jl_deserialize
+
         return jl_deserialize(self.julia_options_stream_)
 
     @property
     def julia_state_(self):
         """The deserialized state."""
+        from .julia_helpers import jl_deserialize
+
         return cast(
             Union[Tuple[VectorValue, AnyValue], None],
             jl_deserialize(self.julia_state_stream_),
@@ -1577,6 +1593,25 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             "instead. For loading, you should pass `run_directory`."
         )
 
+    def _resolve_backend(self) -> Literal["julia", "rust"]:
+        """Resolve the runtime backend without importing Julia."""
+        if self.backend == "rust":
+            return "rust"
+        if self.backend == "julia":
+            return "julia"
+        if self.backend != "auto":
+            raise ValueError("`backend` must be one of 'auto', 'julia', or 'rust'.")
+
+        if "symbolic_regression_rs" in sys.modules:
+            return "rust"
+        try:
+            rust_spec = importlib.util.find_spec("symbolic_regression_rs")
+        except (ImportError, ValueError):
+            rust_spec = None
+        if rust_spec is not None:
+            return "rust"
+        return "julia"
+
     def _setup_equation_file(self):
         """Set the pathname of the output directory."""
         if self.warm_start and (
@@ -1599,11 +1634,18 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                     if self.output_directory is None
                     else self.output_directory
                 )
-            self.run_id_ = (
-                cast(str, SymbolicRegression.SearchUtilsModule.generate_run_id())
-                if self.run_id is None
-                else self.run_id
-            )
+            if self.run_id is None:
+                backend = getattr(self, "backend_", self.backend)
+                if backend == "rust":
+                    self.run_id_ = next(tempfile._get_candidate_names())
+                else:
+                    from .julia_import import SymbolicRegression
+
+                    self.run_id_ = cast(
+                        str, SymbolicRegression.SearchUtilsModule.generate_run_id()
+                    )
+            else:
+                self.run_id_ = self.run_id
             if self.temp_equation_file:
                 assert self.output_directory is None
 
@@ -1626,6 +1668,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         """
         # Immutable parameter validation
         # Ensure instance parameters are allowable values:
+        if self.backend not in ("auto", "julia", "rust"):
+            raise ValueError("`backend` must be one of 'auto', 'julia', or 'rust'.")
 
         # Validate operators vs binary_operators/unary_operators mutual exclusion
         if self.operators is not None:
@@ -1996,7 +2040,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         seed: int,
     ):
         """
-        Run the symbolic regression fitting process on the julia backend.
+        Run the symbolic regression fitting process on the configured backend.
 
         Parameters
         ----------
@@ -2016,7 +2060,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             argument should be a list of integers representing the category
             of each sample in `X`.
         seed : int
-            Random seed for julia backend process.
+            Random seed passed to the backend runtime.
 
         Returns
         -------
@@ -2026,8 +2070,32 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         Raises
         ------
         ImportError
-            Raised when the julia backend fails to import a package.
+            Raised when the selected backend fails to import a required package.
         """
+        backend = getattr(self, "backend_", self.backend)
+        if backend == "rust":
+            from .backends.rust import run_rust_backend
+
+            return run_rust_backend(
+                self,
+                X,
+                y,
+                runtime_params,
+                weights=weights,
+                category=category,
+                seed=seed,
+            )
+
+        from .julia_extensions import load_required_packages
+        from .julia_helpers import (
+            _escape_filename,
+            _load_cluster_manager,
+            jl_array,
+            jl_is_function,
+            jl_serialize,
+        )
+        from .julia_import import SymbolicRegression, jl
+
         # Need to be global as we don't want to recreate/reinstate julia for
         # every new instance of PySRRegressor
         global ALREADY_RAN
@@ -2485,6 +2553,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             self.X_units_ = None
             self.y_units_ = None
 
+        self.backend_ = self._resolve_backend()
         self._setup_equation_file()
         self._clear_equation_file_contents()
 
@@ -2682,6 +2751,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             X = X.astype(self._get_precision_mapped_dtype(X))
 
         if category is not None:
+            from .julia_helpers import jl_array
+
             offset_for_julia_indexing = 1
             args: tuple = (
                 jl_array((category + offset_for_julia_indexing).astype(np.int64)),
@@ -3083,6 +3154,8 @@ def _prepare_guesses_for_julia(guesses, nout) -> VectorValue | None:
     jl_guesses: VectorValue | None
         Julia-compatible guesses array or None if no guesses provided
     """
+    from .julia_helpers import jl_array, jl_named_tuple
+
     if guesses is None:
         return None
 

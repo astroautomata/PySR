@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 
 from .export import add_export_formats
-from .julia_helpers import jl_array
-from .julia_import import AnyValue, SymbolicRegression, jl
 from .utils import ArrayLike
+
+AnyValue = Any
 
 try:
     from typing import TypeAlias
@@ -88,6 +88,8 @@ class ExpressionSpec(AbstractExpressionSpec):
     """The default expression specification, with no special behavior."""
 
     def julia_expression_spec(self):
+        from .julia_import import SymbolicRegression
+
         return SymbolicRegression.ExpressionSpec()
 
     def create_exports(
@@ -252,6 +254,8 @@ class TemplateExpressionSpec(AbstractExpressionSpec):
             )
 
     def julia_expression_spec(self):
+        from .julia_import import SymbolicRegression
+
         key = self._get_cache_key()
         if key in self._spec_cache:
             return self._spec_cache[key]
@@ -267,6 +271,8 @@ class TemplateExpressionSpec(AbstractExpressionSpec):
         return result
 
     def _call_template_macro(self):
+        from .julia_import import jl
+
         return jl.seval(self._template_macro_str())
 
     def _template_macro_str(self):
@@ -282,6 +288,8 @@ class TemplateExpressionSpec(AbstractExpressionSpec):
         """)
 
     def julia_expression_options(self):
+        from .julia_import import jl
+
         f_combine = jl.seval(self.combine)
         creator = jl.seval("""
         function _pysr_create_template_structure(
@@ -378,6 +386,8 @@ class ParametricExpressionSpec(AbstractExpressionSpec):
         self.max_parameters = max_parameters
 
     def julia_expression_spec(self):
+        from .julia_import import SymbolicRegression
+
         return SymbolicRegression.ParametricExpressionSpec(
             max_parameters=self.max_parameters, warn=False
         )
@@ -402,6 +412,8 @@ class CallableJuliaExpression:
         self.expression = expression
 
     def __call__(self, X: np.ndarray, *args):
+        from .julia_helpers import jl_array
+
         raw_output = self.expression(jl_array(X.T), *args)
         return np.array(raw_output).T
 

@@ -1,0 +1,80 @@
+name: Rust backend connector
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - pysr_rust_backend/**
+      - .github/workflows/CI_rust_backend_connector.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-backend-connector:
+    name: Rust backend connector
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12", "3.13"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install connector
+        run: uv pip install --system -e pysr_rust_backend
+
+      - name: Run connector tests
+        run: python -m unittest discover pysr_rust_backend/tests
+
+      - name: Build connector wheel
+        working-directory: pysr_rust_backend
+        run: uvx maturin build --out ../dist
+
+      - name: Test built wheel
+        working-directory: pysr_rust_backend
+        run: |
+          python -m venv "$RUNNER_TEMP/pysr-rust-backend-wheel"
+          . "$RUNNER_TEMP/pysr-rust-backend-wheel/bin/activate"
+          python -m pip install --upgrade pip
+          python -m pip install ../dist/*.whl
+          python -c "import numpy as np, symbolic_regression_rs; X=np.linspace(-1,1,24,dtype=np.float32).reshape(-1,1); y=X[:,0]; out=symbolic_regression_rs.search(X,y,options={'seed':0,'niterations':1,'populations':1,'population_size':16,'ncycles_per_iteration':20,'maxsize':10,'maxdepth':10,'deterministic':True,'progress':False},operators={2:['+','sub','*','/']},variable_names=['x0']); assert out['hall_of_fame']"
+
+      - name: Build source distribution
+        working-directory: pysr_rust_backend
+        run: uvx maturin sdist --out ../dist
+
+      - name: Test source distribution
+        working-directory: pysr_rust_backend
+        run: |
+          python -m venv "$RUNNER_TEMP/pysr-rust-backend-sdist"
+          . "$RUNNER_TEMP/pysr-rust-backend-sdist/bin/activate"
+          python -m pip install --upgrade pip
+          python -m pip install ../dist/*.tar.gz
+          python -c "import numpy as np, symbolic_regression_rs; X=np.linspace(-1,1,24,dtype=np.float32).reshape(-1,1); y=X[:,0]; out=symbolic_regression_rs.search(X,y,options={'seed':0,'niterations':1,'populations':1,'population_size':16,'ncycles_per_iteration':20,'maxsize':10,'maxdepth':10,'deterministic':True,'progress':False},operators={2:['+','sub','*','/']},variable_names=['x0']); assert out['hall_of_fame']"
+
+      - name: cargo check
+        run: cargo check --manifest-path pysr_rust_backend/Cargo.toml
+
+      - name: cargo fmt --check
+        run: cargo fmt --check --manifest-path pysr_rust_backend/Cargo.toml

@@ -1,0 +1,22 @@
+[package]
+name = "symbolic_regression_rs_py"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Experimental Rust backend package for PySR."
+homepage = "https://github.com/astroautomata/PySR"
+repository = "https://github.com/astroautomata/PySR"
+publish = false
+
+[lib]
+name = "symbolic_regression_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+dynamic_expressions = { version = "0.10.1", git = "https://github.com/astroautomata/symbolic_regression.rs", package = "dynamic_expressions", default-features = false }
+ndarray = "0.17"
+num-traits = "0.2"
+numpy = "0.29"
+pyo3 = { version = "0.29", features = ["extension-module"] }
+rayon = "1"
+symbolic_regression = { version = "0.12.2", git = "https://github.com/astroautomata/symbolic_regression.rs", package = "symbolic_regression", default-features = false }

@@ -1,5 +1,41 @@
 # Customization
 
+## Backend selection
+
+PySR uses the Julia backend by default:
+
+```python
+PySRRegressor(backend="julia")
+```
+
+An experimental Rust backend adapter is also available:
+
+```python
+PySRRegressor(backend="rust")
+```
+
+The Rust backend is intended for vanilla symbolic regression with builtin
+operators and faster Julia-free startup. It requires an optional Python package
+exposing `symbolic_regression_rs.search`.
+Install it with:
+
+```bash
+pip install "pysr[rust]"
+```
+
+| Feature | `backend="julia"` | `backend="rust"` |
+| --- | --- | --- |
+| Builtin operators | Yes | Yes |
+| Custom Julia operators/losses | Yes | No |
+| Template and parametric expression specs | Yes | No |
+| Operator and nested constraints | Yes | No |
+| Units and dimensional constraints | Yes | No |
+| Cluster managers and Julia extensions | Yes | No |
+
+Use `backend="julia"` when you need the full PySR feature set.
+
+## Julia backend customization
+
 If you have explored the [options](options.md) and [PySRRegressor reference](api.md), and still haven't figured out how to specify a constraint or objective required for your problem, you might consider editing the backend.
 The backend of PySR is written as a pure Julia package under the name [SymbolicRegression.jl](https://github.com/astroautomata/SymbolicRegression.jl).
 This package is accessed with [`juliacall`](https://github.com/JuliaPy/PythonCall.jl), which allows us to transfer objects back and forth between the Python and Julia runtimes.

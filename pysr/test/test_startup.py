@@ -110,15 +110,15 @@ class TestStartup(unittest.TestCase):
     def test_bad_startup_options(self):
         warning_tests = [
             dict(
-                code='import os; os.environ["PYTHON_JULIACALL_HANDLE_SIGNALS"] = "no"; import pysr',
+                code='import os; os.environ["PYTHON_JULIACALL_HANDLE_SIGNALS"] = "no"; from pysr import jl',
                 msg="PYTHON_JULIACALL_HANDLE_SIGNALS environment variable is set",
             ),
             dict(
-                code='import os; os.environ["PYTHON_JULIACALL_THREADS"] = "1"; import pysr',
+                code='import os; os.environ["PYTHON_JULIACALL_THREADS"] = "1"; from pysr import jl',
                 msg="PYTHON_JULIACALL_THREADS environment variable is set",
             ),
             dict(
-                code="import juliacall; import pysr",
+                code="import juliacall; from pysr import jl",
                 msg="juliacall module already imported.",
             ),
         ]

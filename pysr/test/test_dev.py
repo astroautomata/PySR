@@ -45,7 +45,12 @@ class TestDev(unittest.TestCase):
             cwd=repo_root,
         )
         self.assertEqual(test_result.returncode, 0)
-        self.assertEqual(test_result.stdout.decode("utf-8").strip(), "2.3")
+        stdout_lines = [
+            line.strip()
+            for line in test_result.stdout.decode("utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(stdout_lines[-1], "2.3")
 
 
 def runtests(just_tests=False):

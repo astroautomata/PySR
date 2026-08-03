@@ -1,5 +1,24 @@
 # Benchmark 1
 
+## Backend comparison
+
+To compare the experimental Rust backend against the default Julia backend on
+the same generated dataset, run:
+
+```bash
+python benchmarks/compare_backends.py --niterations 3 --repeats 3
+```
+
+Use `--mode subprocess` to run each trial in a fresh Python process, which is
+useful when measuring startup-heavy workflows:
+
+```bash
+python benchmarks/compare_backends.py --mode subprocess --niterations 1 --repeats 3
+```
+
+The script reports wall-clock timing plus the best loss, prediction MSE, and
+selected equation for each backend.
+
 The following benchmarks were ran with this command on a node on CCA's BNL cluster (40-cores). At no time was the node fully busy. The tags were put into the file `tags.txt`, and the `benchmark.sh` was copied to the root folder. This is the command used:
 
 ```bash

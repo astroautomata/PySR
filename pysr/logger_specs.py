@@ -4,8 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
-from .julia_helpers import jl_array, jl_dict
-from .julia_import import AnyValue, jl
+AnyValue = Any
 
 
 class AbstractLoggerSpec(ABC):
@@ -47,6 +46,8 @@ class TensorBoardLoggerSpec(AbstractLoggerSpec):
     overwrite: bool = False
 
     def create_logger(self) -> AnyValue:
+        from .julia_import import jl
+
         # We assume that TensorBoardLogger is already imported via `julia_extensions.py`
         make_logger = jl.seval("""
             function make_logger(log_dir::AbstractString, overwrite::Bool, log_interval::Int)
@@ -61,6 +62,9 @@ class TensorBoardLoggerSpec(AbstractLoggerSpec):
         return make_logger(log_dir, self.overwrite, self.log_interval)
 
     def write_hparams(self, logger: AnyValue, hparams: dict[str, Any]) -> None:
+        from .julia_helpers import jl_array, jl_dict
+        from .julia_import import jl
+
         base_logger = jl.SymbolicRegression.get_logger(logger)
         writer = jl.seval("TensorBoardLogger.write_hparams!")
         jl_clean_hparams = jl_dict(
@@ -81,5 +85,7 @@ class TensorBoardLoggerSpec(AbstractLoggerSpec):
         )
 
     def close(self, logger: AnyValue) -> None:
+        from .julia_import import jl
+
         base_logger = jl.SymbolicRegression.get_logger(logger)
         jl.close(base_logger)

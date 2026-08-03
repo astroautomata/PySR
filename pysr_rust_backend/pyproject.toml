@@ -1,0 +1,35 @@
+[build-system]
+requires = ["maturin>=1.8,<2"]
+build-backend = "maturin"
+
+[project]
+name = "pysr-rust-backend"
+version = "0.1.0"
+description = "Experimental Rust backend package for PySR."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.23"]
+license = { text = "Apache-2.0" }
+keywords = ["symbolic-regression", "genetic-programming", "pysr", "rust-backend"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Homepage = "https://github.com/astroautomata/PySR"
+Repository = "https://github.com/astroautomata/PySR"
+Issues = "https://github.com/astroautomata/PySR/issues"
+
+[tool.maturin]
+module-name = "symbolic_regression_rs"
+features = ["pyo3/extension-module"]
