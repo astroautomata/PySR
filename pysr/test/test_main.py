@@ -2251,8 +2251,19 @@ class TestDimensionalConstraints(unittest.TestCase):
 
 
 class TestTemplateExpressionSpec(unittest.TestCase):
+    def test_reload_raises_clear_error(self):
+        model = PySRRegressor(
+            expression_spec=TemplateExpressionSpec(
+                combine="f(x)", expressions=["f"], variable_names=["x"]
+            )
+        )
+        model.equations_ = pd.DataFrame({"loss": [0.0]})
+        model.feature_names_in_ = np.array(["x"])
+        model.nout_ = 1
+        with self.assertRaisesRegex(NotImplementedError, "not yet supported"):
+            pkl.loads(pkl.dumps(model))
+
     def test_num_features_symbol_keys(self):
-        # ponytail: one check — dict keys must reach Julia as Symbols
         spec = TemplateExpressionSpec(
             ["f", "g"],
             "combine(fs, vars) = fs.f(vars[1], vars[2]) + fs.g(vars[3])",
@@ -2387,6 +2398,7 @@ def runtests(just_tests=False):
         TestLaTeXTable,
         TestDimensionalConstraints,
         TestGuesses,
+        TestTemplateExpressionSpec,
     ]
     if just_tests:
         return test_cases
