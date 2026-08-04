@@ -523,7 +523,57 @@ Note that this expression has a large dynamic range so may be difficult to find.
 Note that you can also search for exclusively dimensionless constants by settings
 `dimensionless_constants_only` to `true`.
 
-## 11. Expression Specifications
+## 11. Sequences
+
+`PySRSequenceRegressor` searches for recurrence relations without a separate
+target array. For example, this finds a Fibonacci-style relation:
+
+```python
+X = [1, 1]
+for _ in range(20):
+    X.append(X[-1] + X[-2])
+
+model = PySRSequenceRegressor(
+    recursive_history_length=2,
+    binary_operators=["+", "-", "*", "/"],
+)
+model.fit(X)
+print(model)
+```
+
+Rows may contain multiple features; each output is learned from the requested
+number of previous rows. The remaining options are inherited from
+`PySRRegressor`.
+
+Independent trajectories can be pooled without creating history windows across
+their boundaries. For near-identity dynamics, `difference_order` searches for a
+finite difference and converts predictions and symbolic exports back to sequence
+values:
+
+```python
+model = PySRSequenceRegressor(
+    recursive_history_length=1,
+    difference_order=1,
+    linear_guesses=True,
+    binary_operators=["+", "-", "*"],
+)
+model.fit([trajectory_1, trajectory_2, trajectory_3])
+```
+
+For non-homogeneous recurrences, pass the physical coordinate rather than using
+the default integer sequence index:
+
+```python
+model.fit(trajectory, time_values=physical_time)
+model.predict(prefix, num_predictions=100, time_values=prefix_time)
+```
+
+Future coordinate values are extrapolated from the final coordinate step.
+When `difference_order > 0`, `sympy()`, `latex()`, and `predict()` return the
+reconstructed sequence relation; `equations_` and `get_best()` retain the raw
+finite-difference search results.
+
+## 12. Expression Specifications
 
 PySR 1.0 introduces powerful expression specifications that allow you to define structured equations. Here are two examples:
 
@@ -635,7 +685,7 @@ You can use this approach for more complex cases,
 where you have multiple expressions in the template and parameters that vary by category.
 
 
-## 12. Using TensorBoard for Logging
+## 13. Using TensorBoard for Logging
 
 You can use TensorBoard to visualize the search progress, as well as
 record hyperparameters and final metrics (like `min_loss` and `pareto_volume` - the latter of which
@@ -670,7 +720,7 @@ You can then view the logs with:
 tensorboard --logdir logs/
 ```
 
-## 13. Vector-valued expressions
+## 14. Vector-valued expressions
 
 You can use `TemplateExpressionSpec` to find expressions for vector-valued data,
 where each component might share a common structure.
@@ -796,7 +846,7 @@ print(f"f1 at (1,2,3): {f1_result[0]}")  # Should be ~4.0 for x2^2
 print(f"shared at (1,2,3): {shared_result[0]}")  # Should be ~2.718 for exp(1)
 ```
 
-## 14. Using differential operators
+## 15. Using differential operators
 
 As part of the `TemplateExpressionSpec` described above,
 you can also use differential operators within the template.
@@ -836,7 +886,7 @@ If everything works, you should find something that simplifies to $\frac{\sqrt{x
 
 Here, we write out a full function in Julia.
 
-## 15. Additional features
+## 16. Additional features
 
 For the many other features available in PySR, please
 read the [Options section](options.md).

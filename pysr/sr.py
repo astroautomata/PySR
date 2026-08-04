@@ -2415,6 +2415,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         Xresampled=None,
         weights=None,
         variable_names: ArrayLike[str] | None = None,
+        display_variable_names: ArrayLike[str] | None = None,
         complexity_of_variables: int | float | list[int | float] | None = None,
         X_units: ArrayLike[str] | None = None,
         y_units: str | ArrayLike[str] | None = None,
@@ -2446,6 +2447,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             instead of `variable_names`. Cannot contain spaces or special
             characters. Avoid variable names which are also
             function names in `sympy`, such as "N".
+        display_variable_names : list[str]
+            Names to display for each variable, if different from
+            `variable_names`. Requires `variable_names`.
         X_units : list[str]
             A list of units for each variable in `X`. Each unit should be
             a string representing a Julia expression. See DynamicQuantities.jl
@@ -2489,6 +2493,16 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         self._clear_equation_file_contents()
 
         runtime_params = self._validate_and_modify_params()
+
+        if display_variable_names is not None:
+            if variable_names is None:
+                raise ValueError(
+                    "`variable_names` must be provided with `display_variable_names`."
+                )
+            if len(display_variable_names) != len(variable_names):
+                raise ValueError(
+                    "`display_variable_names` must be the same length as `variable_names`."
+                )
 
         if category is not None:
             assert Xresampled is None
@@ -2546,6 +2560,12 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                 random_state,
             )
         )
+
+        if display_variable_names is not None:
+            display_variable_names = np.asarray(display_variable_names)
+            if self.selection_mask_ is not None:
+                display_variable_names = display_variable_names[self.selection_mask_]
+            self.display_feature_names_in_ = display_variable_names
 
         # Assertion checks
         use_custom_variable_names = variable_names is not None
@@ -2958,6 +2978,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         indices: list[int] | None = None,
         precision: int = 3,
         columns: list[str] = ["equation", "complexity", "loss", "score"],
+        output_variable_names: str | list[str] | None = None,
     ) -> str:
         """Create a LaTeX/booktabs table for all, or some, of the equations.
 
@@ -2975,6 +2996,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         columns : list[str]
             Which columns to include in the table.
             Default is `["equation", "complexity", "loss", "score"]`.
+        output_variable_names : str | list[str]
+            Name for the output variable, or one name per output.
 
         Returns
         -------
@@ -2988,21 +3011,35 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         self.refresh()
 
         if isinstance(self.equations_, list):
+            assert output_variable_names is None or isinstance(
+                output_variable_names, list
+            )
             if indices is not None:
                 assert isinstance(indices, list)
                 assert isinstance(indices[0], list)
                 assert len(indices) == self.nout_
 
             table_string = sympy2multilatextable(
-                self.equations_, indices=indices, precision=precision, columns=columns
+                self.equations_,
+                indices=indices,
+                precision=precision,
+                columns=columns,
+                output_variable_names=output_variable_names,
             )
         elif isinstance(self.equations_, pd.DataFrame):
+            assert output_variable_names is None or isinstance(
+                output_variable_names, str
+            )
             if indices is not None:
                 assert isinstance(indices, list)
                 assert isinstance(indices[0], int)
 
             table_string = sympy2latextable(
-                self.equations_, indices=indices, precision=precision, columns=columns
+                self.equations_,
+                indices=indices,
+                precision=precision,
+                columns=columns,
+                output_variable_name=output_variable_names,
             )
         else:
             raise ValueError(

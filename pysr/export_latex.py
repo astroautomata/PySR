@@ -65,7 +65,7 @@ def sympy2latextable(
     precision: int = 3,
     columns: list[str] = ["equation", "complexity", "loss", "score"],
     max_equation_length: int = 50,
-    output_variable_name: str = "y",
+    output_variable_name: str | None = "y",
 ) -> str:
     """Generate a booktabs-style LaTeX table for a single set of equations."""
     assert isinstance(equations, pd.DataFrame)
@@ -75,6 +75,9 @@ def sympy2latextable(
 
     if indices is None:
         indices = list(equations.index)
+
+    if output_variable_name is None:
+        output_variable_name = "y"
 
     for i in indices:
         latex_equation = sympy2latex(

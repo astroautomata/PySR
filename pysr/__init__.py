@@ -34,6 +34,7 @@ from .expression_specs import (
 )
 from .julia_extensions import load_all_packages
 from .logger_specs import AbstractLoggerSpec, TensorBoardLoggerSpec
+from .regressor_sequence import PySRSequenceRegressor
 from .sr import PySRRegressor
 
 try:
@@ -51,6 +52,7 @@ __all__ = [
     "install",
     "load_all_packages",
     "PySRRegressor",
+    "PySRSequenceRegressor",
     "AbstractExpressionSpec",
     "ExpressionSpec",
     "TemplateExpressionSpec",
