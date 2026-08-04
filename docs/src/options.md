@@ -19,6 +19,7 @@ may find useful include:
 - [Exporting to numpy, pytorch, and jax](#exporting-to-numpy-pytorch-and-jax)
 - [Loss functions](#loss)
 - [Model loading](#model-loading)
+- [Backend selection](#backend-selection)
 
 These are described below.
 Also check out the [tuning page](tuning.md) for workflow tips.
@@ -31,6 +32,25 @@ It will also dump to a csv
 at the end of every iteration,
 which is `.hall_of_fame_{date_time}.csv` by default.
 It also prints the equations to stdout.
+
+## Backend selection
+
+`PySRRegressor` uses `backend="julia"` by default, which provides the full
+SymbolicRegression.jl feature set. An experimental `backend="rust"` option is
+available for vanilla symbolic regression through the optional
+`symbolic_regression_rs` Python package.
+
+Install the Rust backend dependency via:
+
+```bash
+pip install "pysr[rust]"
+```
+
+`backend="rust"` currently supports builtin operators and a reduced set of
+search options.
+It rejects Julia-specific features such as custom Julia operators, custom Julia
+losses, templates, operator constraints, units, cluster managers, and Julia
+extensions.
 
 ## Model selection
 

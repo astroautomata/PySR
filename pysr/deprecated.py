@@ -2,23 +2,24 @@
 
 import warnings
 
-from .julia_import import jl
-
 
 def install(*args, **kwargs):
     del args, kwargs
     warnings.warn(
         "The `install` function has been removed. "
-        "PySR now uses the `juliacall` package to install its dependencies automatically at import time. ",
+        "PySR now uses the `juliacall` package to install its dependencies "
+        "automatically when the Julia backend is used.",
         FutureWarning,
     )
 
 
 def init_julia(*args, **kwargs):
     del args, kwargs
+    from .julia_import import jl
+
     warnings.warn(
         "The `init_julia` function has been removed. "
-        "Julia is now initialized automatically at import time.",
+        "Julia is now initialized automatically when the Julia backend is used.",
         FutureWarning,
     )
     return jl

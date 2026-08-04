@@ -73,7 +73,27 @@ You can install PySR with pip:
 pip install pysr
 ```
 
-Julia dependencies will be installed at first import.
+If you plan to use the experimental Rust adapter, select the Rust dependency at install time:
+
+```bash
+pip install "pysr[rust]"
+```
+
+Julia dependencies will be installed when the Julia backend is used.
+
+PySR also includes an experimental runtime switch for the Rust adapter:
+
+```python
+PySRRegressor(backend="rust")
+```
+
+The Rust backend adapter expects the optional `symbolic_regression_rs` Python
+module from the `pysr-rust-backend` package. It is installed automatically by
+the `rust` extra.
+
+The default `backend="auto"` uses the Rust backend when `pysr-rust-backend` is
+installed and falls back to Julia otherwise. Set `backend="julia"` to force the
+full-featured and supported Julia backend.
 
 ### Conda
 

@@ -11,6 +11,7 @@ from ..test import (
     runtests_autodiff,
     runtests_dev,
     runtests_jax,
+    runtests_rust,
     runtests_slurm,
     runtests_startup,
     runtests_torch,
@@ -46,11 +47,22 @@ def pysr(context):
 )
 def _install(julia_project, quiet, precompile):
     warnings.warn(
-        "This command is deprecated. Julia dependencies are now installed at first import."
+        "This command is deprecated. Julia dependencies are now installed when "
+        "the Julia backend is used."
     )
 
 
-TEST_OPTIONS = {"main", "jax", "torch", "autodiff", "cli", "dev", "startup", "slurm"}
+TEST_OPTIONS = {
+    "main",
+    "jax",
+    "torch",
+    "autodiff",
+    "cli",
+    "dev",
+    "startup",
+    "slurm",
+    "rust",
+}
 
 
 @pysr.command("test")
@@ -65,7 +77,7 @@ TEST_OPTIONS = {"main", "jax", "torch", "autodiff", "cli", "dev", "startup", "sl
 def _tests(tests, expressions):
     """Run parts of the PySR test suite.
 
-    Choose from main, jax, torch, autodiff, cli, dev, startup, and slurm.
+    Choose from main, jax, torch, autodiff, cli, dev, startup, slurm, and rust.
     You can give multiple tests, separated by commas.
     """
     test_cases = []
@@ -87,6 +99,8 @@ def _tests(tests, expressions):
             test_cases.extend(runtests_startup(just_tests=True))
         elif test == "slurm":
             test_cases.extend(runtests_slurm(just_tests=True))
+        elif test == "rust":
+            test_cases.extend(runtests_rust(just_tests=True))
         else:
             warnings.warn(f"Invalid test {test}. Skipping.")
 
