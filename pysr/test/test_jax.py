@@ -1,3 +1,5 @@
+import pickle as pkl
+import tempfile
 import unittest
 from functools import partial
 from pathlib import Path
@@ -148,6 +150,98 @@ class TestJAX(unittest.TestCase):
         jax_prediction = partial(f, parameters=parameters)
         jax_output = jax_prediction(X.values)
         np.testing.assert_almost_equal(y.values, jax_output, decimal=3)
+
+    def test_checkpoint_custom_jax_mapping(self):
+        sp_cos_approx = sympy.Function("cos_approx")
+        jax_mapping = {
+            sp_cos_approx: "(lambda x: 1 - x**2 / 2 + x**4 / 24 + x**6 / 720)"
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir) / "custom_jax"
+            run_dir.mkdir()
+            pd.DataFrame(
+                {
+                    "Complexity": [1],
+                    "Loss": [0.0],
+                    "Equation": ["cos_approx(x0)"],
+                }
+            ).to_csv(run_dir / "hall_of_fame.csv")
+
+            model = PySRRegressor(
+                progress=False,
+                unary_operators=["cos_approx(x) = 1 - x^2 / 2 + x^4 / 24 + x^6 / 720"],
+                extra_sympy_mappings={"cos_approx": sp_cos_approx},
+                extra_jax_mappings=jax_mapping,
+                output_jax_format=True,
+            )
+            model.output_directory_ = tmpdir
+            model.run_id_ = "custom_jax"
+            model.nout_ = 1
+            model.n_features_in_ = 1
+            model.feature_names_in_ = np.array(["x0"])
+            model.display_feature_names_in_ = np.array(["x0"])
+            model.selection_mask_ = np.ones(1, dtype=np.bool_)
+            model.refresh()
+            model.equations_.loc[:, "lambda_format"] = [lambda x: x]
+
+            with open(run_dir / "checkpoint.pkl", "wb") as f:
+                pkl.dump(model, f)
+
+            model2 = PySRRegressor.from_file(
+                run_directory=run_dir,
+                extra_sympy_mappings={"cos_approx": sp_cos_approx},
+                extra_jax_mappings=jax_mapping,
+            )
+            jax_format = model2.jax(index=0)
+            X = self.jnp.array([[0.0], [1.0], [2.0]])
+            expected = 1 - X[:, 0] ** 2 / 2 + X[:, 0] ** 4 / 24 + X[:, 0] ** 6 / 720
+            np.testing.assert_allclose(
+                np.array(jax_format["callable"](X, jax_format["parameters"])),
+                np.array(expected),
+            )
+
+    def test_from_file_empty_checkpoint_falls_back_to_csv(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir) / "empty_checkpoint"
+            run_dir.mkdir()
+            (run_dir / "checkpoint.pkl").touch()
+            pd.DataFrame(
+                {
+                    "Complexity": [1],
+                    "Loss": [0.0],
+                    "Equation": ["x0"],
+                }
+            ).to_csv(run_dir / "hall_of_fame.csv")
+
+            model = PySRRegressor.from_file(
+                run_directory=run_dir,
+                binary_operators=["+"],
+                unary_operators=[],
+                n_features_in=1,
+            )
+            assert str(model.sympy(index=0)) == "x0"
+
+    def test_from_file_corrupt_checkpoint_falls_back_to_csv(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir) / "corrupt_checkpoint"
+            run_dir.mkdir()
+            (run_dir / "checkpoint.pkl").write_bytes(b"not a pickle")
+            pd.DataFrame(
+                {
+                    "Complexity": [1],
+                    "Loss": [0.0],
+                    "Equation": ["x0"],
+                }
+            ).to_csv(run_dir / "hall_of_fame.csv")
+
+            model = PySRRegressor.from_file(
+                run_directory=run_dir,
+                binary_operators=["+"],
+                unary_operators=[],
+                n_features_in=1,
+            )
+            assert str(model.sympy(index=0)) == "x0"
 
 
 def runtests(just_tests=False):

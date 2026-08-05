@@ -1285,78 +1285,75 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         pkl_filename = Path(run_directory) / "checkpoint.pkl"
         if pkl_filename.exists():
             pysr_logger.info(f"Attempting to load model from {pkl_filename}...")
-            assert binary_operators is None
-            assert unary_operators is None
-            assert operators is None
-            assert n_features_in is None
-            with open(pkl_filename, "rb") as f:
-                model = cast("PySRRegressor", pkl.load(f))
+            model = cls._load_checkpoint(pkl_filename)
+            if model is not None:
+                assert binary_operators is None
+                assert unary_operators is None
+                assert operators is None
+                assert n_features_in is None
 
-            # Update any parameters if necessary, such as
-            # extra_sympy_mappings:
-            model.set_params(**pysr_kwargs)
+                # Update any parameters if necessary, such as
+                # extra_sympy_mappings:
+                model.set_params(**pysr_kwargs)
 
-            if "equations_" not in model.__dict__ or model.equations_ is None:
-                model.refresh()
+                if (
+                    "equations_" not in model.__dict__
+                    or model.equations_ is None
+                    or cls._equations_missing_export_formats(model.equations_)
+                ):
+                    model.refresh()
 
-            if model.expression_spec is not None:
-                warnings.warn(
-                    "Loading model from checkpoint file with a non-default expression spec "
-                    "is not fully supported as it relies on dynamic objects. This may result in unexpected behavior.",
-                )
+                if model.expression_spec is not None:
+                    warnings.warn(
+                        "Loading model from checkpoint file with a non-default expression spec "
+                        "is not fully supported as it relies on dynamic objects. This may result in unexpected behavior.",
+                    )
 
-            return model
+                return model
+        pysr_logger.info(
+            f"Checkpoint file {pkl_filename} does not exist or could not be loaded. "
+            "Attempting to recreate model from CSV backups..."
+        )
+        csv_filename = Path(run_directory) / "hall_of_fame.csv"
+        csv_filename_bak = Path(run_directory) / "hall_of_fame.csv.bak"
+        if not csv_filename.exists() and not csv_filename_bak.exists():
+            raise FileNotFoundError(
+                f"Hall of fame file `{csv_filename}` or `{csv_filename_bak}` does not exist. "
+                "Please pass a `run_directory` containing a valid checkpoint file."
+            )
+        if operators is None and binary_operators is None and unary_operators is None:
+            raise ValueError(
+                "When recreating a model from CSV backups you must provide either "
+                "`operators` or legacy `binary_operators`/`unary_operators`."
+            )
+        assert n_features_in is not None
+        model = cls(
+            binary_operators=binary_operators,
+            unary_operators=unary_operators,
+            operators=operators,
+            **pysr_kwargs,
+        )
+        model.nout_ = nout
+        model.n_features_in_ = n_features_in
+
+        if feature_names_in is None:
+            model.feature_names_in_ = np.array([f"x{i}" for i in range(n_features_in)])
+            model.display_feature_names_in_ = np.array(
+                [f"x{_subscriptify(i)}" for i in range(n_features_in)]
+            )
         else:
-            pysr_logger.info(
-                f"Checkpoint file {pkl_filename} does not exist. "
-                "Attempting to recreate model from scratch..."
-            )
-            csv_filename = Path(run_directory) / "hall_of_fame.csv"
-            csv_filename_bak = Path(run_directory) / "hall_of_fame.csv.bak"
-            if not csv_filename.exists() and not csv_filename_bak.exists():
-                raise FileNotFoundError(
-                    f"Hall of fame file `{csv_filename}` or `{csv_filename_bak}` does not exist. "
-                    "Please pass a `run_directory` containing a valid checkpoint file."
-                )
-            if (
-                operators is None
-                and binary_operators is None
-                and unary_operators is None
-            ):
-                raise ValueError(
-                    "When recreating a model from CSV backups you must provide either "
-                    "`operators` or legacy `binary_operators`/`unary_operators`."
-                )
-            assert n_features_in is not None
-            model = cls(
-                binary_operators=binary_operators,
-                unary_operators=unary_operators,
-                operators=operators,
-                **pysr_kwargs,
-            )
-            model.nout_ = nout
-            model.n_features_in_ = n_features_in
+            assert len(feature_names_in) == n_features_in
+            model.feature_names_in_ = feature_names_in
+            model.display_feature_names_in_ = feature_names_in
 
-            if feature_names_in is None:
-                model.feature_names_in_ = np.array(
-                    [f"x{i}" for i in range(n_features_in)]
-                )
-                model.display_feature_names_in_ = np.array(
-                    [f"x{_subscriptify(i)}" for i in range(n_features_in)]
-                )
-            else:
-                assert len(feature_names_in) == n_features_in
-                model.feature_names_in_ = feature_names_in
-                model.display_feature_names_in_ = feature_names_in
+        if selection_mask is None:
+            model.selection_mask_ = np.ones(n_features_in, dtype=np.bool_)
+        else:
+            model.selection_mask_ = selection_mask
 
-            if selection_mask is None:
-                model.selection_mask_ = np.ones(n_features_in, dtype=np.bool_)
-            else:
-                model.selection_mask_ = selection_mask
+        model.refresh(run_directory=run_directory)
 
-            model.refresh(run_directory=run_directory)
-
-            return model
+        return model
 
     def __repr__(self) -> str:
         """
@@ -1417,66 +1414,119 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         `pickle.dumps()`. However, some attributes do not support pickling
         and need to be hidden, such as the JAX and Torch representations.
         """
-        state = self.__dict__
+        return self._get_pickle_state()
+
+    def _get_pickle_state(self) -> dict[str, Any]:
         show_pickle_warning = not (
-            "show_pickle_warnings_" in state and not state["show_pickle_warnings_"]
+            "show_pickle_warnings_" in self.__dict__ and not self.show_pickle_warnings_
         )
-        state_keys_containing_lambdas = ["extra_sympy_mappings", "extra_torch_mappings"]
-        for state_key in state_keys_containing_lambdas:
+        warn_or_log = warnings.warn if show_pickle_warning else pysr_logger.debug
+        state_keys_to_clear = (
+            "extra_sympy_mappings",
+            "extra_jax_mappings",
+            "extra_torch_mappings",
+        )
+        for state_key in state_keys_to_clear:
             warn_msg = (
                 f"`{state_key}` cannot be pickled and will be removed from the "
                 "serialized instance. When loading the model, please redefine "
                 f"`{state_key}` at runtime."
             )
-            if state[state_key] is not None:
-                if show_pickle_warning:
-                    warnings.warn(warn_msg)
-                else:
-                    pysr_logger.debug(warn_msg)
-        state_keys_to_clear = state_keys_containing_lambdas
-        state_keys_to_clear.append("logger_")
+            if getattr(self, state_key) is not None:
+                warn_or_log(warn_msg)
+        pickled_state_keys_to_clear = (*state_keys_to_clear, "logger_")
         pickled_state = {
-            key: (None if key in state_keys_to_clear else value)
-            for key, value in state.items()
+            key: (None if key in pickled_state_keys_to_clear else value)
+            for key, value in self.__dict__.items()
         }
         if ("equations_" in pickled_state) and (
             pickled_state["equations_"] is not None
         ):
             pickled_state["output_torch_format"] = False
             pickled_state["output_jax_format"] = False
-            if self.nout_ == 1:
-                pickled_columns = ~pickled_state["equations_"].columns.isin(
-                    ["jax_format", "torch_format"]
+            pickled_state["equations_"] = self._drop_equation_columns(
+                pickled_state["equations_"], ["jax_format", "torch_format"]
+            )
+            try:
+                pkl.dumps(pickled_state["equations_"])
+            except Exception as e:
+                warn_msg = (
+                    "`equations_` export formats cannot be pickled and will be "
+                    "removed from the serialized instance. When loading the model, "
+                    "please redefine custom mappings at runtime."
                 )
-                pickled_state["equations_"] = (
-                    pickled_state["equations_"].loc[:, pickled_columns].copy()
+                warn_or_log(
+                    warn_msg if show_pickle_warning else f"{warn_msg} Error: {e}"
                 )
-            else:
-                pickled_columns = [
-                    ~dataframe.columns.isin(["jax_format", "torch_format"])
-                    for dataframe in pickled_state["equations_"]
-                ]
-                pickled_state["equations_"] = [
-                    dataframe.loc[:, signle_pickled_columns]
-                    for dataframe, signle_pickled_columns in zip(
-                        pickled_state["equations_"], pickled_columns
-                    )
-                ]
+                pickled_state["equations_"] = self._drop_equation_columns(
+                    pickled_state["equations_"], ["sympy_format", "lambda_format"]
+                )
         return pickled_state
+
+    @staticmethod
+    def _drop_equation_columns(
+        equations: pd.DataFrame | list[pd.DataFrame],
+        columns: list[str],
+    ) -> pd.DataFrame | list[pd.DataFrame]:
+        all_equations = equations if isinstance(equations, list) else [equations]
+        dropped_equations = [
+            dataframe.loc[:, ~dataframe.columns.isin(columns)].copy()
+            for dataframe in all_equations
+        ]
+        return (
+            dropped_equations if isinstance(equations, list) else dropped_equations[0]
+        )
+
+    @staticmethod
+    def _equations_missing_export_formats(
+        equations: pd.DataFrame | list[pd.DataFrame],
+    ) -> bool:
+        required_columns = {"sympy_format", "lambda_format"}
+        all_equations = equations if isinstance(equations, list) else [equations]
+        return any(
+            not required_columns.issubset(dataframe.columns)
+            for dataframe in all_equations
+        )
+
+    @classmethod
+    def _load_checkpoint(cls, pkl_filename: Path) -> "PySRRegressor | None":
+        if pkl_filename.stat().st_size == 0:
+            pysr_logger.warning(
+                f"Checkpoint file {pkl_filename} is empty. "
+                "Attempting to recreate model from CSV backups..."
+            )
+            return None
+        try:
+            with open(pkl_filename, "rb") as f:
+                return cast("PySRRegressor", pkl.load(f))
+        except (EOFError, pkl.UnpicklingError) as e:
+            pysr_logger.warning(
+                f"Could not load checkpoint file {pkl_filename}: {e}. "
+                "Attempting to recreate model from CSV backups..."
+            )
+            return None
 
     def _checkpoint(self):
         """Save the model's current state to a checkpoint file.
 
         This should only be used internally by PySRRegressor.
         """
-        # Save model state:
         self.show_pickle_warnings_ = False
-        with open(self.get_pkl_filename(), "wb") as f:
-            try:
+        tmp_filename = None
+        try:
+            pkl_filename = self.get_pkl_filename()
+            with tempfile.NamedTemporaryFile(
+                mode="wb", dir=pkl_filename.parent, delete=False
+            ) as f:
+                tmp_filename = Path(f.name)
                 pkl.dump(self, f)
-            except Exception as e:
-                pysr_logger.debug(f"Error checkpointing model: {e}")
-        self.show_pickle_warnings_ = True
+            os.replace(tmp_filename, pkl_filename)
+        except Exception as e:
+            pysr_logger.debug(f"Error checkpointing model: {e}")
+            if tmp_filename is not None:
+                tmp_filename.unlink(missing_ok=True)
+        finally:
+            self.show_pickle_warnings_ = True
 
     def get_pkl_filename(self) -> Path:
         path = Path(self.output_directory_) / self.run_id_ / "checkpoint.pkl"
@@ -2898,7 +2948,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
         if self.nout_ > 1:
             return ret_outputs
-        return ret_outputs[0]
+        return cast(pd.DataFrame, ret_outputs[0])
 
     def latex_table(
         self,
