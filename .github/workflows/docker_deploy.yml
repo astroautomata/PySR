@@ -13,6 +13,12 @@ on:
 jobs:
   docker:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      # Needed to push to ghcr.io/astroautomata/pysr and ghcr.io/milescranmer/pysr.
+      # For the latter, the ghcr.io/milescranmer/pysr package must grant
+      # astroautomata/PySR write access under its "Manage Actions access" settings.
+      packages: write
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -42,7 +48,8 @@ jobs:
           #  List of Docker images to use as base name for tags
           images: |
             mcranmer/pysr
-            ghcr.io/${{ github.repository }}
+            ghcr.io/astroautomata/pysr
+            ghcr.io/milescranmer/pysr
           # generate Docker tags based on the following events/attributes
           tags: |
             type=schedule
