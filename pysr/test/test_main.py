@@ -1,5 +1,6 @@
 import functools
 import importlib
+import json
 import os
 import pickle as pkl
 import platform
@@ -1679,6 +1680,67 @@ class TestHelpMessages(unittest.TestCase):
                 PySRRegressor.from_file(run_directory=run_dir, n_features_in=1)
 
             self.assertIn("must provide either `operators`", str(cm.exception))
+
+    def test_from_file_checkpoint_metadata_mismatch_raises_clear_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir) / "run"
+            run_dir.mkdir()
+            (run_dir / "checkpoint.pkl").write_bytes(b"this is not a pickle file")
+            (run_dir / "checkpoint_metadata.json").write_text(
+                json.dumps(
+                    {
+                        "pysr_version": "0.0.0",
+                        "symbolic_regression_backend": "v0.0.0",
+                        "julia_version": "0.0.0",
+                    }
+                )
+            )
+
+            with self.assertRaises(ValueError) as cm:
+                PySRRegressor.from_file(run_directory=run_dir)
+
+            self.assertIn("Checkpoint version metadata mismatch", str(cm.exception))
+            self.assertIn("pysr_version", str(cm.exception))
+
+    def test_from_file_checkpoint_without_metadata_falls_back_to_unpickling(self):
+        """Backward-compat: older checkpoints won't have metadata; we should not error early."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir) / "run"
+            run_dir.mkdir()
+            (run_dir / "checkpoint.pkl").write_bytes(b"this is not a pickle file")
+
+            with self.assertRaises(Exception) as cm:
+                PySRRegressor.from_file(run_directory=run_dir)
+
+            # The error should come from unpickling, not our metadata guardrails.
+            self.assertNotIn("Checkpoint version metadata mismatch", str(cm.exception))
+            self.assertNotIn("Checkpoint metadata file", str(cm.exception))
+
+    def test_from_file_checkpoint_invalid_metadata_json_raises_clear_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir) / "run"
+            run_dir.mkdir()
+            (run_dir / "checkpoint.pkl").write_bytes(b"this is not a pickle file")
+            (run_dir / "checkpoint_metadata.json").write_text("{")
+
+            with self.assertRaises(ValueError) as cm:
+                PySRRegressor.from_file(run_directory=run_dir)
+
+            self.assertIn("not valid JSON", str(cm.exception))
+
+    def test_checkpoint_writes_version_metadata(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model = PySRRegressor()
+            model.output_directory_ = tmpdir
+            model.run_id_ = "run"
+            model._checkpoint()
+
+            metadata_file = Path(tmpdir) / "run" / "checkpoint_metadata.json"
+            self.assertTrue(metadata_file.exists())
+            metadata = json.loads(metadata_file.read_text())
+            self.assertIn("pysr_version", metadata)
+            self.assertIn("symbolic_regression_backend", metadata)
+            self.assertIn("julia_version", metadata)
 
     def test_size_warning(self):
         """Ensure that a warning is given for a large input size."""
