@@ -50,5 +50,5 @@ jobs:
         run: |
           echo "Running tests"
           pip install pytest nbval
-          python -m pysr test main,startup
+          SCIPY_ARRAY_API=1 python -m pysr test main,startup
           echo "Finished."
