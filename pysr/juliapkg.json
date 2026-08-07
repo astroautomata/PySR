@@ -4,7 +4,10 @@
         "SymbolicRegression": {
             "uuid": "8254be44-1295-4e6a-a16d-46603ac705cb",
             "url": "https://github.com/astroautomata/SymbolicRegression.jl",
-            "rev": "v2.0.0-alpha.9"
+            "rev": "86139196df88ee85caa1302267997aa53ce885f7",
+            "preferences": {
+                "precompile_float64": false
+            }
         },
         "Serialization": {
             "uuid": "9e88b42a-f829-5b0c-bbe9-9e923198166b",
