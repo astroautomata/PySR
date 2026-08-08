@@ -4,6 +4,7 @@
     - unary_operators
     - operators
     - expression_spec
+    - type_spec
     - maxsize
     - maxdepth
   - Setting the Search Size:
@@ -13,6 +14,7 @@
     - ncycles_per_iteration
   - The Objective:
     - elementwise_loss
+    - loss_type
     - loss_function
     - loss_function_expression
     - loss_scale

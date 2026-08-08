@@ -94,6 +94,11 @@ class ExpressionSpec(AbstractExpressionSpec):
         search_output,
         i: int | None = None,
     ):
+        if model.type_spec is not None:
+            search_output = search_output or model.julia_state_
+            return _search_output_to_callable_expressions(
+                equations, search_output, i, model.type_spec
+            )
         return add_export_formats(
             equations,
             feature_names_in=model.feature_names_in_,
@@ -316,16 +321,24 @@ class TemplateExpressionSpec(AbstractExpressionSpec):
 
 
 class CallableJuliaExpression:
-    def __init__(self, expression):
+    def __init__(self, expression, type_spec=None):
         self.expression = expression
+        self.type_spec = type_spec
 
     def __call__(self, X: np.ndarray, *args):
-        raw_output = self.expression(jl_array(X.T), *args)
+        jl_X = (
+            self.type_spec.to_julia_array(X, transpose=True)
+            if self.type_spec is not None
+            else jl_array(X.T)
+        )
+        raw_output = self.expression(jl_X, *args)
+        if self.type_spec is not None:
+            return np.asarray(list(raw_output), dtype=object).T
         return np.array(raw_output).T
 
 
 def _search_output_to_callable_expressions(
-    equations: pd.DataFrame, search_output, i: int | None
+    equations: pd.DataFrame, search_output, i: int | None, type_spec=None
 ) -> pd.DataFrame:
     equations = copy.deepcopy(equations)
     _, all_out_hof = search_output
@@ -337,7 +350,7 @@ def _search_output_to_callable_expressions(
         curComplexity = row["complexity"]
         expression = out_hof.members[curComplexity - 1].tree
         expressions.append(expression)
-        callables.append(CallableJuliaExpression(expression))
+        callables.append(CallableJuliaExpression(expression, type_spec))
 
     df = pd.DataFrame(
         {"julia_expression": expressions, "lambda_format": callables},

@@ -34,6 +34,7 @@ from .expression_specs import (
 from .julia_extensions import load_all_packages
 from .logger_specs import AbstractLoggerSpec, TensorBoardLoggerSpec
 from .sr import PySRRegressor
+from .type_specs import TypeSpec
 
 try:
     __version__ = version("pysr")
@@ -55,6 +56,7 @@ __all__ = [
     "TemplateExpressionSpec",
     "AbstractLoggerSpec",
     "TensorBoardLoggerSpec",
+    "TypeSpec",
     "best",
     "best_callable",
     "best_row",
