@@ -94,6 +94,11 @@ class ExpressionSpec(AbstractExpressionSpec):
         search_output,
         i: int | None = None,
     ):
+        if model.type_spec is not None:
+            search_output = search_output or model.julia_state_
+            return _search_output_to_callable_expressions(
+                equations, search_output, i, model.type_spec
+            )
         return add_export_formats(
             equations,
             feature_names_in=model.feature_names_in_,
@@ -120,42 +125,6 @@ class ExpressionSpec(AbstractExpressionSpec):
     @property
     def supports_latex(self):
         return True
-
-
-class _JuliaExpressionSpec(ExpressionSpec):
-    """Default expression shape evaluated through its Julia search result."""
-
-    @property
-    def evaluates_in_julia(self):
-        return True
-
-    @property
-    def supports_sympy(self):
-        return False
-
-    @property
-    def supports_torch(self):
-        return False
-
-    @property
-    def supports_jax(self):
-        return False
-
-    @property
-    def supports_latex(self):
-        return False
-
-    def create_exports(
-        self,
-        model: PySRRegressor,
-        equations: pd.DataFrame,
-        search_output,
-        i: int | None = None,
-    ) -> pd.DataFrame:
-        search_output = search_output or model.julia_state_
-        return _search_output_to_callable_expressions(
-            equations, search_output, i, model.type_spec
-        )
 
 
 class TemplateExpressionSpec(AbstractExpressionSpec):

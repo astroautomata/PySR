@@ -38,7 +38,6 @@ from .export_sympy import assert_valid_sympy_symbol
 from .expression_specs import (
     AbstractExpressionSpec,
     ExpressionSpec,
-    _JuliaExpressionSpec,
 )
 from .feature_selection import run_feature_selection
 from .julia_extensions import load_required_packages
@@ -141,7 +140,7 @@ def _process_constraints(
 def _maybe_create_inline_operators(
     operators: dict[int, list[str]],
     extra_sympy_mappings: dict[str, Callable] | None,
-    expression_spec: AbstractExpressionSpec,
+    supports_sympy: bool,
 ) -> dict[int, list[str]]:
     operators = {arity: op_list.copy() for arity, op_list in operators.items()}
 
@@ -167,7 +166,7 @@ def _maybe_create_inline_operators(
                     extra_sympy_mappings is None
                     or function_name not in extra_sympy_mappings
                 )
-                if missing_sympy_mapping and expression_spec.supports_sympy:
+                if missing_sympy_mapping and supports_sympy:
                     raise ValueError(
                         f"Custom function {function_name} is not defined in `extra_sympy_mappings`. "
                         "You can define it with, "
@@ -1532,10 +1531,11 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
     @property
     def expression_spec_(self):
-        if self.expression_spec is not None:
-            return self.expression_spec
-        return (
-            _JuliaExpressionSpec() if self.type_spec is not None else ExpressionSpec()
+        return self.expression_spec or ExpressionSpec()
+
+    def _supports_export(self, format: str) -> bool:
+        return self.type_spec is None and getattr(
+            self.expression_spec_, f"supports_{format}"
         )
 
     def get_best(
@@ -2161,7 +2161,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         operators = _maybe_create_inline_operators(
             operators=operators,
             extra_sympy_mappings=self.extra_sympy_mappings,
-            expression_spec=self.expression_spec_,
+            supports_sympy=(
+                self.type_spec is None and self.expression_spec_.supports_sympy
+            ),
         )
         if constraints is not None:
             _constraints = _process_constraints(
@@ -2805,7 +2807,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         best_equation : str, list[str] of length nout_
             SymPy representation of the best equation.
         """
-        if not self.expression_spec_.supports_sympy:
+        if not self._supports_export("sympy"):
             raise ValueError(
                 f"`expression_spec={self.expression_spec_}` does not support sympy export."
             )
@@ -2841,7 +2843,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         best_equation : str or list[str] of length nout_
             LaTeX expression of the best equation.
         """
-        if not self.expression_spec_.supports_latex:
+        if not self._supports_export("latex"):
             raise ValueError(
                 f"`expression_spec={self.expression_spec_}` does not support latex export."
             )
@@ -2878,7 +2880,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             Dictionary of callable jax function in "callable" key,
             and jax array of parameters as "parameters" key.
         """
-        if not self.expression_spec_.supports_jax:
+        if not self._supports_export("jax"):
             raise ValueError(
                 f"`expression_spec={self.expression_spec_}` does not support jax export."
             )
@@ -2914,7 +2916,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         best_equation : torch.nn.Module
             PyTorch module representing the expression.
         """
-        if not self.expression_spec_.supports_torch:
+        if not self._supports_export("torch"):
             raise ValueError(
                 f"`expression_spec={self.expression_spec_}` does not support torch export."
             )
@@ -3058,7 +3060,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         latex_table_str : str
             A string that will render a table in LaTeX of the equations.
         """
-        if not self.expression_spec_.supports_latex:
+        if not self._supports_export("latex"):
             raise ValueError(
                 f"`expression_spec={self.expression_spec_}` does not support latex export."
             )
