@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import logging
 import os
 import pickle as pkl
@@ -12,6 +13,7 @@ import tempfile
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, fields
+from importlib.metadata import PackageNotFoundError, version
 from io import StringIO
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -77,6 +79,63 @@ except ImportError:
 ALREADY_RAN = False
 
 pysr_logger = logging.getLogger(__name__)
+CHECKPOINT_METADATA_FILENAME = "checkpoint_metadata.json"
+
+
+def _get_pysr_version() -> str:
+    try:
+        return version("pysr")
+    except PackageNotFoundError:  # pragma: no cover
+        return "unknown"
+
+
+def _get_expected_checkpoint_versions() -> dict[str, str]:
+    juliapkg = json.loads((Path(__file__).with_name("juliapkg.json")).read_text())
+    symbolic_regression = juliapkg["packages"]["SymbolicRegression"]
+    symbolic_regression_backend = symbolic_regression.get(
+        "version", symbolic_regression.get("rev", "unknown")
+    )
+    julia_version = f"{jl.VERSION.major}.{jl.VERSION.minor}.{jl.VERSION.patch}"
+    return {
+        "pysr_version": _get_pysr_version(),
+        "symbolic_regression_backend": symbolic_regression_backend,
+        "julia_version": julia_version,
+    }
+
+
+def _validate_checkpoint_metadata(run_directory: PathLike) -> None:
+    metadata_filename = Path(run_directory) / CHECKPOINT_METADATA_FILENAME
+    if not metadata_filename.exists():
+        return
+
+    try:
+        metadata = json.loads(metadata_filename.read_text())
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Checkpoint metadata file `{metadata_filename}` is not valid JSON. "
+            "Delete the checkpoint files and rerun, or restore a valid checkpoint."
+        ) from e
+    expected = _get_expected_checkpoint_versions()
+    mismatches = []
+    for key, expected_value in expected.items():
+        found_value = metadata.get(key, "<missing>")
+        if found_value != expected_value:
+            mismatches.append((key, expected_value, found_value))
+
+    if mismatches:
+        mismatch_summary = "; ".join(
+            [
+                f"{key}: expected `{expected_value}`, found `{found_value}`"
+                for key, expected_value, found_value in mismatches
+            ]
+        )
+        raise ValueError(
+            "Checkpoint version metadata mismatch detected before deserialization. "
+            f"{mismatch_summary}. "
+            "This checkpoint was created with incompatible versions. "
+            "Reinstall matching PySR/Julia backend versions, set the appropriate backend "
+            "version, or delete the checkpoint and rerun."
+        )
 
 
 def _process_constraints(
@@ -1285,6 +1344,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         pkl_filename = Path(run_directory) / "checkpoint.pkl"
         if pkl_filename.exists():
             pysr_logger.info(f"Attempting to load model from {pkl_filename}...")
+            _validate_checkpoint_metadata(run_directory)
             assert binary_operators is None
             assert unary_operators is None
             assert operators is None
@@ -1471,17 +1531,28 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         """
         # Save model state:
         self.show_pickle_warnings_ = False
+        checkpoint_succeeded = False
         with open(self.get_pkl_filename(), "wb") as f:
             try:
                 pkl.dump(self, f)
+                checkpoint_succeeded = True
             except Exception as e:
                 pysr_logger.debug(f"Error checkpointing model: {e}")
+        if checkpoint_succeeded:
+            self.get_checkpoint_metadata_filename().write_text(
+                json.dumps(
+                    _get_expected_checkpoint_versions(), indent=2, sort_keys=True
+                )
+            )
         self.show_pickle_warnings_ = True
 
     def get_pkl_filename(self) -> Path:
         path = Path(self.output_directory_) / self.run_id_ / "checkpoint.pkl"
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
+
+    def get_checkpoint_metadata_filename(self) -> Path:
+        return self.get_pkl_filename().with_name(CHECKPOINT_METADATA_FILENAME)
 
     @property
     def equations(self):  # pragma: no cover
