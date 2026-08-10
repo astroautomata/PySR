@@ -86,7 +86,7 @@ jobs:
       - name: "Build coverage report"
         run: coverage xml
       - name: "Upload results to Codecov"
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: astroautomata/PySR
