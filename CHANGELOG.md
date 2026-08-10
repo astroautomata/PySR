@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.11](https://github.com/astroautomata/PySR/compare/v1.5.10...v1.5.11) (2026-08-10)
+
+
+### Dependencies
+
+* consolidate Python dependency range widening for release-v1 ([#1240](https://github.com/astroautomata/PySR/issues/1240)) ([757c152](https://github.com/astroautomata/PySR/commit/757c152eb6aee667aa1932114353e99ecf6cb7be))
+
+
+### Documentation
+
+* backport cleaned-up paper showcase ([531f925](https://github.com/astroautomata/PySR/commit/531f9259792d760fadb5170b2dec5036f9323ea9))
+* backport cleaned-up paper showcase YAML to v1 ([493eb88](https://github.com/astroautomata/PySR/commit/493eb8896bcd89fe5fafede694c560a23fc97601))
+
 ## [1.5.10](https://github.com/MilesCranmer/PySR/compare/v1.5.9...v1.5.10) (2026-03-30)
 
 
