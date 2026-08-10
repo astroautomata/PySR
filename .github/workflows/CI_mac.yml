@@ -37,7 +37,7 @@ jobs:
         with:
           version: ${{ matrix.julia-version }}
       - name: "Cache Julia"
-        uses: julia-actions/cache@v2
+        uses: julia-actions/cache@v3
         with:
           cache-name: ${{ matrix.os }}-test-${{ matrix.julia-version }}-${{ matrix.python-version }}
           cache-packages: false
