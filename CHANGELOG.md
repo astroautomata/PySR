@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0-beta.1](https://github.com/astroautomata/PySR/compare/v2.0.0...v2.0.0-beta.1) (2026-08-11)
+## [2.0.0-beta.1](https://github.com/astroautomata/PySR/compare/v2.0.0a2...v2.0.0-beta.1) (2026-08-11)
 
 
 ### ⚠ BREAKING CHANGES
@@ -38,14 +38,6 @@
 * add yawed wind turbines paper ([e1dc986](https://github.com/astroautomata/PySR/commit/e1dc986ef096b3c0c14e7f7f4429aee6b730f429))
 * update contributors list ([#1286](https://github.com/astroautomata/PySR/issues/1286)) ([10b3637](https://github.com/astroautomata/PySR/commit/10b36376b2866e09e8382669df20e4a7a1539ec5))
 * use Float32 literals in custom loss example ([#1276](https://github.com/astroautomata/PySR/issues/1276)) ([2bd7db2](https://github.com/astroautomata/PySR/commit/2bd7db238a70773c9b4882259b940f3dec8c8591))
-
-
-### Miscellaneous Chores
-
-* release 2.0.0-beta.1 ([9cfb720](https://github.com/astroautomata/PySR/commit/9cfb720fb15f7dd6c5942bedce927d645dc98eda))
-* release 2.0.0-beta.1 ([55834ba](https://github.com/astroautomata/PySR/commit/55834ba1c06bc233ef6181971e47bc48b0604069))
-* release 2.0.0b1 ([2b8d8d3](https://github.com/astroautomata/PySR/commit/2b8d8d30988aa6e8f4b8086f2149bd7e7d9f8f65))
-* release 2.0.0b1 ([37711d4](https://github.com/astroautomata/PySR/commit/37711d41d77460ce14ed798d56b1db3b31a57916))
 
 ## [2.0.0a2](https://github.com/MilesCranmer/PySR/compare/v2.0.0a1...v2.0.0a2) (2026-05-15)
 
