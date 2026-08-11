@@ -1,5 +1,50 @@
 # Changelog
 
+## [2.0.0](https://github.com/astroautomata/PySR/compare/v2.0.0...v2.0.0) (2026-08-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* enable annealing by default ([#1283](https://github.com/astroautomata/PySR/issues/1283))
+* remove ParametricExpressionSpec ([#1277](https://github.com/astroautomata/PySR/issues/1277))
+* switch to SlurmClusterManager.jl for slurm allocations ([#794](https://github.com/astroautomata/PySR/issues/794))
+
+### Features
+
+* expose new plugin interface + upgrade to v2.0.0-beta.3 ([#1282](https://github.com/astroautomata/PySR/issues/1282)) ([e20c880](https://github.com/astroautomata/PySR/commit/e20c88015cc4294ea41d52cc2e9345bed7f1ebac))
+* remove ParametricExpressionSpec ([#1277](https://github.com/astroautomata/PySR/issues/1277)) ([d5f0bb0](https://github.com/astroautomata/PySR/commit/d5f0bb0b4b1e5d13463ba988c3ff15fba00bfe13))
+* set precompile_float64=false preference for SymbolicRegression ([#1279](https://github.com/astroautomata/PySR/issues/1279)) ([b89f920](https://github.com/astroautomata/PySR/commit/b89f9209d8ead59974bcff8f0f295b71c4a8fb7c))
+* switch to SlurmClusterManager.jl for slurm allocations ([#794](https://github.com/astroautomata/PySR/issues/794)) ([49f44a4](https://github.com/astroautomata/PySR/commit/49f44a420c3c08c4406c8c9685ba9d34d7773b23))
+
+
+### Bug Fixes
+
+* convert num_features dict keys to Julia Symbols ([#1209](https://github.com/astroautomata/PySR/issues/1209)) ([8aa59b8](https://github.com/astroautomata/PySR/commit/8aa59b82bfbe29daba59e38c2c063d8184c9dd0b)), closes [#811](https://github.com/astroautomata/PySR/issues/811)
+* enable annealing by default ([#1283](https://github.com/astroautomata/PySR/issues/1283)) ([f4dc86b](https://github.com/astroautomata/PySR/commit/f4dc86b21df97724f0e5efc8f9bc4ce34b8814d4))
+* respect tempdir for temporary equation files ([#1207](https://github.com/astroautomata/PySR/issues/1207)) ([beaa405](https://github.com/astroautomata/PySR/commit/beaa4053a1352789176b1b3bae356007dcbebabd))
+
+
+### Documentation
+
+* add agent skill for using PySR effectively ([#1264](https://github.com/astroautomata/PySR/issues/1264)) ([fdedcc8](https://github.com/astroautomata/PySR/commit/fdedcc892db4ae2fed289601718074ec45a596d0))
+* add angular coefficients paper ([da6d2d2](https://github.com/astroautomata/PySR/commit/da6d2d27f782156e5378ecd0255474cad5dc684d))
+* add biomass pyrolysis paper ([ccb473e](https://github.com/astroautomata/PySR/commit/ccb473ec715f353e32729f6921352a572f6ca71f))
+* add dark energy symbolic regression paper ([da9ad80](https://github.com/astroautomata/PySR/commit/da9ad80bc0187ca65f12b331d919c322264ea874))
+* add human mobility models paper ([f47c4d2](https://github.com/astroautomata/PySR/commit/f47c4d27496659ea97cc72ab9cfe138964c3ea53))
+* add microbial growth models paper ([f7c72fb](https://github.com/astroautomata/PySR/commit/f7c72fbc3ba13ed6e7e5f69f946c3c57d0a2d755))
+* add paper showcase entries ([9283914](https://github.com/astroautomata/PySR/commit/9283914523b52e5e992f4238d7ca6692de7825d1))
+* add s-stars chaos paper ([cfc4907](https://github.com/astroautomata/PySR/commit/cfc490762cac17ea248cfb83555c261779fa61e9))
+* add skin friction estimation paper ([8ec43f0](https://github.com/astroautomata/PySR/commit/8ec43f082e2b449d7dece4cb5ba2372915b81a7c))
+* add yawed wind turbines paper ([e1dc986](https://github.com/astroautomata/PySR/commit/e1dc986ef096b3c0c14e7f7f4429aee6b730f429))
+* update contributors list ([#1286](https://github.com/astroautomata/PySR/issues/1286)) ([10b3637](https://github.com/astroautomata/PySR/commit/10b36376b2866e09e8382669df20e4a7a1539ec5))
+* use Float32 literals in custom loss example ([#1276](https://github.com/astroautomata/PySR/issues/1276)) ([2bd7db2](https://github.com/astroautomata/PySR/commit/2bd7db238a70773c9b4882259b940f3dec8c8591))
+
+
+### Miscellaneous Chores
+
+* release 2.0.0b1 ([2b8d8d3](https://github.com/astroautomata/PySR/commit/2b8d8d30988aa6e8f4b8086f2149bd7e7d9f8f65))
+* release 2.0.0b1 ([37711d4](https://github.com/astroautomata/PySR/commit/37711d41d77460ce14ed798d56b1db3b31a57916))
+
 ## [2.0.0a2](https://github.com/MilesCranmer/PySR/compare/v2.0.0a1...v2.0.0a2) (2026-05-15)
 
 This is an alpha release of v2.0.0. It includes backend, packaging, export, and documentation updates since `v2.0.0a1`.
