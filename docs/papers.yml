@@ -2,6 +2,27 @@
 # information to generate the "Research Showcase"
 
 papers:
+  - title: "Maximum updraft velocity beyond CAPE: the role of boundary layer dynamics and pressure perturbations"
+    authors:
+      - name: Bety Pechacova
+        affiliations: (1)
+      - name: Alejandro Casallas
+        affiliations: (1)
+      - name: Tom Beucler
+        affiliations: (2,3)
+      - name: Lokahith Agasthya
+        affiliations: (4)
+      - name: Caroline Muller
+        affiliations: (1)
+    affiliations:
+      - 1: Institute of Science and Technology Austria
+      - 2: Faculty of Geosciences and Environment, University of Lausanne
+      - 3: Expertise Center for Climate Extremes, University of Lausanne
+      - 4: Department of Meteorology and Geophysics, University of Vienna
+    link: https://doi.org/10.48550/arXiv.2607.23627
+    abstract: "Deep convective updraft velocities play a key role in the Earth's climate system, influencing precipitation extremes, lightning, and the planetary energy budget. While Convective Available Potential Energy (CAPE) is widely used to explain maximum updraft velocity ($w_{\\max}$), CAPE is an imperfect predictor as updrafts are also influenced by entrainment, boundary layer dynamics, pressure perturbations, and condensate loading. However, the relative importance of these processes and how they interact to set $w_{\\max}$ in individual clouds remains unclear. Here, we use equation learning to identify compact, physically interpretable relationships linking environmental and in-cloud conditions to $w_{\\max}$ in individual tracked clouds across idealized radiative–convective equilibrium regimes spanning a range of sea surface temperatures and radiative cooling rates. For pre-storm prediction, CAPE and local mean boundary layer vertical velocity ($\\overline{w_{\\mathrm{bl}}}$) together explain nearly half the variance in $w_{\\max}$ across regimes ($R^2=0.47$). While CAPE captures regime-mean differences, it has little predictive value within a single simulation. $\\overline{w_{\\mathrm{bl}}}$ is essential for capturing cloud-to-cloud variability, including the suppression of $w_{\\max}$ even at high $\\mathrm{CAPE}$ values. At the time of peak intensity, a simple approximate Bernoulli-like invariant combining maximum pressure perturbation and maximum cloud condensate explains 89% of the variance ($R^2=0.89$). The tight link between $w_{\\max}$ and pressure perturbation supports the sticky thermals hypothesis and highlights the importance of dynamic pressure effects, often neglected in updraft theories. These results highlight $\\overline{w_{\\mathrm{bl}}}$ as an important regulator of convective intensity alongside CAPE, and demonstrate that dynamic pressure plays an important role within individual updrafts."
+    image: updraft_velocity.png
+    date: 2026-07-26
   - title: Discovering data-driven microbial growth models with symbolic regression
     authors:
       - T. Anthony Sun (1)
