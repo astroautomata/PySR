@@ -62,9 +62,6 @@ class PySRSequenceRegressor(BaseEstimator):
         Fit a finite difference instead of the sequence value itself. `1` fits
         `X[t] - X[t-1]`; `2` fits `X[t] - 2*X[t-1] + X[t-2]`. Predictions and
         symbolic exports are converted back to sequence values. Default is `0`.
-    linear_guesses : bool
-        Seed a full-rank linear problem with its least-squares expression.
-        Default is `False`.
     Other parameters and attributes are inherited from `PySRRegressor`.
     """
 
@@ -283,10 +280,6 @@ class PySRSequenceRegressor(BaseEstimator):
         self._feature_variable_names = [
             name.removesuffix("_tm1") for name in variable_names[-feature_count:]
         ]
-        if self.linear_guesses and not self._has_user_guesses:
-            self._regressor.guesses = self._linear_guesses(
-                historical_X, current_X, variable_names
-            )
 
         self._regressor.fit(
             X=historical_X,
@@ -299,27 +292,6 @@ class PySRSequenceRegressor(BaseEstimator):
             complexity_of_variables=complexity_of_variables,
         )
         return self
-
-    @staticmethod
-    def _linear_guesses(X, y, variable_names):
-        design = np.column_stack((np.ones(len(X)), X))
-        if np.linalg.matrix_rank(design) < design.shape[1]:
-            return None
-        coefficients = np.linalg.lstsq(design, y, rcond=None)[0]
-        if coefficients.ndim == 1:
-            coefficients = coefficients.reshape(-1, 1)
-        guesses = []
-        for output_coefficients in coefficients.T:
-            threshold = max(1.0, float(np.max(np.abs(output_coefficients)))) * 1e-10
-            terms = [
-                f"({float(coefficient)!r})*{name}"
-                for coefficient, name in zip(output_coefficients[1:], variable_names)
-                if abs(coefficient) > threshold
-            ]
-            if abs(output_coefficients[0]) > threshold:
-                terms.append(repr(float(output_coefficients[0])))
-            guesses.append([" + ".join(terms) or "0.0"])
-        return guesses[0] if len(guesses) == 1 else guesses
 
     def predict(self, X, index=None, num_predictions=1, time_values=None):
         """
