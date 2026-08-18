@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.0.0-beta.2](https://github.com/astroautomata/PySR/compare/v2.0.0-beta.1...v2.0.0-beta.2) (2026-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* the deprecated positional and `function_symbols=...` forms of `TemplateExpressionSpec` are removed; pass explicit `combine=`, `expressions=`, and `variable_names=` keywords.
+* checkpoints written before this change (schema 2, from v2.0.0-beta.1 and earlier betas) fail to load with an explicit schema error rather than restoring incomplete state.
+
+### Features
+
+* accept sample_weight as an alias for weights in fit ([e2a159b](https://github.com/astroautomata/PySR/commit/e2a159b615b8258c192608cccde90a19fcc31563))
+* require keyword arguments for TemplateExpressionSpec ([e2a159b](https://github.com/astroautomata/PySR/commit/e2a159b615b8258c192608cccde90a19fcc31563))
+* support custom value types via TypeSpec ([#1280](https://github.com/astroautomata/PySR/issues/1280)) ([e2a159b](https://github.com/astroautomata/PySR/commit/e2a159b615b8258c192608cccde90a19fcc31563))
+
+
+### Bug Fixes
+
+* avoid duplicate PyPI attestations ([#1292](https://github.com/astroautomata/PySR/issues/1292)) ([71242e8](https://github.com/astroautomata/PySR/commit/71242e8420e90db7be4f8ff064ab3dc9df2c52d2))
+* bump the checkpoint schema to version 3 ([e2a159b](https://github.com/astroautomata/PySR/commit/e2a159b615b8258c192608cccde90a19fcc31563))
+* rebuild Julia-backed equation columns after unpickling ([e2a159b](https://github.com/astroautomata/PySR/commit/e2a159b615b8258c192608cccde90a19fcc31563))
+
+
+### Documentation
+
+* rewrite the examples for TypeSpec and template expressions ([e2a159b](https://github.com/astroautomata/PySR/commit/e2a159b615b8258c192608cccde90a19fcc31563))
+
 ## [2.0.0-beta.1](https://github.com/astroautomata/PySR/compare/v2.0.0a2...v2.0.0-beta.1) (2026-08-11)
 
 
