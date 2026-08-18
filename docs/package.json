@@ -16,6 +16,6 @@
     "markdown-it-footnote": "^4.0.0",
     "markdown-it-mathjax3": "^4.3.2",
     "vitepress": "^1.6.3",
-    "vitepress-plugin-tabs": "^0.9.0"
+    "vitepress-plugin-tabs": "^0.9.1"
   }
 }
