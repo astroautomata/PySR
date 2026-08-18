@@ -2,6 +2,19 @@
 # information to generate the "Research Showcase"
 
 papers:
+  - title: Improvement of spatiotemporal generalization in radiocesium transfer models for wheat using symbolic regression
+    authors:
+      - K. Seki (1)
+      - N. Yamaguchi (2)
+      - T. Eguchi (2)
+      - M. Igura (2)
+    affiliations:
+      1: Natural Science Laboratory, Toyo University, Japan
+      2: Division of Environmental Chemical Research, Institute for Agro-environmental Sciences, NARO, Japan
+    link: https://doi.org/10.1016/j.jenvrad.2026.108077
+    abstract: "Accurate prediction of the soil-to-plant transfer factor (TF) of radiocesium ($^{137}$Cs) is essential for assessing radionuclide transfer to the human food chain and supporting radiological risk management after nuclear contamination. Semi-empirical TF models based on exchangeable potassium (K) and soil fixation capacity are widely used, but their predictive performance often deteriorates when applied to unobserved sites or years. In this study, we evaluated whether symbolic regression (SR), an approach that derives interpretable mathematical equations from data, can improve the spatiotemporal generalization of TF models. We analyzed long-term monitoring data from 11 upland wheat fields in Japan collected over five survey years ($n$ = 36). Model performance was assessed using structured cross-validation, including leave-one-site-out (LOSO) and leave-one-year-out (LOYO), to explicitly test spatial and temporal extrapolation. A simple K-based model substantially improved baseline predictions compared with a conventional semi-empirical model. However, linear additive extensions incorporating radiocesium interception potential (RIP), cation exchange capacity, pH, and soil $^{137}$Cs did not consistently improve predictive performance under LOSO or LOYO. In contrast, the selected SR model showed the lowest point-estimate prediction errors in both spatial and temporal validations. The selected equation represented a non-linear interaction between exchangeable K and RIP, consistent with reduced K sensitivity in soils with strong specific fixation sites. However, the selected SR-derived equation remains empirical and is valid only within the observed soil-property range and may show nonphysical behavior under extreme RIP conditions. These results suggest that interpretable non-linear equations derived by SR may improve TF prediction within a restricted soil domain."
+    image: https://ars.els-cdn.com/content/image/1-s2.0-S0265931X2600192X-ga1_lrg.jpg
+    date: 2026-06-13
   - title: Discovering data-driven microbial growth models with symbolic regression
     authors:
       - T. Anthony Sun (1)
