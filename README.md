@@ -29,6 +29,7 @@ If you've finished a project with PySR, please submit a PR to showcase your work
 - [Quickstart](#quickstart)
 - [→ Documentation](https://ai.damtp.cam.ac.uk/pysr)
 - [Contributors](#contributors-)
+- [Tips for setting hyperparameters](#tips)
 
 <div align="center">
 
@@ -493,3 +494,24 @@ If you have an idea for a new feature, don't hesitate to share it on the [issues
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
+
+
+### Tips
+
+1. When running PySR with `julia 1.11`, the process seems to run into a memory leak bug that halts the execution by exceeding the available memory. Forcing the version `1.10` can help avoiding such problem:
+
+```python
+import juliapkg
+juliapkg.require_julia("~1.10")
+```
+
+2. Another memory issue can happen if using a large enough `maxsize` parameter **(Miles: is there any explanation for that?)**. Since the main usage of PySR is for the discovery of scientific equations, this value should be set small anyway. Anything beyond $50$ seems to create a significant slowdown and memory usage.
+3. Using a single population often makes the algorithm unstable, with a high variance on the results. A good enough starting value for this parameter is $10$.
+4. It can be a good practice to set `optimizer_nrestarts` to something larger than $1$, depending on the computational budget. The minimization of error for nonlinear regression models is multimodal and multiple restarts may be required to assess the quality of the equation.
+5. The default model selection may not work well in many situations. It may be worth to implement your own, or use the following code to predict using the most accurate in the Pareto front:
+
+```python
+reg = PySRRegressor(...)
+ix = reg.equations_.loss.argmin()
+y_hat = reg.predict(X_train, index=ix)
+```
