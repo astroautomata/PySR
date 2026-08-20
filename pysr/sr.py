@@ -67,6 +67,7 @@ from .type_specs import (
     compile_type_spec_runtime_for_model,
     create_type_spec_addprocs_function,
     create_type_spec_exports,
+    create_type_spec_guess_parser,
     load_type_spec_runtime,
     prepare_type_spec_fit_data,
     prepare_type_spec_prediction_data,
@@ -2680,7 +2681,17 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         else:
             jl_y_variable_names = None
 
-        jl_guesses = _prepare_guesses_for_julia(self.guesses, self.nout_)
+        jl_guesses = _prepare_guesses_for_julia(
+            self.guesses,
+            self.nout_,
+            guess_parser=(
+                create_type_spec_guess_parser(
+                    type_spec_runtime, options, self.feature_names_in_
+                )
+                if type_spec_runtime is not None and self.guesses is not None
+                else None
+            ),
+        )
 
         # Convert worker_imports to Julia symbols
         jl_worker_imports = (
@@ -3410,7 +3421,7 @@ def calculate_scores(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def _prepare_guesses_for_julia(guesses, nout) -> VectorValue | None:
+def _prepare_guesses_for_julia(guesses, nout, guess_parser=None) -> VectorValue | None:
     """Convert Python guesses to Julia format.
 
     Parameters
@@ -3419,6 +3430,8 @@ def _prepare_guesses_for_julia(guesses, nout) -> VectorValue | None:
         Initial guesses for equations
     nout : int
         Number of output dimensions
+    guess_parser : callable | None
+        TypeSpec-aware converter, used in place of the numeric conversion
 
     Returns
     -------
@@ -3456,7 +3469,9 @@ def _prepare_guesses_for_julia(guesses, nout) -> VectorValue | None:
     for output_guesses in g:
         julia_output_guesses = []
         for item in output_guesses:
-            if isinstance(item, dict):
+            if guess_parser is not None:
+                julia_output_guesses.append(guess_parser(item))
+            elif isinstance(item, dict):
                 # Convert dict to NamedTuple for template expressions
                 julia_output_guesses.append(jl_named_tuple(item))
             else:

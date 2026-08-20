@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 import warnings
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import cache
 from textwrap import dedent
@@ -13,7 +14,7 @@ import numpy as np
 import pandas as pd
 from juliacall import JuliaError  # type: ignore
 
-from .julia_helpers import jl_array
+from .julia_helpers import jl_array, jl_named_tuple
 from .julia_import import AnyValue, SymbolicRegression, jl
 
 _TYPE_MODULE_INSTALLED = "_PYSR_TYPE_SPEC_INSTALLED"
@@ -1122,6 +1123,126 @@ def validate_type_spec_options(
         raise ValueError(str(jl.sprint(jl.showerror, error.args[0]))) from error
 
 
+@cache
+def _type_spec_guess_parser() -> AnyValue:
+    return jl.seval(r"""
+        begin
+            import Random
+            function (module_, options, T, variable_names, guess)
+                DE = SymbolicRegression.InterfaceDynamicExpressionsModule.DE
+                operators = options.operators
+                is_operator(name) =
+                    name isa Symbol &&
+                    any(ops -> any(op -> nameof(op) === name, ops), operators.ops)
+                uses_variable(ex, names) =
+                    ex isa Symbol ? string(ex) in names :
+                    ex isa Expr ? any(arg -> uses_variable(arg, names), ex.args) : false
+                function constant(value)
+                    value isa T && return value
+                    try
+                        return value isa Tuple ? T(value...) : T(value)
+                    catch
+                        throw(ArgumentError(
+                            "Cannot use `$value` as a `$T` constant. " *
+                            "Write constants with `$T` constructor syntax."
+                        ))
+                    end
+                end
+                # Operator calls stay symbolic; every other sub-expression is a
+                # constant, evaluated where the type and its helpers are defined.
+                function fold(ex, names)
+                    if ex isa Expr && ex.head === :call && is_operator(ex.args[1])
+                        children = map(arg -> fold(arg, names), ex.args[2:end])
+                        return Expr(:call, ex.args[1], children...)
+                    elseif uses_variable(ex, names)
+                        return ex
+                    else
+                        return constant(Core.eval(module_, ex))
+                    end
+                end
+                guess isa NamedTuple || return fold(Meta.parse(guess), variable_names)
+
+                # Template guesses: `#i` is the i-th argument of each expression.
+                eval_context =
+                    if SymbolicRegression.InterfaceDynamicExpressionsModule.takes_eval_context(
+                        operators
+                    )
+                        (; eval_context=SymbolicRegression.EvalContext(;
+                            options.turbo, options.bumper
+                        ))
+                    else
+                        NamedTuple()
+                    end
+                contents = map(guess) do source
+                    count = maximum(
+                        (parse(Int, m[1]) for m in eachmatch(r"#(\d+)", source)); init=0
+                    )
+                    arguments = ["__arg_$i" for i in 1:count]
+                    tree = DE.parse_expression(
+                        fold(
+                            Meta.parse(replace(source, r"#(\d+)" => s"__arg_\1")),
+                            arguments,
+                        );
+                        operators,
+                        variable_names=arguments,
+                        expression_type=DE.Expression,
+                        node_type=DE.with_type_parameters(options.node_type, T),
+                    ).tree
+                    SymbolicRegression.ComposableExpression(
+                        tree; operators, variable_names=nothing, eval_context...
+                    )
+                end
+                structure = options.expression_options.structure
+                parameters = if isempty(structure.num_parameters)
+                    NamedTuple()
+                else
+                    (;
+                        parameters=SymbolicRegression.TemplateExpressionModule._initialize_template_parameters(
+                            Random.default_rng(),
+                            T,
+                            structure.num_parameters,
+                            get(options.expression_options, :parameter_initializer, nothing),
+                            options,
+                        ),
+                    )
+                end
+                return SymbolicRegression.TemplateExpression(
+                    contents;
+                    structure,
+                    operators,
+                    variable_names=nothing,
+                    parameters...,
+                )
+            end
+        end
+        """)
+
+
+def create_type_spec_guess_parser(
+    runtime: _TypeSpecRuntime, options: AnyValue, variable_names: Iterable[Any]
+) -> Callable[[Any], AnyValue]:
+    """Parse guesses, evaluating custom constants where the type is defined."""
+    parser = _type_spec_guess_parser()
+    names = jl_array([str(name) for name in variable_names])
+
+    def parse_guess(guess: Any) -> AnyValue:
+        try:
+            return parser(
+                runtime.configuration_module,
+                options,
+                runtime.value_type,
+                names,
+                jl_named_tuple(guess) if isinstance(guess, dict) else guess,
+            )
+        except JuliaError as error:
+            raise ValueError(
+                f"Failed to parse TypeSpec guess {guess!r}: "
+                + str(jl.sprint(jl.showerror, error.args[0]))
+            ) from error
+
+    return parse_guess
+
+
 def type_spec_to_julia_array(
     runtime: _TypeSpecRuntime, values: Any, *, transpose: bool = False
 ) -> AnyValue:
@@ -1315,7 +1436,6 @@ def validate_type_spec_model_configuration(model: Any) -> None:
         loss_function_expression=model.loss_function_expression,
     )
     unsupported = {
-        "guesses": model.guesses is not None,
         "turbo": model.turbo,
         "bumper": model.bumper,
         "autodiff_backend": model.autodiff_backend is not None,

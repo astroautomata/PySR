@@ -590,7 +590,6 @@ print(json.dumps({{
     def test_unsupported_configurations_fail_before_runtime_loading(self):
         X, y = string_data()
         cases = (
-            (tiny_model(string_spec(), guesses=["x0"]), ValueError, "guesses"),
             (tiny_model(string_spec(), turbo=True), ValueError, "turbo"),
             (tiny_model(string_spec(), bumper=True), ValueError, "bumper"),
             (
@@ -1155,6 +1154,75 @@ print(json.dumps({{
                     operators={1: ["identity_value(x::StringValue) = x"]},
                     n_features_in=1,
                 )
+
+    def test_guess_seeds_the_search_with_a_custom_constant(self):
+        type_name = "GuessVectorValue"
+        model = tiny_model(
+            vector_spec(name=type_name),
+            operators={
+                2: [
+                    f"add_vectors(a::{type_name}, b::{type_name}) = "
+                    f"{type_name}(a.data + b.data)"
+                ]
+            },
+            elementwise_loss=(
+                f"vector_loss(a::{type_name}, b::{type_name})::Float64 = "
+                "sum(abs2, a.data - b.data)"
+            ),
+            guesses=[f"add_vectors(x0, {type_name}([1.5, -2.5]))"],
+        )
+        X = np.empty((4, 1), dtype=object)
+        X[:, 0] = [np.array([1.0, 2.0])] * 4
+        y = np.empty(4, dtype=object)
+        y[:] = [np.array([2.5, -0.5])] * 4
+
+        model.fit(X, y)
+
+        self.assertEqual(model.equations_.loss.min(), 0.0)
+        self.assertIn("[1.5, -2.5]", " ".join(model.equations_.equation))
+
+    def test_template_guess_seeds_each_expression(self):
+        type_name = "GuessTemplateValue"
+        model = tiny_model(
+            string_spec(name=type_name),
+            expression_spec=TemplateExpressionSpec(
+                combine="f(x)",
+                expressions=["f"],
+                variable_names=["x"],
+            ),
+            operators={
+                2: [
+                    f"concat(a::{type_name}, b::{type_name}) = "
+                    f"{type_name}(a.data * b.data)"
+                ]
+            },
+            elementwise_loss=(
+                f"string_loss(a::{type_name}, b::{type_name})::Float64 = "
+                "a.data == b.data ? 0.0 : 1.0"
+            ),
+            guesses=[{"f": 'concat(#1, "!")'}],
+        )
+        X = np.array([["a"], ["b"], ["a"], ["b"]], dtype=object)
+        y = np.array(["a!", "b!", "a!", "b!"], dtype=object)
+
+        model.fit(X, y, variable_names=["x"])
+
+        self.assertEqual(model.equations_.loss.min(), 0.0)
+        self.assertIn('concat(#1, "!")', " ".join(model.equations_.equation))
+
+    def test_guess_rejects_a_constant_that_is_not_the_custom_type(self):
+        type_name = "GuessConversionValue"
+        model = tiny_model(
+            vector_spec(name=type_name),
+            guesses=[f"identity_{type_name}(2.0)"],
+        )
+        X = np.empty((4, 1), dtype=object)
+        X[:, 0] = [np.array([1.0, 2.0])] * 4
+        y = np.empty(4, dtype=object)
+        y[:] = [np.array([1.0, 2.0])] * 4
+
+        with self.assertRaisesRegex(ValueError, "constructor syntax"):
+            model.fit(X, y)
 
     def test_template_custom_combiner_infers_num_features(self):
         type_name = "TemplateVectorValue"

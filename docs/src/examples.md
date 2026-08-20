@@ -813,6 +813,11 @@ to be set:
 2. You must define a custom loss function that can handle your type and produce a real-valued loss. This can be done with `elementwise_loss`, `loss_function`, or `loss_function_expression`. (You can declare the return type as, e.g., `loss_type=Float64` in your type spec, or this will be inferred automatically).
 3. You must define custom operators that accept and return your type. PySR will perform a check that the operators are type-stable, and will raise an error if they are not. Add an explicit return annotation such as `::Vec2` when Julia cannot infer it.
 
+`guesses` work with a type spec as well. Constants in a guess are written as Julia
+code and evaluated where your type is defined, so
+`guesses=["add_vectors(x0, Vec2([1.0, 2.0]))"]` seeds the search with that vector,
+and the printed form of any equation can be passed straight back in as a guess.
+
 We will look at some examples below.
 
 ### Vector-valued expression trees
