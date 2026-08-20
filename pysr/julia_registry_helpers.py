@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import warnings
 from collections.abc import Callable
 from typing import TypeVar
@@ -10,6 +11,36 @@ from typing import TypeVar
 T = TypeVar("T")
 
 PREFERENCE_KEY = "JULIA_PKG_SERVER_REGISTRY_PREFERENCE"
+
+
+def _contains_registry_operation(value) -> bool:
+    if isinstance(value, (list, tuple)):
+        text = "\n".join(str(item) for item in value)
+    else:
+        text = str(value)
+    return "Pkg.Registry" in text or "/registry/" in text
+
+
+def _is_registry_error(error: Exception) -> bool:
+    error_type = str(type(error))
+    error_message = str(error)
+    if "JuliaError" in error_type:
+        return any(
+            phrase in error_message
+            for phrase in (
+                "Unsatisfiable requirements detected",
+                "could not download",
+                "/registry/",
+                "Registry.update",
+            )
+        )
+    if isinstance(error, subprocess.CalledProcessError):
+        return any(
+            _contains_registry_operation(value)
+            for value in (error.cmd, error.output, error.stderr)
+            if value is not None
+        )
+    return False
 
 
 def try_with_registry_fallback(f: Callable[..., T], *args, **kwargs) -> T:
@@ -22,10 +53,7 @@ def try_with_registry_fallback(f: Callable[..., T], *args, **kwargs) -> T:
     try:
         return f(*args, **kwargs)
     except Exception as initial_error:
-        # Check if this is a Julia registry error by looking at the error message
-        if "JuliaError" not in str(
-            type(initial_error)
-        ) or "Unsatisfiable requirements detected" not in str(initial_error):
+        if not _is_registry_error(initial_error):
             raise initial_error
 
         old_value = os.environ.get(PREFERENCE_KEY, None)

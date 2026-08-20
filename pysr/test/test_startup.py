@@ -210,6 +210,31 @@ class TestRegistryHelper(unittest.TestCase):
         # Verify environment is restored
         self.assertEqual(os.environ[PREFERENCE_KEY], "conservative")
 
+    def test_subprocess_registry_error_triggers_fallback(self):
+        os.environ[PREFERENCE_KEY] = "conservative"
+        attempts = []
+
+        def failing_then_successful_operation():
+            attempts.append(os.environ[PREFERENCE_KEY])
+            if len(attempts) == 1:
+                raise subprocess.CalledProcessError(
+                    1,
+                    [
+                        "julia",
+                        "--startup-file=no",
+                        "-e",
+                        "import Pkg\nPkg.Registry.update()\nPkg.add([])",
+                    ],
+                )
+            return "success"
+
+        with self.assertWarns(Warning):
+            result = try_with_registry_fallback(failing_then_successful_operation)
+
+        self.assertEqual(result, "success")
+        self.assertEqual(attempts, ["conservative", "eager"])
+        self.assertEqual(os.environ[PREFERENCE_KEY], "conservative")
+
     def test_eager_mode_fails_directly(self):
         os.environ[PREFERENCE_KEY] = "eager"
 
