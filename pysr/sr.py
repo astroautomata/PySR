@@ -380,6 +380,152 @@ def _validate_custom_expression_objective(custom_loss_expression) -> None:
     )
 
 
+# Thresholds for the custom loss speed check in `_warn_if_slow_custom_loss`:
+# warn only if the custom loss is at least this many times slower than the
+# default squared-error loss, *and* is slow in absolute terms (so that a fast
+# loss which is merely "50x slower than nothing" never triggers the warning):
+_LOSS_SPEED_WARN_RATIO = 50.0
+_LOSS_SPEED_WARN_MIN_SECONDS = 1e-3
+
+_JULIA_LOSS_SPEED_BENCHMARK = """
+begin
+    function _pysr_median_time(f::F, args...) where {F}
+        # One warm-up pass to trigger JIT compilation of the loss:
+        f(args...)
+        GC.gc()
+        # Median of a few timed passes over the dataset:
+        times = map(1:5) do _
+            @elapsed f(args...)
+        end
+        return sort(times)[3]
+    end
+    # Mirror of how `SymbolicRegression.jl` invokes an elementwise loss
+    # (element-by-element over the prediction and target arrays):
+    function _pysr_elementwise_pass(loss::F, y, w) where {F}
+        if w === nothing
+            total = zero(eltype(y))
+            @inbounds for i in eachindex(y)
+                total += loss(y[i], y[i])
+            end
+            return total / length(y)
+        else
+            total = zero(eltype(y))
+            weight_total = zero(eltype(y))
+            @inbounds for i in eachindex(y)
+                total += loss(y[i], y[i], w[i])
+                weight_total += w[i]
+            end
+            return total / weight_total
+        end
+    end
+    function _pysr_loss_speed_benchmark(kind::Symbol, loss::F, options, X, y, w) where {F}
+        if kind === :elementwise_loss
+            y_flat = vec(y)
+            w_flat = w === nothing ? nothing : vec(w)
+            default_loss = if w === nothing
+                (prediction, target) -> (prediction - target)^2
+            else
+                (prediction, target, weight) -> weight * (prediction - target)^2
+            end
+            custom_time = _pysr_median_time(
+                _pysr_elementwise_pass, loss, y_flat, w_flat
+            )
+            default_time = _pysr_median_time(
+                _pysr_elementwise_pass, default_loss, y_flat, w_flat
+            )
+        else
+            T = eltype(y)
+            # ponytail: for multi-output searches, only the first output (and
+            # its weight vector) is benchmarked, since each output is searched
+            # with its own `Dataset`:
+            y_vec = y isa AbstractMatrix ? y[1, :] : y
+            w_vec = if w isa AbstractMatrix
+                w[1, :]
+            elseif w isa AbstractVector
+                w
+            else
+                nothing
+            end
+            dataset = Dataset(X, y_vec; weights=w_vec)
+            # ponytail: the user's `options` has their custom loss configured,
+            # so timing `eval_loss` with them would just time their loss
+            # again. Instead, time the built-in default squared-error loss
+            # with default options (a constant tree needs no operators, so
+            # this is safe even though the operator sets differ):
+            default_options = SymbolicRegression.Options()
+            if kind === :loss_function
+                tree = options.node_type(T; val=one(T))
+                custom_time = _pysr_median_time(loss, tree, dataset, options)
+                default_time = _pysr_median_time(
+                    SymbolicRegression.eval_loss, tree, dataset, default_options
+                )
+            else
+                expression = SymbolicRegression.create_expression(
+                    one(T), options, dataset
+                )
+                custom_time = _pysr_median_time(loss, expression, dataset, options)
+                default_time = _pysr_median_time(
+                    SymbolicRegression.eval_loss, expression, dataset, default_options
+                )
+            end
+        end
+        return (custom=custom_time, default=default_time)
+    end
+    _pysr_loss_speed_benchmark
+end
+"""
+
+
+def _warn_if_slow_custom_loss(
+    *,
+    loss_kind: str,
+    custom_loss: AnyValue,
+    options: AnyValue,
+    jl_X: AnyValue,
+    jl_y: AnyValue,
+    jl_weights: AnyValue | None,
+) -> None:
+    """Warn if a user-provided loss is pathologically slow on the real dataset.
+
+    Benchmarks the custom loss inside the user's Julia process on their real
+    data, against the default squared-error loss timed identically in the
+    same process, so that the ratio is hardware-independent. A warning is
+    emitted only if the custom loss is both `_LOSS_SPEED_WARN_RATIO`x slower
+    than the default and takes at least `_LOSS_SPEED_WARN_MIN_SECONDS`
+    per pass over the dataset. If the benchmark itself fails for any reason,
+    it degrades silently so that it can never break a fit.
+    """
+    try:
+        benchmark = jl.seval(_JULIA_LOSS_SPEED_BENCHMARK)
+        timings = benchmark(
+            jl.Symbol(loss_kind), custom_loss, options, jl_X, jl_y, jl_weights
+        )
+        custom_time = float(timings.custom)
+        default_time = float(timings.default)
+    except Exception as e:
+        # ponytail: fail open – a broken speed check should never break a fit.
+        pysr_logger.debug(f"Skipping custom loss speed check ({e}).")
+        return
+
+    if default_time <= 0.0:
+        return
+    ratio = custom_time / default_time
+    if ratio < _LOSS_SPEED_WARN_RATIO or custom_time < _LOSS_SPEED_WARN_MIN_SECONDS:
+        return
+
+    warnings.warn(
+        f"Your custom loss (`{loss_kind}`) took {custom_time:.3g} s per pass over "
+        f"your dataset, which is ~{ratio:.0f}x slower than the default "
+        f"squared-error loss ({default_time:.3g} s per pass), measured on the "
+        "same data in the same Julia process. A loss this slow will likely "
+        "dominate the total search time. Common causes include: excessive "
+        "memory allocation inside the loss; and type instability (you can "
+        "check this with `@code_warntype` on your loss). If this slowdown is "
+        "expected, you can disable this check with "
+        "`PySRRegressor(..., check_loss_speed=False)`."
+    )
+
+
 def _validate_export_mappings(extra_jax_mappings, extra_torch_mappings):
     # It is expected extra_jax/torch_mappings will be updated after fit.
     # Thus, validation is performed here instead of in _validate_init_params
@@ -613,6 +759,15 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         (including negative) and is useful for custom loss functions,
         especially those based on likelihoods.
         Default is "log".
+    check_loss_speed : bool
+        Whether to run a quick timing check of a custom loss function
+        (`elementwise_loss`, `loss_function`, or `loss_function_expression`)
+        against the default squared-error loss at the start of `fit`,
+        warning if it is pathologically slower. The benchmark runs in
+        your Julia process on your dataset, and only warns if the custom
+        loss is at least 50x slower than the default loss and takes at
+        least 1 ms per pass over the data. Set to `False` to disable.
+        Default is `True`.
     complexity_of_operators : dict[str, int | float]
         If you would like to use a complexity other than 1 for an
         operator, specify the complexity here. For example,
@@ -1087,6 +1242,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         loss_function: str | None = None,
         loss_function_expression: str | None = None,
         loss_scale: Literal["log", "linear"] = "log",
+        check_loss_speed: bool = True,
         complexity_of_operators: dict[str, int | float] | None = None,
         complexity_of_constants: int | float | None = None,
         complexity_of_variables: int | float | list[int | float] | None = None,
@@ -1215,6 +1371,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         self.loss_function = loss_function
         self.loss_function_expression = loss_function_expression
         self.loss_scale = loss_scale
+        self.check_loss_speed = check_loss_speed
         self.complexity_of_operators = complexity_of_operators
         self.complexity_of_constants = complexity_of_constants
         self.complexity_of_variables = complexity_of_variables
@@ -2682,6 +2839,38 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                 jl_weights = jl_array(np.array(weights, dtype=np_dtype).T)
         else:
             jl_weights = None
+
+        # ponytail: `SymbolicRegression.Options` above already enforces that
+        # at most one of the three custom losses is set, so the first
+        # non-`nothing` loss here is the only candidate for the check:
+        if self.check_loss_speed:
+            if custom_loss is not None:
+                _warn_if_slow_custom_loss(
+                    loss_kind="elementwise_loss",
+                    custom_loss=custom_loss,
+                    options=options,
+                    jl_X=jl_X,
+                    jl_y=jl_y,
+                    jl_weights=jl_weights,
+                )
+            elif custom_full_objective is not None:
+                _warn_if_slow_custom_loss(
+                    loss_kind="loss_function",
+                    custom_loss=custom_full_objective,
+                    options=options,
+                    jl_X=jl_X,
+                    jl_y=jl_y,
+                    jl_weights=jl_weights,
+                )
+            elif custom_loss_expression is not None:
+                _warn_if_slow_custom_loss(
+                    loss_kind="loss_function_expression",
+                    custom_loss=custom_loss_expression,
+                    options=options,
+                    jl_X=jl_X,
+                    jl_y=jl_y,
+                    jl_weights=jl_weights,
+                )
 
         if len(y.shape) > 1:
             # We set these manually so that they respect Python's 0 indexing
