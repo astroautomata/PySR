@@ -55,7 +55,7 @@ jobs:
             python -c 'import pysr'
       - name: "Run tests"
         run: |
-            python -m pysr test main,cli,startup
+            python -m pysr test main,cli,startup,interrupt
       - name: "Run JAX tests"
         run: python -m pysr test jax
       - name: "Run Torch tests"

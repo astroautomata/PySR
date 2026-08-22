@@ -80,7 +80,7 @@ jobs:
       - name: "Set up coverage for subprocesses"
         run: echo 'import coverage; coverage.process_startup()' > "${{ github.workspace }}/sitecustomize.py"
       - name: "Run tests"
-        run: coverage run -m pysr test main,cli,startup
+        run: coverage run -m pysr test main,cli,startup,interrupt
       - name: "Run JAX tests"
         run: coverage run --append -m pysr test jax
         if: ${{ matrix.test-id == 'main' }}
