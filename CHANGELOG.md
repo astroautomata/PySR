@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.0-beta.3](https://github.com/astroautomata/PySR/compare/v2.0.0-beta.2...v2.0.0-beta.3) (2026-08-22)
+
+
+### Bug Fixes
+
+* preserve custom JAX mappings in checkpoints ([#1199](https://github.com/astroautomata/PySR/issues/1199)) ([0d78783](https://github.com/astroautomata/PySR/commit/0d78783b8aca3c3e42e8001397ee3a5a819dc6dd))
+
+
+### Dependencies
+
+* raise jax, ipython, ipykernel, and pytest-cov ceilings ([#1307](https://github.com/astroautomata/PySR/issues/1307)) ([3f37488](https://github.com/astroautomata/PySR/commit/3f37488da78d735df9bee37bf3a23bf01f98ee1c))
+* raise juliacall ceiling to 0.9.36 ([#1312](https://github.com/astroautomata/PySR/issues/1312)) ([494798e](https://github.com/astroautomata/PySR/commit/494798e76511aed9db1f57078c6ec8366c6e06fc))
+
+
+### Documentation
+
+* add PDE discovery example and skill guidance ([#1311](https://github.com/astroautomata/PySR/issues/1311)) ([459a720](https://github.com/astroautomata/PySR/commit/459a720bd72cb0bd02e96ba7b877460d4a2739c2))
+* add PySR v1 to v2 migration guide ([#1302](https://github.com/astroautomata/PySR/issues/1302)) ([b0bb321](https://github.com/astroautomata/PySR/commit/b0bb321451fc8a489c711a5a7c37bff03fbb50c9))
+* replace python feature card ([#1303](https://github.com/astroautomata/PySR/issues/1303)) ([b99a314](https://github.com/astroautomata/PySR/commit/b99a314da625d3bce5a9dc25e7618a8681a8ffc4))
+
 ## [2.0.0-beta.2](https://github.com/astroautomata/PySR/compare/v2.0.0-beta.1...v2.0.0-beta.2) (2026-08-18)
 
 
