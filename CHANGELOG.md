@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.4](https://github.com/astroautomata/PySR/compare/v2.0.0-beta.3...v2.0.0-beta.4) (2026-08-24)
+
+
+### Features
+
+* support guesses with custom types ([#1316](https://github.com/astroautomata/PySR/issues/1316)) ([6115158](https://github.com/astroautomata/PySR/commit/61151582bb21a58eefbccca9c979ce1fbe85f3fc))
+
 ## [2.0.0-beta.3](https://github.com/astroautomata/PySR/compare/v2.0.0-beta.2...v2.0.0-beta.3) (2026-08-22)
 
 
