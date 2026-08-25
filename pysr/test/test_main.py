@@ -1825,11 +1825,21 @@ class TestMiscellaneous(unittest.TestCase):
         mutation_name = jl.seval("m -> string(nameof(typeof(m)))")
         for mutation, expected_name in (
             (OperatorMutation(), "OperatorMutation"),
-            (BacksolveMutation(lambda_=0.2), "BacksolveMutation"),
+            (BacksolveMutation(), "BacksolveMutation"),
         ):
             julia_mutation = mutation.julia_mutation()
             self.assertEqual(str(mutation_name(julia_mutation)), expected_name)
 
+        backsolve_mutation = BacksolveMutation(
+            max_library_size=321,
+            max_terms=4,
+            min_improvement=0.02,
+            node_attempts=5,
+        ).julia_mutation()
+        self.assertEqual(backsolve_mutation.max_library_size, 321)
+        self.assertEqual(backsolve_mutation.max_terms, 4)
+        self.assertEqual(backsolve_mutation.min_improvement, 0.02)
+        self.assertEqual(backsolve_mutation.node_attempts, 5)
         constant_mutation = ConstantMutation().julia_mutation()
         backend_default = SymbolicRegression.ConstantMutation()
         self.assertEqual(

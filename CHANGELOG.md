@@ -266,7 +266,7 @@ PySR defaults to `precision=32`, so precompiling the Float64 path paid for a wor
 - DynamicDiff v0.3 adds symbolic differentiation support for expressions containing n-arity operator nodes ([DynamicDiff #4](https://github.com/MilesCranmer/DynamicDiff.jl/pull/4)).
 - All `weight_*` parameters default to `None`, with fallbacks equal to the v1 numbers, so behavior is preserved but `PySRRegressor().weight_add_node` reads `None` instead of `2.47` ([#1282](https://github.com/astroautomata/PySR/pull/1282)).
 - Adaptive mutation weights are on by default: probabilities move during the run based on observed cost improvement, at parity overhead in the backend's ASV runs ([#678](https://github.com/astroautomata/SymbolicRegression.jl/pull/678), [#1282](https://github.com/astroautomata/PySR/pull/1282)).
-- BREAKING: `cluster_manager="slurm"` now loads SlurmClusterManager.jl and expects an existing allocation. Launch under `srun` or `sbatch` and set `procs` to the task count; PySR no longer allocates for you. Other managers keep ClusterManagers ([#794](https://github.com/astroautomata/PySR/pull/794)).
+- BREAKING: `cluster_manager="slurm"` now loads SlurmClusterManager.jl and expects an existing allocation. Request resources with `sbatch` or `salloc`, run Python once inside the allocation, and set `procs` to the allocation's task count; PySR no longer allocates for you. Other managers keep ClusterManagers ([#794](https://github.com/astroautomata/PySR/pull/794)).
 - BREAKING: `requires-python >= 3.9`, `juliacall>=0.9.28,<0.9.36`, `pandas<4`, and the SymbolicRegression.jl `~2.0.0` backend requirement affect environment resolution ([#1052](https://github.com/astroautomata/PySR/pull/1052), [#1035](https://github.com/astroautomata/PySR/pull/1035), [#1129](https://github.com/astroautomata/PySR/pull/1129), [#1047](https://github.com/astroautomata/PySR/pull/1047), [#1312](https://github.com/astroautomata/PySR/pull/1312)).
 - SymPy export gained `Max(*args)` and `Min(*args)` in place of two-argument `Piecewise`, plus mappings for `fma`, `muladd`, and `clamp`. Re-exported v1 models print differently ([#999](https://github.com/astroautomata/PySR/pull/999)).
 - `FeatureMutation` and `weight_mutate_feature` (default 0.1) make rewiring a leaf to a different input column its own weighted move, which also removes a generate-and-reject loop in templates ([#475](https://github.com/astroautomata/SymbolicRegression.jl/pull/475), [#999](https://github.com/astroautomata/PySR/pull/999), [#1282](https://github.com/astroautomata/PySR/pull/1282)).
@@ -409,13 +409,18 @@ model = PySRRegressor(
 
 ##### 8. HPC: `cluster_manager="slurm"` no longer allocates
 
-Launch under `srun` or `sbatch` yourself and set `procs` to the allocation's task count ([#794](https://github.com/astroautomata/PySR/pull/794)). Other managers (`pbs`, `lsf`, `sge`, `qrsh`, `scyld`, `htc`) are unchanged.
+Request resources with `sbatch` or `salloc`, run Python once inside the allocation, and set `procs` to the allocation's task count ([#794](https://github.com/astroautomata/PySR/pull/794)). Other managers (`pbs`, `lsf`, `sge`, `qrsh`, `scyld`, `htc`) are unchanged.
+
+For example, a minimal batch script for 16 workers is:
 
 ```bash
-# v1: python script.py, PySR allocated for you
-# v2:
-srun -n 16 python script.py
+#!/bin/bash
+#SBATCH --ntasks=16
+
+python script.py
 ```
+
+Submit it with `sbatch pysr_job.sh`. Do not wrap the Python command in `srun`, which would start one Python driver per task.
 
 ```python
 # inside script.py
@@ -443,19 +448,36 @@ New `weight_*` entries: `weight_mutate_feature` (`None`, falling back to 0.1) an
 
 The `crossover_probability` move to 0.2 came out of a 560-search factorial ablation (+2.24% aggregate held-out Pareto NMSE) and a 420-search sweep in which 0.20 was the only setting that helped ([#643](https://github.com/astroautomata/SymbolicRegression.jl/pull/643)). `annealing=True` matches the backend default ([#1283](https://github.com/astroautomata/PySR/pull/1283); [#652](https://github.com/astroautomata/SymbolicRegression.jl/pull/652)).
 
-#### v1-equivalent configuration
+#### v1-like configuration
 
-If you want v1-like search dynamics under v2:
+For a search close to the v1 defaults, set the changed values explicitly and omit the adaptive-mutation plugin:
 
 ```python
+from pysr import AdaptiveParsimonyPlugin, PySRRegressor
+
 model = PySRRegressor(
-    annealing=False,
-    crossover_probability=0.0259,
     batching=False,
     batch_size=50,
-    default_plugins=[],   # drop annealing, adaptive parsimony, and adaptive mutation weights
+    annealing=False,
+    crossover_probability=0.0259,
+    default_plugins=[AdaptiveParsimonyPlugin()],
+    weight_add_node=2.47,
+    weight_insert_node=0.0112,
+    weight_delete_node=0.87,
+    weight_do_nothing=0.273,
+    weight_mutate_constant=0.0346,
+    weight_mutate_operator=0.293,
+    weight_mutate_feature=0.0,
+    weight_swap_operands=0.198,
+    weight_rotate_tree=4.26,
+    weight_randomize=0.000502,
+    weight_simplify=0.00209,
+    weight_optimize=0.0,
+    weight_backsolve=0.0,
 )
 ```
+
+This preserves the v1 search configuration, but it does not make a run bit-for-bit identical. Backend implementation changes still alter random-number consumption and search trajectories.
 
 ---
 

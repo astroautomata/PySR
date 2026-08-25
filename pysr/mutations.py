@@ -142,14 +142,16 @@ class BacksolveMutation(AbstractMutation):
     """
 
     max_library_size: int = 500
-    lambda_: float = 0.01
-    max_iter: int = 10
+    max_terms: int = 8
+    min_improvement: float = 1e-3
+    node_attempts: int = 8
 
     def julia_mutation(self) -> AnyValue:
         return SymbolicRegression.BacksolveMutation(
             max_library_size=self.max_library_size,
-            max_iter=self.max_iter,
-            **{"lambda": self.lambda_},
+            max_terms=self.max_terms,
+            min_improvement=self.min_improvement,
+            node_attempts=self.node_attempts,
         )
 
 
