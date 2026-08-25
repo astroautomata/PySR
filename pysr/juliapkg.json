@@ -3,8 +3,7 @@
     "packages": {
         "SymbolicRegression": {
             "uuid": "8254be44-1295-4e6a-a16d-46603ac705cb",
-            "url": "https://github.com/astroautomata/SymbolicRegression.jl",
-            "rev": "v2.0.0-beta.9",
+            "version": "~2.0.0",
             "preferences": {
                 "precompile_float64": false
             }

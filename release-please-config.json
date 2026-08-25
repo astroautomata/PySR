@@ -4,8 +4,8 @@
     ".": {
       "release-type": "python",
       "include-component-in-tag": false,
-      "versioning": "prerelease",
-      "prerelease": true
+      "versioning": "default",
+      "prerelease": false
     }
   }
 }
