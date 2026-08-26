@@ -4,6 +4,7 @@ var DOC_VERSIONS = [
   "v1.5.9",
   "v1",
   "v1.5",
+  "v2.0.0",
   "v2.0.0a2",
 ];
 var DOCUMENTER_NEWEST = "1.5.9";
