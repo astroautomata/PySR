@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.0](https://github.com/astroautomata/PySR/compare/v2.0.0...v2.1.0) (2026-08-29)
+
+
+### Features
+
+* stop autoloading the juliacall IPython extension by default ([#1325](https://github.com/astroautomata/PySR/issues/1325)) ([b3f91a1](https://github.com/astroautomata/PySR/commit/b3f91a17cb75da8b2a5a520bf157f7491dd74e4c))
+* stop searches gracefully on interrupt instead of killing the kernel ([#1310](https://github.com/astroautomata/PySR/issues/1310)) ([5bd53f6](https://github.com/astroautomata/PySR/commit/5bd53f662ee1d3516f084d556f7871e2299411a0))
+
+
+### Documentation
+
+* add two research showcase papers ([#1323](https://github.com/astroautomata/PySR/issues/1323)) ([7727b01](https://github.com/astroautomata/PySR/commit/7727b0179a97114de317f136c15b1f83bb7ceff0))
+* update SKILL.md to v2 ([#1321](https://github.com/astroautomata/PySR/issues/1321)) ([d64ef62](https://github.com/astroautomata/PySR/commit/d64ef62b48926b1871dd0930cc5ee21d6618814c))
+
 ## [2.0.0](https://github.com/astroautomata/PySR/compare/v1.5.9...v2.0.0) (2026-08-25)
 
 PySR 2.0.0 brings a two-year transformation of the library into the Python API, moving from a fixed scalar-tree search interface to a modular PyTorch-like framework for symbolic learning while keeping the familiar v1 estimator workflow. Operators can take any number of arguments, `TypeSpec` supports user-defined value types, and mutations, crossovers, and the search loop are configurable objects. Guesses mix expressions into populations throughout a run, which helps connect PySR to agentic coding loops. Automatic batching and a reusable backend evaluation buffer make large searches faster with less configuration.
