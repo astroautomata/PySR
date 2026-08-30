@@ -40,7 +40,7 @@ dev = [
     "pandas-stubs",
     "pre-commit>=3.0,<5",
     "pytest-cov>=5,<8",
-    "pytest>=8,<9",
+    "pytest>=8,<10",
     "tensorboard>=2,<3",
     "torch>=2,<3",
     "types-openpyxl",
