@@ -60,3 +60,16 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
+
+  deploy-docs:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      # A tag pushed with GITHUB_TOKEN cannot start a workflow run, but workflow_dispatch can.
+      - name: Build documentation for the new tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run docs.yml --repo ${{ github.repository }} --ref ${{ needs.release-please.outputs.tag_name }}

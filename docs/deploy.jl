@@ -1,7 +1,7 @@
 #!/usr/bin/env julia
 #
-# Deploy built VitePress documentation using DocumenterVitepress.jl
-# This script is called after VitePress build is complete and handles:
+# Build and deploy VitePress documentation to versioned gh-pages directories.
+# This script handles:
 # - Regular deployments to gh-pages
 # - PR preview deployments to gh-pages/previews/PR##/
 # - Dual deployment to secondary repository (ai.damtp.cam.ac.uk)
@@ -19,6 +19,7 @@ println("Ref: $(get(ENV, "GITHUB_REF", "unknown"))")
 
 # Get deployment decision from Documenter to determine correct subfolder
 using Documenter
+include("deploy_versions.jl")
 
 # Custom DeployConfig that bypasses PR origin check for cross-repo deployments
 # This allows deploying PR previews to ai.damtp.cam.ac.uk/pysr even though
@@ -134,128 +135,72 @@ end
 
 println("Deploy decision: all_ok=$(deploy_decision.all_ok), is_preview=$(deploy_decision.is_preview), subfolder=$(deploy_decision.subfolder)")
 
-# Build VitePress with the correct base path for this deployment
-# VitePress needs the base path set at build time (it's hardcoded into assets)
-# Primary uses /PySR/ (capital P), secondary uses /pysr/ (lowercase p)
+if !deploy_decision.all_ok || isempty(deploy_decision.subfolder)
+    println("Deployment skipped because no deployable subfolder was selected")
+    exit(0)
+end
+
+# VitePress bakes the base path into every asset URL at build time, so each alias
+# needs its own build rather than a redirect.
+bases = deploy_bases(deploy_decision.subfolder)
+
 base_prefix = deployment_target == "secondary" ? "/pysr/" : "/PySR/"
-full_base = "$(base_prefix)$(deploy_decision.subfolder)$(isempty(deploy_decision.subfolder) ? "" : "/")"
+repo_url = deployment_target == "secondary" ?
+    "github.com/ai-damtp-cam-ac-uk/pysr.git" : "github.com/astroautomata/PySR.git"
 
-# The version picker needs __DEPLOY_ABSPATH__ to construct URLs to sibling versions
-# This should be the shared prefix (e.g., /pysr/ or /PySR/)
-deploy_abspath = base_prefix
+function build_base(base, target_dir)
+    full_base = "$(base_prefix)$(base)/"
+    println("Building VitePress with base: $full_base (deploy abspath: $base_prefix)")
 
-println("Building VitePress with base: $full_base (deploy abspath: $deploy_abspath)")
-
-config_path = joinpath(@__DIR__, "src", ".vitepress", "config.mts")
-original_config = read(config_path, String)
-# Match either /pysr/ or /PySR/ in the config
-modified_config = replace(original_config, r"base:\s*'/[Pp]y[Ss][Rr]/'" => "base: '$full_base'")
-# Also update __DEPLOY_ABSPATH__ so version picker works correctly
-modified_config = replace(
-    modified_config,
-    r"__DEPLOY_ABSPATH__\s*:\s*JSON\.stringify\(getBaseRepository\([^)]+\)\)" =>
-        "__DEPLOY_ABSPATH__: JSON.stringify('$deploy_abspath')",
-)
-# Primary deployment should point to Cambridge as canonical
-# Secondary (Cambridge) should have empty canonical (it's already the canonical site)
-canonical_domain = deployment_target == "primary" ? "https://ai.damtp.cam.ac.uk/pysr/" : ""
-modified_config = replace(
-    modified_config,
-    r"const canonicalDomain = '';" =>
-        "const canonicalDomain = '$canonical_domain';",
-)
-write(config_path, modified_config)
-
-try
-    # Build VitePress (outputs to docs/dist/)
-    cd(@__DIR__) do
-        run(`npm run build:vitepress`)
-    end
-    println("VitePress build complete")
-finally
-    # Restore original config (don't commit the modified version)
-    write(config_path, original_config)
-    println("Restored original config.mts")
-end
-
-# DocumenterVitepress expects files in dist/1/ (versioned subdirectory)
-# But VitePress builds directly to dist/, so we need to restructure
-dist_root = joinpath(@__DIR__, "dist")
-dist_versioned = joinpath(dist_root, "1")
-
-if !isdir(dist_versioned) && isdir(dist_root)
-    println("Restructuring dist/ for DocumenterVitepress...")
-    # Move all files from dist/ to dist/1/
-    temp_dir = joinpath(@__DIR__, "dist_temp")
-    mv(dist_root, temp_dir)
-    mkpath(dist_root)
-    mv(temp_dir, dist_versioned)
-end
-
-# Create bases.txt with the correct subfolder from deploy_decision
-# This tells DocumenterVitepress where to deploy (e.g., "dev", "previews/PR1056", "v1.2.3")
-# Don't overwrite if it already exists with content (DocumenterVitepress may generate multi-base configs)
-bases_file = joinpath(dist_root, "bases.txt")
-if !isfile(bases_file)
-    println("Creating bases.txt with subfolder: $(deploy_decision.subfolder)")
-    write(bases_file, "$(deploy_decision.subfolder)\n")
-else
-    bases = filter(!isempty, readlines(bases_file))
-    if isempty(bases)
-        println("Fixing empty bases.txt with subfolder: $(deploy_decision.subfolder)")
-        write(bases_file, "$(deploy_decision.subfolder)\n")
-    else
-        println("bases.txt already exists with $(length(bases)) bases: $bases")
-        # Don't overwrite it - DocumenterVitepress may have generated multiple bases
-    end
-end
-
-# Create redirect index.html at root to redirect to dev
-# Only do this when deploying to dev (not for version tags)
-# Once there are tagged versions, DocumenterVitepress will handle this automatically
-if deploy_decision.subfolder == "dev"
-    redirect_html = """<!--This file is automatically generated by DocumenterVitepress.jl-->
-<meta http-equiv="refresh" content="0; url=./dev/"/>
-"""
-    redirect_file = joinpath(dist_root, "index.html")
-    println("Creating redirect index.html to ./dev/")
-    write(redirect_file, redirect_html)
-
-    # Create siteinfo.js for dev version
-    # This file is required by the version picker to show all available versions
-    siteinfo_dir = joinpath(dist_versioned, "dev")
-    if isdir(siteinfo_dir)
-        siteinfo_content = """var DOCUMENTER_CURRENT_VERSION = "dev";
-"""
-        siteinfo_file = joinpath(siteinfo_dir, "siteinfo.js")
-        println("Creating siteinfo.js for dev version")
-        write(siteinfo_file, siteinfo_content)
-    else
-        println("Warning: dev directory not found at $(siteinfo_dir), skipping siteinfo.js creation")
-    end
-end
-
-if deployment_target == "secondary"
-    # Secondary deployment to ai.damtp.cam.ac.uk
-    println("Deploying to secondary repository (ai.damtp.cam.ac.uk)")
-    DocumenterVitepress.deploydocs(;
-        root=@__DIR__,
-        repo="github.com/ai-damtp-cam-ac-uk/pysr.git",
-        deploy_config=deploy_config,  # Use custom config with bypassed PR check
-        push_preview=true,
-        target="dist",
-        devbranch="master",
+    config_path = joinpath(@__DIR__, "src", ".vitepress", "config.mts")
+    original_config = read(config_path, String)
+    modified_config = replace(original_config, r"base:\s*'/[Pp]y[Ss][Rr]/'" => "base: '$full_base'")
+    modified_config = replace(
+        modified_config,
+        r"__DEPLOY_ABSPATH__\s*:\s*JSON\.stringify\(getBaseRepository\([^)]+\)\)" =>
+            "__DEPLOY_ABSPATH__: JSON.stringify('$base_prefix')",
     )
-else
-    # Primary deployment to astroautomata/PySR
-    println("Deploying to primary repository (astroautomata/PySR)")
-    DocumenterVitepress.deploydocs(;
-        root=@__DIR__,
-        repo="github.com/astroautomata/PySR.git",
-        deploy_config=deploy_config,  # Use normal GitHubActions config
-        push_preview=true,
-        target="dist",
-        devbranch="master",
+    canonical_domain = deployment_target == "primary" ? "https://ai.damtp.cam.ac.uk/pysr/" : ""
+    modified_config = replace(
+        modified_config,
+        r"const canonicalDomain = '';" =>
+            "const canonicalDomain = '$canonical_domain';",
+    )
+    write(config_path, modified_config)
+
+    try
+        cd(@__DIR__) do
+            run(`npm run build:vitepress`)
+        end
+        println("VitePress build complete")
+    finally
+        write(config_path, original_config)
+        println("Restored original config.mts")
+    end
+
+    dist_dir = joinpath(@__DIR__, "dist")
+    ispath(target_dir) && rm(target_dir; recursive = true)
+    mkpath(Base.dirname(target_dir))
+    mv(dist_dir, target_dir)
+    write(
+        joinpath(target_dir, "siteinfo.js"),
+        "var DOCUMENTER_CURRENT_VERSION = $(repr(deploy_decision.subfolder));\n",
+    )
+end
+
+for (i, base) in enumerate(bases)
+    target_dir = joinpath(@__DIR__, "dist_bases", string(i))
+    build_base(base, target_dir)
+    Documenter.deploydocs(;
+        root = @__DIR__,
+        repo = repo_url,
+        deploy_config = deploy_config,
+        push_preview = true,
+        devbranch = "master",
+        devurl = "dev",
+        target = joinpath("dist_bases", string(i)),
+        dirname = base,
+        versions = PySRVersions(base),
     )
 end
 

@@ -36,7 +36,10 @@ jobs:
       matrix:
         target: [primary, secondary]
     steps:
+      # determine_bases reads git tag to decide which aliases a release still owns.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -50,6 +53,8 @@ jobs:
           version: '1'
       - name: Install julia deps
         run: julia --project=docs -e 'using Pkg; Pkg.instantiate()'
+      - name: Test deployment versioning
+        run: julia --project=docs docs/test_deploy_versions.jl
       - name: Install python deps
         run: pip install -e .[docs]
       - name: Install npm deps
