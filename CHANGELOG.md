@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.2.0](https://github.com/astroautomata/PySR/compare/v2.1.0...v2.2.0) (2026-09-02)
+
+
+### Features
+
+* release the GIL during the search ([#1330](https://github.com/astroautomata/PySR/issues/1330)) ([b15bf62](https://github.com/astroautomata/PySR/commit/b15bf623d2ae44b1296288fc01b601d96de856b2))
+* stop searches gracefully on Windows interrupts ([#1329](https://github.com/astroautomata/PySR/issues/1329)) ([e180079](https://github.com/astroautomata/PySR/commit/e1800797e2e2b7e88e455f2667484e6a37ab89f8))
+
+
+### Documentation
+
+* correct AdaptiveMutationWeightsPlugin default state ([#1332](https://github.com/astroautomata/PySR/issues/1332)) ([9909624](https://github.com/astroautomata/PySR/commit/990962428fa1c946c0a9c27ab7e12db80dec867c))
+* update the stable redirect on every release ([#1328](https://github.com/astroautomata/PySR/issues/1328)) ([82c5d70](https://github.com/astroautomata/PySR/commit/82c5d70404d011a785590c5db353397171e1d938))
+
 ## [2.1.0](https://github.com/astroautomata/PySR/compare/v2.0.0...v2.1.0) (2026-08-29)
 
 
