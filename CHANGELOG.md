@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/astroautomata/PySR/compare/v2.2.0...v2.2.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* require juliacall 0.9.29+ and Python 3.10+ ([#1335](https://github.com/astroautomata/PySR/issues/1335)) ([b87067a](https://github.com/astroautomata/PySR/commit/b87067affa242d050ed124801872ea589f2323d0))
+
 ## [2.2.0](https://github.com/astroautomata/PySR/compare/v2.1.0...v2.2.0) (2026-09-02)
 
 
