@@ -46,6 +46,12 @@ function Documenter.postprocess_before_push(
         mkpath(Base.dirname(destination))
         write(destination, content)
     end
+    for path in stale_root_stubs(root, keys(versions.root_stubs))
+        println("Removing stale redirect $path")
+        rm(joinpath(root, path))
+        directory = joinpath(root, Base.dirname(path))
+        directory == root || !isempty(readdir(directory)) || rm(directory)
+    end
     return
 end
 
