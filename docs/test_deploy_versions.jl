@@ -71,3 +71,86 @@ end
     @test stale_root_stubs(root, keys(root_stubs)) == ["gone.html", "gone/index.html"]
     @test isempty(stale_root_stubs(root, keys(stable_redirect_files(["api", "gone"], "v2.2.1"))))
 end
+
+@testset "nested redirects" begin
+    files = stable_redirect_files(["api", "examples/objectives", "guide/index"], "v2.3.0")
+
+    @test files["examples/objectives.html"] == """$(STUB_MARKER)
+<meta http-equiv="refresh" content="0; url=../stable/examples/objectives.html"/>
+"""
+    @test files["examples/objectives/index.html"] == """$(STUB_MARKER)
+<meta http-equiv="refresh" content="0; url=../../stable/examples/objectives.html"/>
+"""
+    @test files["stable/examples/objectives.html"] == """$(STUB_MARKER)
+<meta http-equiv="refresh" content="0; url=../../v2.3.0/examples/objectives.html"/>
+"""
+    # A page that is already a directory index gets no `<page>/index.html` of its own.
+    @test files["guide/index.html"] == """$(STUB_MARKER)
+<meta http-equiv="refresh" content="0; url=../stable/guide/index.html"/>
+"""
+    @test !haskey(files, "guide/index/index.html")
+    @test sort(collect(keys(files))) == [
+        "api.html",
+        "api/index.html",
+        "examples/objectives.html",
+        "examples/objectives/index.html",
+        "guide/index.html",
+        "stable/api.html",
+        "stable/examples/objectives.html",
+        "stable/guide/index.html",
+        "stable/index.html",
+    ]
+    root_stubs = filter(((path, _),) -> !startswith(path, "stable/"), files)
+    @test all(!occursin(r"v\d", content) for content in values(root_stubs))
+    # A flat page and a directory index cannot both own the same stub path.
+    @test_throws ErrorException stable_redirect_files(["guide", "guide/index"], "v2.3.0")
+end
+
+@testset "built pages" begin
+    dist = mktempdir()
+    mkpath(joinpath(dist, "examples"))
+    mkpath(joinpath(dist, "assets"))
+    for path in ("index.html", "404.html", "api.html", "examples/objectives.html")
+        write(joinpath(dist, path), "<!DOCTYPE html>\n")
+    end
+    write(joinpath(dist, "assets", "app.js"), "")
+    write(joinpath(dist, "hashmap.json"), "{}")
+
+    @test built_pages(dist) == ["404", "api", "examples/objectives", "index"]
+    @test sort(collect(keys(stable_redirect_files(built_pages(dist), "v2.3.0")))) == [
+        "api.html",
+        "api/index.html",
+        "examples/objectives.html",
+        "examples/objectives/index.html",
+        "stable/api.html",
+        "stable/examples/objectives.html",
+        "stable/index.html",
+    ]
+end
+
+@testset "nested stale redirects" begin
+    current = stable_redirect_files(["api"], "v2.3.0")
+    root_stubs = filter(((path, _),) -> !startswith(path, "stable/"), current)
+
+    root = mktempdir()
+    for (path, content) in root_stubs
+        mkpath(joinpath(root, Base.dirname(path)))
+        write(joinpath(root, path), content)
+    end
+    # Stubs for a nested page that has since been removed or renamed.
+    for (path, content) in stable_redirect_files(["examples/objectives"], "v2.2.1")
+        startswith(path, "stable/") && continue
+        mkpath(joinpath(root, Base.dirname(path)))
+        write(joinpath(root, path), content)
+    end
+    # Real builds, whose pages carry no marker and so are never candidates.
+    for version in ("v2.2.1", "dev", "previews/PR1", "stable")
+        mkpath(joinpath(root, version, "examples"))
+        write(joinpath(root, version, "examples", "objectives.html"), "<!DOCTYPE html>\n")
+    end
+    write(joinpath(root, "previews", "PR1", "stale.html"), STUB_MARKER * "\n")
+    write(joinpath(root, "stable", "stale.html"), STUB_MARKER * "\n")
+
+    @test stale_root_stubs(root, keys(root_stubs)) ==
+        ["examples/objectives.html", "examples/objectives/index.html"]
+end

@@ -40,7 +40,7 @@ function Documenter.postprocess_before_push(
     Documenter.postprocess_before_push(
         versions.base_version; subfolder, devurl, deploy_dir, dirname
     )
-    root = replace(deploy_dir, Regex("$(versions.base_version.base)\$") => "")
+    root = normpath(replace(deploy_dir, Regex("$(versions.base_version.base)\$") => ""))
     for (path, content) in versions.root_stubs
         destination = joinpath(root, path)
         mkpath(Base.dirname(destination))
@@ -50,7 +50,10 @@ function Documenter.postprocess_before_push(
         println("Removing stale redirect $path")
         rm(joinpath(root, path))
         directory = joinpath(root, Base.dirname(path))
-        directory == root || !isempty(readdir(directory)) || rm(directory)
+        while directory != root && isempty(readdir(directory))
+            rm(directory)
+            directory = Base.dirname(directory)
+        end
     end
     return
 end
@@ -239,18 +242,15 @@ deploy(subfolder, "dist")
 if claims_stable(subfolder)
     println("Pointing stable at $subfolder")
     dist_dir = joinpath(@__DIR__, "dist")
-    pages = sort([
-        splitext(file)[1] for file in readdir(dist_dir) if
-        isfile(joinpath(dist_dir, file)) && endswith(file, ".html") &&
-        file ∉ ("index.html", "404.html")
-    ])
-    redirect_files = stable_redirect_files(pages, subfolder)
+    redirect_files = stable_redirect_files(built_pages(dist_dir), subfolder)
     stable_dir = joinpath(@__DIR__, "dist_stable")
     mkpath(stable_dir)
     root_stubs = Dict{String,String}()
     for (path, content) in redirect_files
         if startswith(path, "stable/")
-            write(joinpath(stable_dir, path[(length("stable/") + 1):end]), content)
+            destination = joinpath(stable_dir, path[(length("stable/") + 1):end])
+            mkpath(Base.dirname(destination))
+            write(destination, content)
         else
             root_stubs[path] = content
         end
