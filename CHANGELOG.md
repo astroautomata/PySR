@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.3.0](https://github.com/astroautomata/PySR/compare/v2.2.1...v2.3.0) (2026-09-04)
+
+
+### Features
+
+* expose search tracing on PySRRegressor ([#1347](https://github.com/astroautomata/PySR/issues/1347)) ([e694439](https://github.com/astroautomata/PySR/commit/e694439d498ae7ce6cbf0fe8ab40949944016416))
+
+
+### Documentation
+
+* generate legacy top-level redirects from the stable release ([#1346](https://github.com/astroautomata/PySR/issues/1346)) ([5114e66](https://github.com/astroautomata/PySR/commit/5114e668bc2f45386113f702abf93772fd5d9f66))
+* redirect nested documentation pages through stable ([#1348](https://github.com/astroautomata/PySR/issues/1348)) ([24cc669](https://github.com/astroautomata/PySR/commit/24cc669edf7bdc881a42b0e33d58675e2e6ba4fc))
+* replace README header video with a logo hero ([#1342](https://github.com/astroautomata/PySR/issues/1342)) ([8ffc78a](https://github.com/astroautomata/PySR/commit/8ffc78ab1851e4bcf9e51ec2d7cdd4755e41b881))
+* tweak badges ([#1344](https://github.com/astroautomata/PySR/issues/1344)) ([21e2ed5](https://github.com/astroautomata/PySR/commit/21e2ed552ffa4233e711539be12d9610ec724c40))
+
 ## [2.2.1](https://github.com/astroautomata/PySR/compare/v2.2.0...v2.2.1) (2026-09-02)
 
 
