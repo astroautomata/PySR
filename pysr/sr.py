@@ -463,10 +463,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
     constraints.
 
     Most default parameters have been tuned over several example equations,
-    but you should adjust `niterations`, `binary_operators`, `unary_operators`
-    to your requirements. You can view more detailed explanations of the options
-    on the [options page](https://ai.damtp.cam.ac.uk/pysr/options) of the
-    documentation.
+    but you should adjust `niterations` and `operators` to your requirements.
+    You can view more detailed explanations of the options on the
+    [options page](https://ai.damtp.cam.ac.uk/pysr/options) of the documentation.
 
     Parameters
     ----------
@@ -483,20 +482,21 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         `'best'` selects the candidate model with the highest score
         among expressions with a loss better than at least 1.5x the
         most accurate model.
-    binary_operators : list[str]
-        List of strings for binary operators used in the search.
-        See the [operators page](https://ai.damtp.cam.ac.uk/pysr/operators/)
-        for more details.
-        Default is `["+", "-", "*", "/"]`.
-    unary_operators : list[str]
-        Operators which only take a single scalar as input.
-        For example, `"cos"` or `"exp"`.
-        Default is `None`.
     operators : dict[int, list[str]]
-        Generic operators by arity (number of arguments). Keys are integers
-        representing arity, values are lists of operator strings.
+        Operators by arity (number of arguments). Keys are integers representing
+        arity, and values are lists of operator strings. This is the preferred way
+        to configure the search operators.
         Example: `{1: ["sin", "cos"], 2: ["+", "-", "*"], 3: ["muladd"]}`.
         Cannot be used with `binary_operators` or `unary_operators`.
+        Default is `None`.
+    binary_operators : list[str]
+        Alternative list of binary operators used in the search.
+        See the [operators page](https://ai.damtp.cam.ac.uk/pysr/operators/)
+        for more details. Cannot be used with `operators`.
+        Default is `["+", "-", "*", "/"]` when `operators` is not provided.
+    unary_operators : list[str]
+        Alternative list of operators which take a single scalar as input.
+        For example, `"cos"` or `"exp"`. Cannot be used with `operators`.
         Default is `None`.
     expression_spec : AbstractExpressionSpec
         The type of expression to search for. By default,
@@ -556,10 +556,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         (as well as any combination of `+` or `-` within it), but
         `cos(cos(cos(cos(x))))` is not allowed. When an operator is not
         specified, it is assumed that it can be nested an unlimited
-        number of times. This requires that there is no operator which
-        is used both in the unary operators and the binary operators
-        (e.g., `-` could be both subtract, and negation). For binary
-        operators, you only need to provide a single number: both
+        number of times. This requires that no operator name is used at more than
+        one arity (e.g., `-` could represent both subtraction and negation). For
+        operators with arity 2, you only need to provide a single number: both
         arguments are treated the same way, and the max of each
         argument is constrained.
         Default is `None`.
@@ -953,11 +952,10 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         containing a torch module with trainable parameters.
         Default is `False`.
     extra_sympy_mappings : dict[str, Callable]
-        Provides mappings between custom `binary_operators` or
-        `unary_operators` defined in julia strings, to those same
-        operators defined in sympy.
-        E.G if `unary_operators=["inv(x)=1/x"]`, then for the fitted
-        model to be export to sympy, `extra_sympy_mappings`
+        Provides mappings between custom operators defined in Julia strings and
+        those same operators defined in SymPy.
+        E.g., if `operators={1: ["inv(x)=1/x"]}`, then for the fitted
+        model to be exported to SymPy, `extra_sympy_mappings`
         would be `{"inv": lambda x: 1/x}`.
         Default is `None`.
     extra_jax_mappings : dict[Callable, str]
@@ -1031,13 +1029,15 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
     >>> y = 2.5382 * np.cos(X[:, 3]) + X[:, 0] ** 2 - 0.5
     >>> model = PySRRegressor(
     ...     niterations=40,
-    ...     binary_operators=["+", "*"],
-    ...     unary_operators=[
-    ...         "cos",
-    ...         "exp",
-    ...         "sin",
-    ...         "inv(x) = 1/x",  # Custom operator (julia syntax)
-    ...     ],
+    ...     operators={
+    ...         1: [
+    ...             "cos",
+    ...             "exp",
+    ...             "sin",
+    ...             "inv(x) = 1/x",  # Custom operator (julia syntax)
+    ...         ],
+    ...         2: ["+", "*"],
+    ...     },
     ...     model_selection="best",
     ...     elementwise_loss="loss(x, y) = (x - y)^2",  # Custom loss function (julia syntax)
     ... )
@@ -1397,16 +1397,15 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             The directory containing outputs from a previous run.
             This is of the form `[output_directory]/[run_id]`.
             Default is `None`.
-        binary_operators : list[str]
-            The same binary operators used when creating the model.
-            Not needed if loading from a pickle file.
-        unary_operators : list[str]
-            The same unary operators used when creating the model.
-            Not needed if loading from a pickle file.
         operators : dict[int, list[str]]
-            Operator mapping by arity used when creating the model. Provide this if the
-            original run relied on the generic `operators` parameter. Not needed if
+            Operator mapping by arity used when creating the model. Not needed if
             loading from a pickle file.
+        binary_operators : list[str]
+            The same binary operators used when creating the model if it used this
+            alternative parameter. Not needed if loading from a pickle file.
+        unary_operators : list[str]
+            The same unary operators used when creating the model if it used this
+            alternative parameter. Not needed if loading from a pickle file.
         n_features_in : int
             Number of features passed to the model.
             Not needed if loading from a pickle file.

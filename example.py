@@ -8,14 +8,16 @@ from pysr import PySRRegressor
 model = PySRRegressor(
     model_selection="best",  # Result is mix of simplicity+accuracy
     niterations=40,
-    binary_operators=["+", "*"],
-    unary_operators=[
-        "cos",
-        "exp",
-        "sin",
-        "inv(x) = 1/x",
-        # ^ Custom operator (julia syntax)
-    ],
+    operators={
+        1: [
+            "cos",
+            "exp",
+            "sin",
+            "inv(x) = 1/x",
+            # ^ Custom operator (julia syntax)
+        ],
+        2: ["+", "*"],
+    },
     extra_sympy_mappings={"inv": lambda x: 1 / x},
     # ^ Define operator for SymPy as well
     elementwise_loss="loss(x, y) = (x - y)^2",

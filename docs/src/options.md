@@ -49,15 +49,18 @@ One can define custom operators in Julia by passing a string:
 
 ```python
 PySRRegressor(niterations=100,
-    binary_operators=["mult", "plus", "special(x, y) = x^2 + y"],
+    operators={
+        1: ["cos"],
+        2: ["mult", "plus", "special(x, y) = x^2 + y"],
+    },
     extra_sympy_mappings={'special': lambda x, y: x**2 + y},
-    unary_operators=["cos"])
+)
 ```
 
 Now, the symbolic regression code can search using this `special` function
 that squares its left argument and adds it to its right. Make sure
-all passed functions are valid Julia code, and take one (unary)
-or two (binary) float32 scalars as input, and output a float32. This means if you
+all passed functions are valid Julia code, take the number of Float32 scalar
+arguments given by their arity, and output a Float32. This means if you
 write any real constants in your operator, like `2.5`, you have to write them
 instead as `2.5f0`, which defines it as `Float32`.
 Operators are automatically vectorized.

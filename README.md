@@ -153,14 +153,16 @@ from pysr import PySRRegressor
 model = PySRRegressor(
     maxsize=20,
     niterations=40,  # < Increase me for better results
-    binary_operators=["+", "*"],
-    unary_operators=[
-        "cos",
-        "exp",
-        "sin",
-        "inv(x) = 1/x",
-        # ^ Custom operator (julia syntax)
-    ],
+    operators={
+        1: [
+            "cos",
+            "exp",
+            "sin",
+            "inv(x) = 1/x",
+            # ^ Custom operator (julia syntax)
+        ],
+        2: ["+", "*"],
+    },
     extra_sympy_mappings={"inv": lambda x: 1 / x},
     # ^ Define operator for SymPy as well
     elementwise_loss="loss(prediction, target) = (prediction - target)^2",
@@ -267,8 +269,10 @@ model = PySRRegressor(
     # ^ Allow greater complexity.
     maxdepth=10,
     # ^ But, avoid deep nesting.
-    binary_operators=["*", "+", "-", "/"],
-    unary_operators=["square", "cube", "exp", "cos2(x)=cos(x)^2"],
+    operators={
+        1: ["square", "cube", "exp", "cos2(x)=cos(x)^2"],
+        2: ["*", "+", "-", "/"],
+    },
     constraints={
         "/": (-1, 9),
         "square": 9,

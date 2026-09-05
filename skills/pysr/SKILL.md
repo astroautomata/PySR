@@ -20,8 +20,7 @@ X = 2 * np.random.randn(100, 5)
 y = 2 * np.cos(X[:, 3]) + X[:, 0] ** 2 - 2
 
 model = PySRRegressor(
-    binary_operators=["+", "-", "*", "/"],
-    unary_operators=["cos"],
+    operators={1: ["cos"], 2: ["+", "-", "*", "/"]},
     niterations=100,
 )
 model.fit(X, y)
@@ -120,7 +119,7 @@ spec = TemplateExpressionSpec(
     expressions=["f", "g"],
     variable_names=["x1", "x2", "x3"],
 )
-model = PySRRegressor(expression_spec=spec, binary_operators=["+", "-", "*", "/"])
+model = PySRRegressor(expression_spec=spec, operators={2: ["+", "-", "*", "/"]})
 model.fit(X, y)
 ```
 
@@ -213,8 +212,10 @@ Pass Julia definitions as strings, and always provide the SymPy mapping (with *S
 
 ```python
 model = PySRRegressor(
-    binary_operators=["+", "*"],
-    unary_operators=["inv(x) = 1/x", "gauss(x) = exp(-x^2)"],
+    operators={
+        1: ["inv(x) = 1/x", "gauss(x) = exp(-x^2)"],
+        2: ["+", "*"],
+    },
     extra_sympy_mappings={
         "inv": lambda x: 1/x,
         "gauss": lambda x: sympy.exp(-x**2),
@@ -243,7 +244,7 @@ function my_objective(tree, dataset::Dataset{T,L}, options) where {T,L}
     return sum(abs2, residuals) / dataset.n
 end
 """
-model = PySRRegressor(loss_function=objective, binary_operators=["+", "*", "-"])
+model = PySRRegressor(loss_function=objective, operators={2: ["+", "*", "-"]})
 ```
 
 Hard-won rules from the issue tracker:
@@ -272,7 +273,7 @@ Worked example: allow `^` only with a lone constant exponent in [0, 1]:
 ```python
 objective = """
 function constrained_loss(tree, dataset::Dataset{T,L}, options) where {T,L}
-    idx_pow = 3   # position of ^ in binary_operators below (1-indexed)
+    idx_pow = 3   # position of ^ in operators[2] below (1-indexed)
     n_bad = count(tree) do node
         node.degree == 2 && node.op == idx_pow &&
             any(c -> !(c.degree == 0 && c.constant && 0 <= c.val <= 1), node.r)
@@ -283,7 +284,7 @@ function constrained_loss(tree, dataset::Dataset{T,L}, options) where {T,L}
     return sum(i -> abs2(prediction[i] - dataset.y[i]), eachindex(prediction)) / dataset.n
 end
 """
-model = PySRRegressor(binary_operators=["+", "*", "^"], loss_function=objective)
+model = PySRRegressor(operators={2: ["+", "*", "^"]}, loss_function=objective)
 ```
 
 The count-then-penalize shape (violations counted, multiplied by a large finite constant, returned *before* evaluation) is the canonical pattern: cheap structural check first, graded penalty so evolution has a direction, `Inf` reserved for failed numerical evaluation. Requiring a feature is the mirror image: `any(n -> n.degree == 0 && !n.constant && n.feature == 2, tree) || return L(big)`. For template expressions, get the tree of a component via `get_tree(ex)` inside `loss_function_expression`. More traversal tools (`tree_mapreduce`, `NodeSampler`, node construction): https://ai.damtp.cam.ac.uk/dynamicexpressions/stable/examples/base_operations/

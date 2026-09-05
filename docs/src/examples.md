@@ -15,7 +15,7 @@ find the expression `2 cos(x3) + x0^2 - 2`.
 ```python
 X = 2 * np.random.randn(100, 5)
 y = 2 * np.cos(X[:, 3]) + X[:, 0] ** 2 - 2
-model = PySRRegressor(binary_operators=["+", "-", "*", "/"])
+model = PySRRegressor(operators={2: ["+", "-", "*", "/"]})
 model.fit(X, y)
 print(model)
 ```
@@ -28,8 +28,7 @@ Here, we define a custom operator and use it to find an expression:
 X = 2 * np.random.randn(100, 5)
 y = 1 / X[:, 0]
 model = PySRRegressor(
-    binary_operators=["+", "*"],
-    unary_operators=["inv(x) = 1/x"],
+    operators={1: ["inv(x) = 1/x"], 2: ["+", "*"]},
     extra_sympy_mappings={"inv": lambda x: 1/x},
 )
 model.fit(X, y)
@@ -45,8 +44,7 @@ each requiring a different feature.
 X = 2 * np.random.randn(100, 5)
 y = 1 / X[:, [0, 1, 2]]
 model = PySRRegressor(
-    binary_operators=["+", "*"],
-    unary_operators=["inv(x) = 1/x"],
+    operators={1: ["inv(x) = 1/x"], 2: ["+", "*"]},
     extra_sympy_mappings={"inv": lambda x: 1/x},
 )
 model.fit(X, y)
@@ -108,8 +106,7 @@ Let's create a model with the feature selection argument set up:
 
 ```python
 model = PySRRegressor(
-    binary_operators=["+", "-", "*", "/"],
-    unary_operators=["exp"],
+    operators={1: ["exp"], 2: ["+", "-", "*", "/"]},
     select_k_features=5,
 )
 ```
@@ -163,8 +160,7 @@ Let's create and fit a model with the denoising argument set up:
 
 ```python
 model = PySRRegressor(
-    binary_operators=["+", "-", "*", "/"],
-    unary_operators=["exp"],
+    operators={1: ["exp"], 2: ["+", "-", "*", "/"]},
     denoise=True,
 )
 model.fit(X, y)
@@ -262,8 +258,7 @@ class sympy_p(sympy.Function):
     pass
 
 model = PySRRegressor(
-    binary_operators=["+", "-", "*", "/"],
-    unary_operators=["p"],
+    operators={1: ["p"], 2: ["+", "-", "*", "/"]},
     niterations=100,
     extra_sympy_mappings={"p": sympy_p}
 )
@@ -295,7 +290,7 @@ X = np.random.randn(100, 1) + 1j * np.random.randn(100, 1)
 y = (1 + 2j) * np.cos(X[:, 0] * (0.5 - 0.2j))
 
 model = PySRRegressor(
-    binary_operators=["+", "-", "*"], unary_operators=["cos"], niterations=100,
+    operators={1: ["cos"], 2: ["+", "-", "*"]}, niterations=100,
 )
 
 model.fit(X, y)
@@ -350,7 +345,7 @@ end
 
 model = PySRRegressor(
     loss_function=objective,
-    binary_operators=["+", "-", "*", "/"],
+    operators={2: ["+", "-", "*", "/"]},
 )
 ```
 
@@ -382,7 +377,7 @@ end
 
 model = PySRRegressor(
     loss_function=objective,
-    binary_operators=["+", "-"],
+    operators={2: ["+", "-"]},
 )
 ```
 
@@ -435,8 +430,7 @@ Now let's define our model:
 
 ```python
 model = PySRRegressor(
-    binary_operators=["+", "-", "*", "/"],
-    unary_operators=["square"],
+    operators={1: ["square"], 2: ["+", "-", "*", "/"]},
     elementwise_loss=elementwise_loss,
     complexity_of_constants=2,
     maxsize=25,
@@ -516,8 +510,7 @@ template = TemplateExpressionSpec(
 
 model = PySRRegressor(
     expression_spec=template,
-    binary_operators=["+", "*", "-", "/"],
-    unary_operators=["sin"],
+    operators={1: ["sin"], 2: ["+", "*", "-", "/"]},
     maxsize=10,
 )
 model.fit(X, y)
@@ -582,8 +575,7 @@ Now, we can fit our model:
 ```python
 model = PySRRegressor(
     expression_spec=template,
-    binary_operators=["+", "*", "-", "/"],
-    unary_operators=["sin"],
+    operators={1: ["sin"], 2: ["+", "*", "-", "/"]},
     maxsize=10,
 )
 model.fit(X_with_category, y)
@@ -675,8 +667,7 @@ summed over the data):
 ```python
 model = PySRRegressor(
     expression_spec=spec,
-    binary_operators=["+", "-", "*", "/"],
-    unary_operators=["exp", "sin"],
+    operators={1: ["exp", "sin"], 2: ["+", "-", "*", "/"]},
     maxsize=20,
     niterations=50,
     elementwise_loss="(pred, target) -> pred",
@@ -747,7 +738,7 @@ logger_spec = TensorBoardLoggerSpec(
 )
 
 model = PySRRegressor(
-    binary_operators=["+", "*", "-", "/"],
+    operators={2: ["+", "*", "-", "/"]},
     logger_spec=logger_spec,
 )
 model.fit(X, y)
@@ -787,8 +778,7 @@ expression_spec = TemplateExpressionSpec(
 )
 
 model = PySRRegressor(
-    binary_operators=["+", "-", "*", "/"],
-    unary_operators=["sqrt"],
+    operators={1: ["sqrt"], 2: ["+", "-", "*", "/"]},
     expression_spec=expression_spec,
     maxsize=20,
 )
@@ -1150,7 +1140,7 @@ derivatives cost more, which biases the search toward low-order terms:
 
 ```python
 model = PySRRegressor(
-    binary_operators=["+", "-", "*"],
+    operators={2: ["+", "-", "*"]},
     complexity_of_variables=[1, 2, 3],
     maxsize=20,
     niterations=100,

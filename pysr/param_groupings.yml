@@ -1,8 +1,8 @@
 - The Algorithm:
   - Creating the Search Space:
+    - operators
     - binary_operators
     - unary_operators
-    - operators
     - expression_spec
     - type_spec
     - maxsize

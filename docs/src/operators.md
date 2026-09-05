@@ -3,7 +3,7 @@
 ## Pre-defined
 
 First, note that pretty much any valid Julia function which
-takes one or two scalars as input, and returns on scalar as output,
+takes scalars as input, and returns one scalar as output,
 is likely to be a valid operator[^1].
 A selection of these and other valid operators are stated below.
 
@@ -47,12 +47,10 @@ it can exponentially increase the search space.
 
 <!--TODO: | `ifelse`[^6] | -->
 
-Note that to use operators with arity 3 or more, you must use the `operators` parameter instead of the `*ary_operators` parameters, and pass operators as a dictionary with the arity as key:
+Pass operators to `PySRRegressor` as a dictionary keyed by arity:
 
 ```python
-operators={
-    1: ["sin"], 2: ["+", "-", "*"], 3: ["clamp"]
-},
+operators={1: ["sin"], 2: ["+", "-", "*"], 3: ["clamp"]},
 ```
 
 ## Custom
@@ -63,8 +61,10 @@ you can just define a custom function as Julia code. For example:
 ```python
     PySRRegressor(
         ...,
-        unary_operators=["myfunction(x) = x^2"],
-        binary_operators=["myotherfunction(x, y) = x^2*y"],
+        operators={
+            1: ["myfunction(x) = x^2"],
+            2: ["myotherfunction(x, y) = x^2*y"],
+        },
         extra_sympy_mappings={
             "myfunction": lambda x: x**2,
             "myotherfunction": lambda x, y: x**2 * y,
