@@ -109,7 +109,21 @@ export default defineConfig({
         text: 'Getting Started',
         items: [
           { text: 'Introduction', link: '/' },
-          { text: 'Examples', link: '/examples' },
+          {
+            text: 'Examples',
+            link: '/examples',
+            collapsed: true,
+            items: [
+              { text: 'Getting started', link: '/examples/getting-started' },
+              { text: 'Expression specifications', link: '/examples/expression-specifications' },
+              { text: 'Objectives and losses', link: '/examples/objectives' },
+              { text: 'Physics and units', link: '/examples/physics' },
+              { text: 'Search behaviour', link: '/examples/search-behaviour' },
+              { text: 'Instrumentation and workflow', link: '/examples/instrumentation' },
+              { text: 'Value types', link: '/examples/value-types' },
+              { text: 'Beyond numeric values', link: '/examples/beyond-numeric-values' },
+            ]
+          },
         ]
       },
       {
