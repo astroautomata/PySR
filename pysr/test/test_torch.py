@@ -172,11 +172,11 @@ class TestTorch(unittest.TestCase):
             feature_names_in=["x1"],
             extra_sympy_mappings={"square": lambda x: x**2},
         )
-        m = pysr.export_torch.sympy2torch(ex, ["x1"])
+        m = sympy2torch(ex, ["x1"])
         rng = np.random.RandomState(0)
         X = rng.randn(10, 1)
         np.testing.assert_almost_equal(
-            m(torch.tensor(X)).detach().numpy(),
+            m(torch.tensor(X)).detach().numpy().flatten(),
             np.square(np.exp(np.sign(0.44796443))) + 1.5 * X[:, 0],
             decimal=3,
         )
@@ -184,13 +184,77 @@ class TestTorch(unittest.TestCase):
     def test_issue_656(self):
         # Should correctly map numeric symbols to floats
         E_plus_x1 = sympy.exp(1) + sympy.symbols("x1")
-        m = pysr.export_torch.sympy2torch(E_plus_x1, ["x1"])
+        m = sympy2torch(E_plus_x1, ["x1"])
         X = np.random.randn(10, 1)
         np.testing.assert_almost_equal(
-            m(self.torch.tensor(X)).detach().numpy(),
+            m(self.torch.tensor(X)).detach().numpy().flatten(),
             np.exp(1) + X[:, 0],
             decimal=3,
         )
+
+    def test_issue_571_single_feature_shape(self):
+        """Issue #571: 1-feature torch module preserves (L, 1) output shape."""
+        x = sympy.symbols("x")
+        m = sympy2torch(x + 1, [x])
+        X = self.torch.randn(32, 1)
+        y = m(X)
+        self.assertEqual(tuple(y.shape), (32, 1))
+        np.testing.assert_almost_equal(
+            y.detach().numpy().flatten(),
+            (X[:, 0] + 1).detach().numpy(),
+            decimal=6,
+        )
+
+    def test_issue_571_multifeature_output_is_1d(self):
+        """Issue #571: multi-feature torch modules keep 1D outputs (L,) by default."""
+        x, y = sympy.symbols("x y")
+        m = sympy2torch(x + y, [x, y])
+        X = self.torch.randn(32, 2)
+        out = m(X)
+        self.assertEqual(tuple(out.shape), (32,))
+        np.testing.assert_almost_equal(
+            out.detach().numpy(),
+            (X[:, 0] + X[:, 1]).detach().numpy(),
+            decimal=6,
+        )
+
+    def test_issue_571_composition(self):
+        """Issue #571: composing 1-feature modules into a 2-feature module works."""
+        x = sympy.symbols("x")
+        a, b = sympy.symbols("a b")
+        m1 = sympy2torch(x + 1, [x])
+        m2 = sympy2torch(2 * x, [x])
+        m3 = sympy2torch(a + b, [a, b])
+
+        X = self.torch.randn(32, 1)
+        y1 = m1(X)
+        y2 = m2(X)
+        self.assertEqual(tuple(y1.shape), (32, 1))
+        self.assertEqual(tuple(y2.shape), (32, 1))
+
+        stacked = self.torch.cat([y1, y2], dim=1)
+        y3 = m3(stacked)
+        np.testing.assert_almost_equal(
+            y3.detach().numpy(),
+            (3 * X[:, 0] + 1).detach().numpy(),
+            decimal=6,
+        )
+
+    def test_issue_571_reject_1d_input(self):
+        """Issue #571: torch module rejects 1D inputs (expects (L, nfeatures))."""
+        x = sympy.symbols("x")
+        m = sympy2torch(x + 1, [x])
+        X = self.torch.randn(32, 1)
+        with self.assertRaises(ValueError):
+            m(X[:, 0])
+
+    def test_issue_571_selection_list_keeps_2d(self):
+        """Issue #571: selection=[i] keeps (L, 1) shape after feature selection."""
+        x = sympy.symbols("x")
+        m = sympy2torch(x + 1, [x], selection=[0])
+        X = self.torch.randn(32, 2)
+        out = m(X)
+        self.assertEqual(tuple(out.shape), (32, 1))
 
     def test_constant_arguments(self):
         # Test that functions with constant arguments work correctly
@@ -203,14 +267,14 @@ class TestTorch(unittest.TestCase):
         ]
 
         for expr, expected in test_cases:
-            m = pysr.export_torch.sympy2torch(expr, [])
+            m = sympy2torch(expr, [])
             result = m(self.torch.randn(10, 1))
             np.testing.assert_almost_equal(result.item(), expected, decimal=3)
 
         # Test with variables: sqrt(2) * x
         x = sympy.symbols("x")
         expr = sympy.sqrt(2) * x
-        m = pysr.export_torch.sympy2torch(expr, [x])
+        m = sympy2torch(expr, [x])
         X = np.random.randn(10, 1)
         np.testing.assert_almost_equal(
             m(self.torch.tensor(X)).detach().numpy().flatten(),
