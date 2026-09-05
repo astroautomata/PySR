@@ -1447,6 +1447,29 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             with open(pkl_filename, "rb") as f:
                 model = cast("PySRRegressor", pkl.load(f))
 
+            # Get constructor parameters and default values
+            params = inspect.signature(model.__init__).parameters
+
+            # Filter for missing parameters excluding kwargs
+            missing_params = {
+                k: v
+                for k, v in params.items()
+                if k not in model.__dict__.keys()
+                and v.name != "self"
+                and v.kind != v.VAR_KEYWORD
+            }
+
+            if len(missing_params) > 0:
+                warnings.warn(
+                    "The following missing parameters will be assigned with default values:"
+                    f"{', '.join(missing_params.keys())}"
+                    "This may be due to the model being saved under an old package version."
+                )
+
+            # Assign missing attributes
+            for k, v in missing_params.items():
+                setattr(model, k, v)
+
             # Update any parameters if necessary, such as
             # extra_sympy_mappings:
             model.set_params(**pysr_kwargs)
