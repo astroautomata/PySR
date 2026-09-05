@@ -49,6 +49,7 @@ from pysr.sr import (
     _suggest_keywords,
     _validate_elementwise_loss,
     _validate_export_mappings,
+    _warn_if_slow_custom_loss,
     idx_model_selection,
 )
 
@@ -1240,6 +1241,146 @@ print(json.dumps({{
             invalid_model.fit(X, y)
 
         self.assertIn("arity 3 but constraint tuple has length 2", str(cm.exception))
+
+
+class TestLossSpeedWarning(unittest.TestCase):
+    """Tests for the custom loss speed runtime check (`check_loss_speed`)."""
+
+    # Deliberately allocation-heavy Julia losses (`Any[...]` boxes every
+    # element, so the allocations cannot be optimized away), which are many
+    # orders of magnitude slower than the default squared-error loss:
+    slow_elementwise_loss = """
+    begin
+        @noinline slow_loss_elem(x, y) = sum(Any[x, y, x + y])
+        function slow_loss(x, y)
+            total = 0.0
+            for i in 1:100
+                total += slow_loss_elem(x, Float64(i))
+            end
+            return (x - y)^2 + total * 1e-300
+        end
+        slow_loss
+    end
+    """
+
+    slow_weighted_loss = """
+    begin
+        @noinline slow_loss_elem(x, y, w) = sum(Any[x, y, w, x + y + w])
+        function slow_weighted_loss(x, y, w)
+            total = 0.0
+            for i in 1:100
+                total += slow_loss_elem(x, y, w + Float64(i))
+            end
+            return w * (x - y)^2 + total * 1e-300
+        end
+        slow_weighted_loss
+    end
+    """
+
+    slow_full_objective = """
+    begin
+        @noinline slow_loss_elem(x, y) = sum(Any[x, y, x + y])
+        function slow_full_objective(tree, dataset, options)
+            prediction, flag = eval_tree_array(tree, dataset.X, options)
+            !flag && return Inf
+            total = 0.0
+            for i in eachindex(prediction)
+                for j in 1:100
+                    total += slow_loss_elem(prediction[i], dataset.y[i] + Float64(j))
+                end
+            end
+            return (
+                sum(abs, prediction .- dataset.y) / length(prediction)
+                + total * 1e-300
+            )
+        end
+        slow_full_objective
+    end
+    """
+
+    def setUp(self):
+        self.rstate = np.random.RandomState(0)
+        self.X = self.rstate.randn(200, 2)
+        self.y = self.X[:, 0] + 0.01 * self.rstate.randn(200)
+        # Keep the actual search trivial; these tests only care about the
+        # loss speed check, which runs before the search starts:
+        self.fast_test_kwargs = dict(
+            niterations=1,
+            populations=1,
+            population_size=16,
+            ncycles_per_iteration=5,
+            progress=False,
+            verbosity=0,
+            temp_equation_file=True,
+            binary_operators=["+"],
+        )
+
+    def _loss_speed_warnings(self, **kwargs) -> list:
+        fit_kwargs = {}
+        if "weights" in kwargs:
+            fit_kwargs["weights"] = kwargs.pop("weights")
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            model = PySRRegressor(**self.fast_test_kwargs, **kwargs)
+            model.fit(self.X, self.y, **fit_kwargs)
+        return [
+            str(w.message) for w in caught if "check_loss_speed=False" in str(w.message)
+        ]
+
+    def test_slow_elementwise_loss_warns(self):
+        warnings_caught = self._loss_speed_warnings(
+            elementwise_loss=self.slow_elementwise_loss
+        )
+        self.assertEqual(len(warnings_caught), 1)
+        self.assertIn("elementwise_loss", warnings_caught[0])
+        self.assertIn("@code_warntype", warnings_caught[0])
+
+    def test_slow_weighted_elementwise_loss_warns(self):
+        weights = np.ones_like(self.y)
+        warnings_caught = self._loss_speed_warnings(
+            elementwise_loss=self.slow_weighted_loss, weights=weights
+        )
+        self.assertEqual(len(warnings_caught), 1)
+
+    def test_slow_full_objective_warns(self):
+        warnings_caught = self._loss_speed_warnings(
+            loss_function=self.slow_full_objective
+        )
+        self.assertEqual(len(warnings_caught), 1)
+        self.assertIn("loss_function", warnings_caught[0])
+
+    def test_fast_custom_loss_does_not_warn(self):
+        warnings_caught = self._loss_speed_warnings(
+            elementwise_loss="my_fast_loss(x, y) = (x - y)^2"
+        )
+        self.assertEqual(warnings_caught, [])
+
+    def test_default_loss_does_not_warn(self):
+        warnings_caught = self._loss_speed_warnings()
+        self.assertEqual(warnings_caught, [])
+
+    def test_opt_out_flag_silences_warning(self):
+        warnings_caught = self._loss_speed_warnings(
+            elementwise_loss=self.slow_elementwise_loss, check_loss_speed=False
+        )
+        self.assertEqual(warnings_caught, [])
+
+    def test_benchmark_failure_degrades_silently(self):
+        # Garbage inputs make the Julia benchmark throw; the check should
+        # swallow the error rather than ever break a fit:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _warn_if_slow_custom_loss(
+                loss_kind="elementwise_loss",
+                custom_loss=None,
+                options=None,
+                jl_X=None,
+                jl_y=None,
+                jl_weights=None,
+            )
+        self.assertEqual(
+            [w for w in caught if "check_loss_speed" in str(w.message)], []
+        )
 
 
 class TestGuesses(unittest.TestCase):
