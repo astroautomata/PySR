@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.3.0](https://github.com/astroautomata/PySR/compare/v2.2.1...v2.3.0) (2026-09-07)
+
+
+### Features
+
+* expose search tracing on PySRRegressor ([#1347](https://github.com/astroautomata/PySR/issues/1347)) ([e694439](https://github.com/astroautomata/PySR/commit/e694439d498ae7ce6cbf0fe8ab40949944016416))
+* seed template parameters through guesses ([#1352](https://github.com/astroautomata/PySR/issues/1352)) ([fe41c38](https://github.com/astroautomata/PySR/commit/fe41c3858972822064b055aa476404b168cb996a))
+
+
+### Bug Fixes
+
+* **docker:** use Debian Trixie base ([#1356](https://github.com/astroautomata/PySR/issues/1356)) ([567ed69](https://github.com/astroautomata/PySR/commit/567ed690c88dd54c3851579701bd1039112f8f95))
+* migrate tracing to JSON with SymbolicRegression 2.4 ([#1354](https://github.com/astroautomata/PySR/issues/1354)) ([203f13c](https://github.com/astroautomata/PySR/commit/203f13c492d8bf7d3ccbb00e1dc5375df2380c8a))
+
+
+### Documentation
+
+* clarify guesses and template parameters ([#1353](https://github.com/astroautomata/PySR/issues/1353)) ([0caa20a](https://github.com/astroautomata/PySR/commit/0caa20a9d7828c2a90622a013627fa6257ab4c50))
+* generate legacy top-level redirects from the stable release ([#1346](https://github.com/astroautomata/PySR/issues/1346)) ([5114e66](https://github.com/astroautomata/PySR/commit/5114e668bc2f45386113f702abf93772fd5d9f66))
+* redirect nested documentation pages through stable ([#1348](https://github.com/astroautomata/PySR/issues/1348)) ([24cc669](https://github.com/astroautomata/PySR/commit/24cc669edf7bdc881a42b0e33d58675e2e6ba4fc))
+* replace README header video with a logo hero ([#1342](https://github.com/astroautomata/PySR/issues/1342)) ([8ffc78a](https://github.com/astroautomata/PySR/commit/8ffc78ab1851e4bcf9e51ec2d7cdd4755e41b881))
+* tweak badges ([#1344](https://github.com/astroautomata/PySR/issues/1344)) ([21e2ed5](https://github.com/astroautomata/PySR/commit/21e2ed552ffa4233e711539be12d9610ec724c40))
+
 ## [2.2.1](https://github.com/astroautomata/PySR/compare/v2.2.0...v2.2.1) (2026-09-02)
 
 
