@@ -89,6 +89,12 @@ class TypeSpec:
         you may use this function to check for that. This will be used to quit evaluation early.
         The default checks that every scalar constant is finite, or accepts every value for a
         non-optimizable type.
+    invalid : str, optional
+        Julia callable with signature ``() -> value::{name}`` that constructs an
+        invalid value. The result must have this type and fail ``is_valid``.
+        Used by DynamicExpressions to fill failed convenience evaluations.
+        Omit this hook for types with no invalid state. It receives no prototype
+        or shape information.
     string : str, optional
         Julia callable with signature ``value::{name} -> (...)::AbstractString`` used to print
         values.
@@ -113,6 +119,7 @@ class TypeSpec:
     string: str | None = None
     preamble: str | None = None
     loss_type: str | None = None
+    invalid: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name.isidentifier():
@@ -143,6 +150,7 @@ class TypeSpec:
             "init",
             "mutate",
             "is_valid",
+            "invalid",
             "string",
             "preamble",
             "loss_type",
@@ -452,7 +460,7 @@ _TYPE_SPEC_MODULE = _block(r"""
     import SymbolicRegression.ConstantOptimizationModule: can_optimize
     import SymbolicRegression.InterfaceDynamicExpressionsModule: string_constant
     import SymbolicRegression.InterfaceDynamicExpressionsModule.DE:
-        count_scalar_constants, get_number_type, is_valid,
+        count_scalar_constants, get_number_type, is_valid, invalid_value,
         pack_scalar_constants!, unpack_scalar_constants
     import SymbolicRegression.InterfaceDynamicExpressionsModule.DE.StringsModule:
         needs_brackets
@@ -562,6 +570,11 @@ _TYPE_SPEC_MODULE = _block(r"""
         _ -> true
     end
     is_valid(value::_TypeSpecValue) = _is_valid(value)
+
+    if _config.invalid !== nothing
+        const _invalid = _include(_config.invalid, "TypeSpec.invalid")
+        invalid_value(::Type{<:_TypeSpecValue}) = _invalid()
+    end
 
     const _string = if _config.string === nothing
         function (value)
@@ -681,6 +694,7 @@ def compile_type_spec(spec: TypeSpec) -> _TypeSpecDefinition:
             init = {_optional_source(spec.init)},
             mutate = {_optional_source(spec.mutate)},
             is_valid = {_optional_source(spec.is_valid)},
+            invalid = {_optional_source(spec.invalid)},
             string = {_optional_source(spec.string)},
             preamble = {_optional_source(spec.preamble)},
             optimizable = {str(spec.can_optimize).lower()},
@@ -1001,6 +1015,14 @@ def _type_spec_validator() -> AnyValue:
             for value in (initial, sampled)
                 count = scalar_constant_count(value)
                 optimizable && check_optimization(value, count)
+            end
+
+            if module_._config.invalid !== nothing
+                invalid = call("invalid", DE.invalid_value, T)
+                invalid isa T || fail("invalid", "must return `$type_name`.")
+                valid = call("is_valid", DE.is_valid, invalid)
+                valid isa Bool || fail("is_valid", "must return `Bool`.")
+                !valid || fail("invalid", "must return an invalid value.")
             end
 
             mutated = check_value(

@@ -1,6 +1,10 @@
 {
     "julia": "=1.10.0, 1.10.3",
     "packages": {
+        "DynamicExpressions": {
+            "uuid": "a40a106e-89c9-4ca8-8020-a735e8728b6b",
+            "version": "^2.10.1"
+        },
         "SymbolicRegression": {
             "uuid": "8254be44-1295-4e6a-a16d-46603ac705cb",
             "version": "~2.4.0",

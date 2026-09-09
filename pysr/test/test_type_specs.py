@@ -103,6 +103,39 @@ def string_data(*, constant: bool = False):
 
 
 class TestTypeSpecs(unittest.TestCase):
+    def test_invalid_value_hook(self):
+        spec = string_spec(
+            invalid='() -> StringValue("")',
+            is_valid="value -> !isempty(value.data)",
+        )
+        runtime = load_type_spec_runtime(compile_type_spec(spec))
+
+        self.assertTrue(
+            jl.seval(
+                "T -> begin v = SymbolicRegression.InterfaceDynamicExpressionsModule.DE.invalid_value(T); v isa T && isempty(v.data) end"
+            )(runtime.value_type)
+        )
+        X, y = string_data()
+        model = tiny_model(spec)
+        model.fit(X, y)
+        self.assertEqual(model.predict(X).tolist(), y.tolist())
+
+    def test_invalid_hook_rejects_wrong_type_or_valid_value(self):
+        for source, message in (
+            ('() -> ""', "invalid.*must return `StringValue`"),
+            ('() -> StringValue("valid")', "invalid.*must return an invalid value"),
+        ):
+            with self.subTest(source=source):
+                runtime = load_type_spec_runtime(
+                    compile_type_spec(
+                        string_spec(
+                            invalid=source, is_valid="value -> !isempty(value.data)"
+                        )
+                    )
+                )
+                with self.assertRaisesRegex(ValueError, message):
+                    validate_type_spec_runtime(runtime)
+
     def test_serial_string_type_spec(self):
         X, y = string_data()
         model = tiny_model(string_spec())
