@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/astroautomata/PySR/compare/v2.3.0...v2.3.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* restore Python executable for JuliaCall 0.9.35 ([#1362](https://github.com/astroautomata/PySR/issues/1362)) ([61b9027](https://github.com/astroautomata/PySR/commit/61b90272450f248cab237da27475d178501fcade))
+
 ## [2.3.0](https://github.com/astroautomata/PySR/compare/v2.2.1...v2.3.0) (2026-09-07)
 
 
