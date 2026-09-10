@@ -17,8 +17,6 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         arch: [linux/amd64]
-        python-version: [3.12.3]
-        julia-version: [1.10.3]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -67,6 +65,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=mcranmer/pysr:buildcache
           cache-to: type=registry,ref=mcranmer/pysr:buildcache,mode=max
-          build-args: |
-            PYVERSION=${{ matrix.python-version }}
-            JLVERSION=${{ matrix.julia-version }}
