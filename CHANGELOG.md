@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.0](https://github.com/astroautomata/PySR/compare/v2.3.1...v2.4.0) (2026-09-10)
+
+
+### Features
+
+* add an optional invalid value hook ([#1361](https://github.com/astroautomata/PySR/issues/1361)) ([f3420e8](https://github.com/astroautomata/PySR/commit/f3420e873c4e86bacdfeb1e5f4caa6a52845ddd4))
+* add TypeSpec definitions for methods on the generated type ([#1359](https://github.com/astroautomata/PySR/issues/1359)) ([4c61b90](https://github.com/astroautomata/PySR/commit/4c61b906f5f2f225959f84a8d0b77c79e292e36f))
+
+
+### Documentation
+
+* update README and documentation to the new PySR logo ([#1357](https://github.com/astroautomata/PySR/issues/1357)) ([11d1ae2](https://github.com/astroautomata/PySR/commit/11d1ae2d95b8467fede423b1ea4121e264cf193e))
+
 ## [2.3.1](https://github.com/astroautomata/PySR/compare/v2.3.0...v2.3.1) (2026-09-10)
 
 
