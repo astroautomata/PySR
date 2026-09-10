@@ -96,7 +96,7 @@ export default defineConfig({
   },
   themeConfig: {
     outline: 'deep',
-    logo: 'https://ai.damtp.cam.ac.uk/symbolicregression/dev/logo.png',
+    logo: 'https://raw.githubusercontent.com/MilesCranmer/PySR_Docs/master/images/pysr-logo.png',
     search: {
       provider: 'local',
       options: {
