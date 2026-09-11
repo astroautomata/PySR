@@ -17,6 +17,7 @@
     - loss_function
     - loss_function_expression
     - loss_scale
+    - check_loss_speed
     - model_selection
     - dimensional_constraint_penalty
     - dimensionless_constants_only
