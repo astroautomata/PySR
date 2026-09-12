@@ -464,7 +464,7 @@ class TestTypeSpecs(unittest.TestCase):
 
     def test_restored_model_rebuilds_callable_columns(self):
         X, y = string_data()
-        model = tiny_model(string_spec(name="RestoredColumnValue"))
+        model = tiny_model(string_spec())
         model.fit(X, y)
 
         restored = pickle.loads(pickle.dumps(model))
@@ -791,9 +791,8 @@ print(json.dumps({{
         np.testing.assert_array_equal(model.predict(X), y)
 
     def test_template_type_spec_parallelism_matrix(self):
+        type_name = "TemplateParallelismValue"
         for parallelism in ("serial", "multithreading", "multiprocessing"):
-            suffix = parallelism.title()
-            type_name = f"Template{suffix}Value"
             X, y = string_data(constant=True)
             model = tiny_model(
                 string_spec(
@@ -815,7 +814,7 @@ print(json.dumps({{
     def test_same_runtime_warm_start_continues(self):
         X, y = string_data()
         model = tiny_model(
-            string_spec(name="WarmStartValue"),
+            string_spec(),
             expression_spec=identity_template(),
         )
         model.fit(X, y)
@@ -1585,7 +1584,7 @@ print(json.dumps({{
 
     def test_fitted_model_guards(self):
         X, y = string_data()
-        spec = string_spec(name="GuardedValue")
+        spec = string_spec()
         model = tiny_model(spec)
         model.fit(X, y)
 
@@ -1783,7 +1782,7 @@ print(json.dumps({{
 
     def test_guess_rejects_an_undefined_constant_constructor(self):
         model = tiny_model(
-            string_spec(name="GuessUndefinedValue"),
+            string_spec(),
             guesses=['MissingGuessValue("!")'],
         )
         X, y = string_data()

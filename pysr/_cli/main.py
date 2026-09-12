@@ -1,4 +1,5 @@
 import fnmatch
+import os
 import sys
 import unittest
 import warnings
@@ -79,6 +80,20 @@ def _tests(tests, expressions):
     Choose from main, jax, torch, autodiff, cli, dev, startup, slurm, and interrupt.
     You can give multiple tests, separated by commas.
     """
+    try:
+        shard_count = int(os.environ.get("PYSR_TEST_SHARD_COUNT", "1"))
+        shard_index = int(os.environ.get("PYSR_TEST_SHARD_INDEX", "0"))
+    except ValueError as error:
+        raise click.ClickException(
+            "PYSR_TEST_SHARD_COUNT and PYSR_TEST_SHARD_INDEX must be integers."
+        ) from error
+    if shard_count <= 0:
+        raise click.ClickException("PYSR_TEST_SHARD_COUNT must be a positive integer.")
+    if not 0 <= shard_index < shard_count:
+        raise click.ClickException(
+            "PYSR_TEST_SHARD_INDEX must satisfy 0 <= PYSR_TEST_SHARD_INDEX "
+            "< PYSR_TEST_SHARD_COUNT."
+        )
     test_cases = []
     for test in tests.split(","):
         if test == "main":
@@ -113,6 +128,7 @@ def _tests(tests, expressions):
                 for expression in expressions
             ):
                 suite.addTest(test)
+    suite = unittest.TestSuite(list(suite)[shard_index::shard_count])
 
     runner = unittest.TextTestRunner()
     results = runner.run(suite)

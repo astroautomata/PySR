@@ -21,17 +21,19 @@ concurrency:
 
 jobs:
   test:
+    name: Test (shard ${{ matrix.shard-index }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     defaults:
       run:
         shell: bash
     strategy:
+      fail-fast: false
       matrix:
         julia-version: ['1']
-        python-version: ['3.13']
+        python-version: ['3.14']
         os: [windows-latest]
-
+        shard-index: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - name: "Set up Julia"
@@ -56,7 +58,12 @@ jobs:
       - name: "Run tests"
         run: |
             python -m pysr test main,cli,startup,interrupt
+        env:
+          PYSR_TEST_SHARD_COUNT: "4"
+          PYSR_TEST_SHARD_INDEX: ${{ matrix.shard-index }}
       - name: "Install Torch"
         run: pip install torch # (optional import)
+        if: ${{ matrix.shard-index == 0 }}
       - name: "Run Torch tests"
         run: python -m pysr test torch
+        if: ${{ matrix.shard-index == 0 }}

@@ -26,7 +26,8 @@ permissions:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    name: Test (${{ matrix.config.test-id }}, Julia ${{ matrix.config.julia-version }}, Python ${{ matrix.config.python-version }}, shard ${{ matrix.shard-index }})
+    runs-on: ${{ matrix.config.os }}
     timeout-minutes: 60
     env:
       COVERAGE_PROCESS_START: "${{ github.workspace }}/.coveragerc"
@@ -34,40 +35,29 @@ jobs:
       run:
         shell: bash
     strategy:
+      fail-fast: false
       matrix:
-        julia-version: ['1']
-        python-version: ['3.13']
-        os: [ubuntu-latest]
-        test-id: [main]
-        include:
-          - julia-version: '1.10'
-            python-version: '3.10'
-            os: ubuntu-latest
-            test-id: include
-          - julia-version: '1'
-            python-version: '3.13'
-            os: ubuntu-latest
-            test-id: include
-          - julia-version: '1'
-            python-version: '3.10'
-            os: ubuntu-latest
-            test-id: include
-
+        config:
+          - {julia-version: '1', python-version: '3.14', os: ubuntu-latest, test-id: main}
+          - {julia-version: '1.10', python-version: '3.10', os: ubuntu-latest, test-id: include}
+          - {julia-version: '1', python-version: '3.14', os: ubuntu-latest, test-id: include}
+          - {julia-version: '1', python-version: '3.10', os: ubuntu-latest, test-id: include}
+        shard-index: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - name: "Set up Julia"
         uses: julia-actions/setup-julia@v3
         with:
-          version: ${{ matrix.julia-version }}
+          version: ${{ matrix.config.julia-version }}
       - name: "Cache Julia"
         uses: julia-actions/cache@v3
         with:
-          cache-name: ${{ matrix.os }}-test-${{ matrix.julia-version }}-${{ matrix.python-version }}
+          cache-name: ${{ matrix.config.os }}-test-${{ matrix.config.julia-version }}-${{ matrix.config.python-version }}
           cache-packages: false
       - name: "Set up Python"
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.config.python-version }}
           cache: pip
       - name: "Install PySR"
         run: |
@@ -75,18 +65,21 @@ jobs:
             pip install '.[dev]'
             python -c 'import pysr'
       - name: "Assert Julia version"
-        if: ${{ matrix.julia-version != '1'}}
-        run: python3 -c "from pysr import jl; assert jl.VERSION.major == jl.seval('v\"${{ matrix.julia-version }}\"').major; assert jl.VERSION.minor == jl.seval('v\"${{ matrix.julia-version }}\"').minor"
+        if: ${{ matrix.config.julia-version != '1'}}
+        run: python3 -c "from pysr import jl; assert jl.VERSION.major == jl.seval('v\"${{ matrix.config.julia-version }}\"').major; assert jl.VERSION.minor == jl.seval('v\"${{ matrix.config.julia-version }}\"').minor"
       - name: "Set up coverage for subprocesses"
         run: echo 'import coverage; coverage.process_startup()' > "${{ github.workspace }}/sitecustomize.py"
       - name: "Run tests"
         run: coverage run -m pysr test main,cli,startup,interrupt
+        env:
+          PYSR_TEST_SHARD_COUNT: "4"
+          PYSR_TEST_SHARD_INDEX: ${{ matrix.shard-index }}
       - name: "Run JAX tests"
         run: coverage run --append -m pysr test jax
-        if: ${{ matrix.test-id == 'main' }}
+        if: ${{ matrix.config.test-id == 'main' && matrix.shard-index == 0 }}
       - name: "Run Torch tests"
         run: coverage run --append -m pysr test torch
-        if: ${{ matrix.test-id == 'main' }}
+        if: ${{ matrix.config.test-id == 'main' && matrix.shard-index == 0 }}
       - name: "Build coverage report"
         run: coverage xml
       - name: "Upload results to Codecov"
@@ -95,12 +88,24 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: astroautomata/PySR
 
+  required_tests:
+    name: test (1, 3.14, ubuntu-latest, ${{ matrix.test-id }})
+    needs: test
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-id: [main, include]
+    steps:
+      - name: Require all test shards to pass
+        run: test "${{ needs.test.result }}" = success
+
   dev_install:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ['ubuntu-latest']
-        python-version: ['3.13']
+        python-version: ['3.14']
         julia-version: ['1']
         include:
           - os: ubuntu-latest
@@ -117,17 +122,17 @@ jobs:
         run: PYSR_TEST_JULIA_VERSION=${{ matrix.julia-version }} PYSR_TEST_PYTHON_VERSION=${{ matrix.python-version }} python -m pysr test dev
 
   conda_test:
+    name: Conda (Python ${{ matrix.python-version }}, shard ${{ matrix.shard-index }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -l {0}
     strategy:
+      fail-fast: false
       matrix:
-        # NOTE: pin to a known-supported CPython; `3` can resolve to free-threaded
-        # builds (e.g. 3.14t) which PythonCall.jl doesn't support.
-        python-version: ['3.13']
+        python-version: ['3.14']
         os: ['ubuntu-latest']
-
+        shard-index: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - name: "Cache conda"
@@ -161,6 +166,9 @@ jobs:
             python3 -c 'import pysr'
       - name: "Run tests"
         run: cd /tmp && python -m pysr test main
+        env:
+          PYSR_TEST_SHARD_COUNT: "4"
+          PYSR_TEST_SHARD_INDEX: ${{ matrix.shard-index }}
 
   types:
     name: Check types
@@ -171,7 +179,7 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - '3.13'
+          - '3.14'
           - '3.10'
         os: ['ubuntu-latest']
 
@@ -194,7 +202,7 @@ jobs:
         if: ${{ matrix.python-version == '3.10' }}
 
   beartype:
-    name: Test with beartype
+    name: Test with beartype (shard ${{ matrix.shard-index }})
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -202,9 +210,10 @@ jobs:
     env:
       PYSR_USE_BEARTYPE: "1"
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.13']
-
+        python-version: ['3.14']
+        shard-index: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - name: "Set up Python"
@@ -218,6 +227,9 @@ jobs:
             pip install '.[dev]'
       - name: "Run tests"
         run: python -m pysr test main,jax,torch
+        env:
+          PYSR_TEST_SHARD_COUNT: "4"
+          PYSR_TEST_SHARD_INDEX: ${{ matrix.shard-index }}
 
   autodiff_backends:
     name: Test autodiff backends
@@ -227,7 +239,7 @@ jobs:
         shell: bash -l {0}
     strategy:
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
         julia-version: ['1']
 
     steps:

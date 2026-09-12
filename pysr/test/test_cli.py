@@ -1,5 +1,7 @@
+import os
 import unittest
 from textwrap import dedent
+from unittest.mock import patch
 
 from click import testing as click_testing
 
@@ -62,6 +64,51 @@ def get_runtests():
             result = self.cli_runner.invoke(pysr, ["test", "--help"])
             self.assertEqual(result.output.strip(), expected.strip())
             self.assertEqual(result.exit_code, 0)
+
+        def test_test_shards_partition_filtered_duplicate_groups(self):
+            executed = []
+
+            class ShardTests(unittest.TestCase):
+                def test_ignored(self):
+                    executed.append(self.id())
+
+                test_selected_a = test_ignored
+                test_selected_b = test_ignored
+                test_selected_c = test_ignored
+                test_selected_d = test_ignored
+                test_selected_e = test_ignored
+
+            loader = unittest.TestLoader()
+            selected = [
+                test.id()
+                for _ in range(2)
+                for test in loader.loadTestsFromTestCase(ShardTests)
+                if "selected" in test.id()
+            ]
+            shard_runs = []
+            with patch(
+                "pysr._cli.main.get_runtests_cli",
+                return_value=lambda **_: [ShardTests],
+            ):
+                for shard_index in range(3):
+                    executed.clear()
+                    with patch.dict(
+                        os.environ,
+                        {
+                            "PYSR_TEST_SHARD_COUNT": "3",
+                            "PYSR_TEST_SHARD_INDEX": str(shard_index),
+                        },
+                    ):
+                        result = self.cli_runner.invoke(
+                            pysr, ["test", "cli,cli", "-k", "selected"]
+                        )
+                    self.assertEqual(result.exit_code, 0, result.output)
+                    shard_runs.append(executed.copy())
+
+            self.assertEqual(
+                shard_runs,
+                [selected[shard_index::3] for shard_index in range(3)],
+            )
 
     def runtests(just_tests=False):
         """Run all tests in cliTest.py."""

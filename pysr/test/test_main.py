@@ -921,6 +921,7 @@ class TestPipeline(unittest.TestCase):
                 },
                 output_directory=directory,
                 run_id="template-checkpoint",
+                early_stop_condition=1e-10,
             )
             model.fit(X, y)
             expected = model.predict(X)
@@ -970,6 +971,7 @@ print(json.dumps({{
                 },
                 output_directory=directory,
                 run_id="template-pickle",
+                early_stop_condition=1e-10,
             )
             model.fit(X, y)
             expected = model.predict(X)
