@@ -8,7 +8,7 @@ When running PySR, I usually do the following:
 
 I run from IPython (Jupyter Notebooks don't work as well[^1]) on the head node of a slurm cluster. Passing `cluster_manager="slurm"` will make PySR set up a run over the entire allocation. I set `procs` equal to the total number of tasks across my entire allocation (see the [Slurm page](slurm.md) for a complete multi-node example).
 
-I use the [tensorboard feature](https://ai.damtp.cam.ac.uk/pysr/examples/#12-using-tensorboard-for-logging) for experiment tracking.
+I use the [tensorboard feature](/examples/instrumentation#using-tensorboard-for-logging) for experiment tracking.
 
 [^1]: Jupyter Notebooks are supported by PySR, but miss out on some useful features available in IPython and Python: the progress bar, and early stopping with "q". Interrupting a search in Jupyter returns the equations found so far.
 
