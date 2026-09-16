@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.1](https://github.com/astroautomata/PySR/compare/v2.4.0...v2.4.1) (2026-09-16)
+
+
+### Documentation
+
+* expand examples and split into topic pages ([#1350](https://github.com/astroautomata/PySR/issues/1350)) ([49773c3](https://github.com/astroautomata/PySR/commit/49773c30d43fb2d968d698605f72224489f74445))
+* restore accurate Python API feature card ([#1368](https://github.com/astroautomata/PySR/issues/1368)) ([876d3bb](https://github.com/astroautomata/PySR/commit/876d3bba0a05c1e51eb08b6c3aff7601dd4e06f9))
+
 ## [2.4.0](https://github.com/astroautomata/PySR/compare/v2.3.1...v2.4.0) (2026-09-10)
 
 
