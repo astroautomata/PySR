@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 26.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 609 685" style="enable-background:new 0 0 609 685;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#FFFFFF;}
+	.st1{fill:none;stroke:#C13345;stroke-width:9.89;stroke-linecap:round;stroke-linejoin:round;}
+	.st2{fill:none;stroke:#C13345;stroke-width:9.8;stroke-linecap:round;stroke-linejoin:round;}
+	.st3{fill:#C13345;}
+	.st4{font-family:'Roboto-Bold';}
+	.st5{font-size:149.62px;}
+	.st6{letter-spacing:1;}
+</style>
+<g id="Hex">
+
+		<image style="overflow:visible;opacity:0.75;" width="613" height="693" xlink:href="87712EA9B4B3CB1B.png"  transform="matrix(1 0 0 1 -1.96 -3.9966)">
+	</image>
+	<g>
+		<g>
+			<path class="st0" d="M287,16.4L30.9,164.3c-10.9,6.3-17.6,17.9-17.6,30.4v295.7c0,12.5,6.7,24.1,17.6,30.4L287,668.6
+				c10.9,6.3,24.3,6.3,35.1,0l256.1-147.8c10.9-6.3,17.6-17.9,17.5-30.4V194.7c0-12.5-6.7-24.1-17.5-30.4L322,16.4
+				C311.2,10.2,297.8,10.2,287,16.4z"/>
+		</g>
+	</g>
+</g>
+<g id="Head">
+	<path class="st1" d="M263.8,364.5l0.2-24.6l-40.9,5.8l-7.8-54l-25.3-2.7l23.6-57.7l-0.2-3.1c0-51.7,41.9-93.6,93.6-93.6
+		c51.7,0,93.6,41.9,93.6,93.6c0,29.3-13.7,56.9-37,74.6v59.5"/>
+	<circle class="st1" cx="304.5" cy="225.6" r="14.1"/>
+	<circle class="st1" cx="304.5" cy="220.1" r="43.6"/>
+	<line class="st1" x1="304.5" y1="239.7" x2="304.5" y2="263.7"/>
+	<polyline class="st1" points="324,278.7 324,267.7 285.7,267.7 285.7,278.7 	"/>
+	<path class="st2" d="M324,278.7c0.2,10.6-8.1,19.3-18.7,19.6s-19.3-8.1-19.6-18.7c0-0.3,0-0.6,0-0.9"/>
+	<line class="st1" x1="324" y1="267.7" x2="324" y2="260"/>
+	<line class="st1" x1="285.7" y1="270.7" x2="285.7" y2="262.9"/>
+</g>
+<g id="PySR">
+	<text transform="matrix(1 0 0 1 124.44 509.9133)" class="st3 st4 st5 st6">P</text>
+	<text transform="matrix(1 0 0 1 222.04 509.9133)" class="st3 st4 st5">ySR</text>
+</g>
+</svg>
