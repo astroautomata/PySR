@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.5.0](https://github.com/astroautomata/PySR/compare/v2.4.1...v2.5.0) (2026-09-20)
+
+
+### Features
+
+* enable concurrent GC sweeping by default ([#1379](https://github.com/astroautomata/PySR/issues/1379)) ([5f14395](https://github.com/astroautomata/PySR/commit/5f14395eee3438f93ee39b56d07ddcf971769057))
+
+
+### Dependencies
+
+* require JuliaCall 0.9.36 and remove workaround ([#1380](https://github.com/astroautomata/PySR/issues/1380)) ([51aea3e](https://github.com/astroautomata/PySR/commit/51aea3e13a43b5acf3bee53643bfdfe76db05d68))
+
+
+### Documentation
+
+* compress agent skill ([#1375](https://github.com/astroautomata/PySR/issues/1375)) ([57ed43a](https://github.com/astroautomata/PySR/commit/57ed43ad65651c7a681f75a23ef0e58f72a32e1b))
+* document complexity_mapping, guesses in SKILL ([#1372](https://github.com/astroautomata/PySR/issues/1372)) ([b566bdb](https://github.com/astroautomata/PySR/commit/b566bdb42f8eb169141b8659410d5735db49bf2f))
+* explain agent skill installation in README ([#1377](https://github.com/astroautomata/PySR/issues/1377)) ([258872e](https://github.com/astroautomata/PySR/commit/258872e309c469f2078675bd724611057e4d38c5))
+* fix &lt;details&gt; headings ([#1374](https://github.com/astroautomata/PySR/issues/1374)) ([8507021](https://github.com/astroautomata/PySR/commit/85070216ec3012c27f7e196143e2ba113b7d7a9e))
+* link Julia docs to the pinned backend version ([#1370](https://github.com/astroautomata/PySR/issues/1370)) ([aecba32](https://github.com/astroautomata/PySR/commit/aecba3215592e8e85f49fbc193a0a032284c0073))
+
 ## [2.4.1](https://github.com/astroautomata/PySR/compare/v2.4.0...v2.4.1) (2026-09-16)
 
 
