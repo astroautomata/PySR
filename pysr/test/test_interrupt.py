@@ -18,8 +18,7 @@ from unittest import mock
 import pysr.interrupt as interrupt_module
 from pysr.sr import _resolve_input_stream as sr_resolve
 
-# Interrupts are only delivered this way on POSIX; the feature is gated
-# identically in `pysr/interrupt.py`.
+# Native sigaction checks are only available on POSIX.
 POSIX = os.name == "posix"
 
 
@@ -168,31 +167,49 @@ class TestExternalStopSignalContext(unittest.TestCase):
         self.assertTrue(any("partial" in str(item.message).lower() for item in caught))
 
 
-# The child asserts partial results, a byte-identical native SIGINT
-# disposition after the fit, and that a second fit in the same process works.
+# The child asserts partial results, restored native SIGINT disposition on
+# POSIX, and that a second fit in the same process works.
 CHILD_SCRIPT = textwrap.dedent("""
     import ctypes
+    import os
     import signal
+    import threading
     import warnings
 
     import numpy as np
 
     from pysr import PySRRegressor
 
-    libc = ctypes.CDLL(None)
+    if os.name == "posix":
+        libc = ctypes.CDLL(None)
 
-    def native_handler():
-        # Compare only `sa_handler`: the first member on both platforms, and
-        # all this check needs.
-        storage = (ctypes.c_char * 512)()
-        libc.sigaction(int(signal.SIGINT), None, storage)
-        return ctypes.cast(storage, ctypes.POINTER(ctypes.c_void_p)).contents.value
+        def native_handler():
+            # Compare only `sa_handler`: the first member on both platforms, and
+            # all this check needs.
+            storage = (ctypes.c_char * 512)()
+            libc.sigaction(int(signal.SIGINT), None, storage)
+            return ctypes.cast(storage, ctypes.POINTER(ctypes.c_void_p)).contents.value
 
-    before = native_handler()
+        before = native_handler()
+
+    def send_interrupt():
+        if os.name == "posix":
+            os.kill(os.getpid(), signal.SIGINT)
+        elif not ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, 0):
+            raise ctypes.WinError()
 
     rstate = np.random.RandomState(0)
     X = rstate.randn(150, 2)
     y = X[:, 0] * X[:, 1]
+    warmup = PySRRegressor(
+        niterations=1,
+        populations=3,
+        verbosity=0,
+        progress=False,
+        temp_equation_file=True,
+    )
+    warmup.fit(X[:20], y[:20])
+
     model = PySRRegressor(
         niterations=1_000_000,  # only an interrupt can end this fit
         populations=8,
@@ -200,16 +217,19 @@ CHILD_SCRIPT = textwrap.dedent("""
         progress=False,
         temp_equation_file=True,
     )
-    print("SEARCHING", flush=True)
+    # Warm-up is complete, so the delayed interrupt reaches a running search.
+    threading.Timer(10.0, send_interrupt).start()
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         model.fit(X, y)
     assert model.equations_ is not None
+    assert len(model.equations_) > 0, "search returned no partial results"
     assert model.interrupted_ is True
     assert any("partial" in str(item.message).lower() for item in caught)
     print(f"INTERRUPTED_OK:{len(model.equations_)}", flush=True)
 
-    print(f"HANDLER_RESTORED:{native_handler() == before}", flush=True)
+    if os.name == "posix":
+        print(f"HANDLER_RESTORED:{native_handler() == before}", flush=True)
 
     model2 = PySRRegressor(
         niterations=2,
@@ -224,17 +244,14 @@ CHILD_SCRIPT = textwrap.dedent("""
     print("SECOND_FIT_OK", flush=True)
     """)
 
-# Wait this long after the SEARCHING marker so the fit has armed the cooperative
-# handler before the single user interrupt.
+# Wait this long after Jupyter's SEARCHING marker so the fit has armed the
+# cooperative handler before the single user interrupt.
 FIRST_SIGNAL_DELAY = 15.0
 TOTAL_TIMEOUT = 600.0
 
 
 class TestSubprocessInterrupt(unittest.TestCase):
     def test_sigint_returns_partial_results_and_restores_state(self):
-        if not POSIX:
-            self.skipTest("SIGINT-based interruption is POSIX-only")
-
         with tempfile.TemporaryDirectory() as tmpdir:
             script = Path(tmpdir) / "child.py"
             script.write_text(CHILD_SCRIPT)
@@ -244,29 +261,14 @@ class TestSubprocessInterrupt(unittest.TestCase):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                creationflags=0 if POSIX else subprocess.CREATE_NEW_CONSOLE,
             )
             watchdog = threading.Timer(TOTAL_TIMEOUT, p.kill)
             watchdog.start()
-
-            def send_signal_after_marker():
-                time.sleep(FIRST_SIGNAL_DELAY)
-                if p.poll() is not None:
-                    return
-                try:
-                    os.kill(p.pid, signal.SIGINT)
-                except ProcessLookupError:
-                    pass
-
             lines = []
-            signaler = None
             try:
                 for line in p.stdout:
                     lines.append(line.strip())
-                    if line.startswith("SEARCHING"):
-                        signaler = threading.Thread(
-                            target=send_signal_after_marker, daemon=True
-                        )
-                        signaler.start()
                 p.wait()
             finally:
                 watchdog.cancel()
@@ -276,7 +278,8 @@ class TestSubprocessInterrupt(unittest.TestCase):
             output = "\n".join(lines)
             self.assertEqual(p.returncode, 0, f"child failed:\n{output}")
             self.assertIn("INTERRUPTED_OK:", output)
-            self.assertIn("HANDLER_RESTORED:True", output)
+            if POSIX:
+                self.assertIn("HANDLER_RESTORED:True", output)
             self.assertIn("SECOND_FIT_OK", output)
 
 

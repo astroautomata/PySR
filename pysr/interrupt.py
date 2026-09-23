@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import _thread
 import ctypes
 import os
 import signal
@@ -32,6 +33,35 @@ def _checked_sigaction(libc, action, old_action):
     if result != 0:
         errno = ctypes.get_errno()
         raise OSError(errno, os.strerror(errno))
+
+
+@contextmanager
+def _console_ctrl_c_to_python():
+    """Hand console Ctrl-C to Python before Julia's handler exits the process.
+
+    Windows calls console handlers last-registered first, so this one runs first.
+    """
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    HANDLER = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.DWORD)
+    kernel32.SetConsoleCtrlHandler.argtypes = [HANDLER, wintypes.BOOL]
+    kernel32.SetConsoleCtrlHandler.restype = wintypes.BOOL
+
+    def handler(event):
+        if event == 0:  # CTRL_C_EVENT
+            _thread.interrupt_main()
+            return True
+        return False
+
+    callback = HANDLER(handler)
+    if not kernel32.SetConsoleCtrlHandler(callback, True):
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        yield
+    finally:
+        if not kernel32.SetConsoleCtrlHandler(callback, False):
+            raise ctypes.WinError(ctypes.get_last_error())
 
 
 def _should_arm_external_stop() -> bool:
@@ -65,9 +95,9 @@ def _external_stop_signal_context(model):
             stop_read_fd, stop_write_fd = _stop_channel(cleanup)
             external_stop = SymbolicRegression.ExternalStop(stop_read_fd, signal.SIGINT)
 
-            # `signal.signal` below replaces the SIGINT handler Julia installed
-            # for itself, and sigaction is the only way to put it back. Windows
-            # has none to save: Julia handles Ctrl-C through the console there.
+            # Julia intercepts Ctrl-C through SIGINT sigaction on POSIX, which
+            # Python replaces below, or through a Windows console handler that
+            # runs before Python's. Save the former or preempt the latter.
             if os.name == "posix":
                 libc = _libc_with_sigaction()
                 saved_sigaction = _SigactionStorage()
@@ -75,6 +105,8 @@ def _external_stop_signal_context(model):
                 cleanup.callback(
                     _checked_sigaction, libc, ctypes.byref(saved_sigaction), None
                 )
+            else:
+                cleanup.enter_context(_console_ctrl_c_to_python())
 
             saved_python_handler = signal.getsignal(signal.SIGINT)
 
