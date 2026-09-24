@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.5.1](https://github.com/astroautomata/PySR/compare/v2.5.0...v2.5.1) (2026-09-24)
+
+
+### Documentation
+
+* fix broken links, version menu, same-tab nav, and favicon ([#1388](https://github.com/astroautomata/PySR/issues/1388)) ([e5b5454](https://github.com/astroautomata/PySR/commit/e5b5454a4f31f6902af52dff7a4c23c961d6dbf2))
+* point Julia documentation links to julia.pysr.ai ([#1387](https://github.com/astroautomata/PySR/issues/1387)) ([e999da7](https://github.com/astroautomata/PySR/commit/e999da72531bcd3975789c6670939d36d5970186))
+* serve documentation at pysr.ai ([#1384](https://github.com/astroautomata/PySR/issues/1384)) ([7873cfa](https://github.com/astroautomata/PySR/commit/7873cfafddc1cf501da8a14ce18be8270c76388a))
+
 ## [2.5.0](https://github.com/astroautomata/PySR/compare/v2.4.1...v2.5.0) (2026-09-20)
 
 
