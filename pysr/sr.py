@@ -129,7 +129,7 @@ def _process_constraints(
                             "One typical constraint is to use `constraints={..., '^': (-1, 1)}`, which "
                             "will allow arbitrary-complexity base (-1) but only powers such as "
                             "a constant or variable (1). "
-                            "For more tips, please see https://pysr.ai/tuning/"
+                            "For more tips, please see https://pysr.ai/tuning"
                         )
                     # Create default constraint tuple with -1 for each argument
                     constraints[op] = tuple([-1] * arity)
@@ -486,7 +486,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         most accurate model.
     binary_operators : list[str]
         List of strings for binary operators used in the search.
-        See the [operators page](https://pysr.ai/operators/)
+        See the [operators page](https://pysr.ai/operators)
         for more details.
         Default is `["+", "-", "*", "/"]`.
     unary_operators : list[str]
@@ -2841,7 +2841,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         X_units : list[str]
             A list of units for each variable in `X`. Each unit should be
             a string representing a Julia expression. See DynamicQuantities.jl
-            https://symbolicml.org/DynamicQuantities.jl/dev/units/ for more
+            https://ai.damtp.cam.ac.uk/dynamicquantities/dev/units for more
             information.
         y_units : str | list[str]
             Similar to `X_units`, but as a unit for the target variable, `y`.

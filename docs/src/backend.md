@@ -35,7 +35,7 @@ Here are some tips:
 
 -  The documentation for the backend is given [here](https://julia.pysr.ai/dev/).
 - Throughout the package, you will often see template functions which typically use a symbol `T` (such as in the string `where {T<:Real}`). Here, `T` is simply the datatype of the input data and stored constants, such as `Float32` or `Float64`. Writing functions in this way lets us write functions generic to types, while still having access to the specific type specified at compilation time.
-- Expressions are stored as binary trees, using the `Node{T}` type, described [here](https://julia.pysr.ai/dev/types/#SymbolicRegression.CoreModule.EquationModule.Node).
+- Expressions are stored as binary trees, using the `Node{T}` type, described [here](https://julia.pysr.ai/dev/types#SymbolicRegression.CoreModule.EquationModule.Node).
 - For reference, the main loop itself is found in the `equation_search` function inside [`src/SymbolicRegression.jl`](https://github.com/astroautomata/SymbolicRegression.jl/blob/master/src/SymbolicRegression.jl).
 - Parts of the code which are typically edited by users include:
     - [`src/CheckConstraints.jl`](https://github.com/astroautomata/SymbolicRegression.jl/blob/master/src/CheckConstraints.jl), particularly the function `check_constraints`. This function checks whether a given expression satisfies constraints, such as having a complexity lower than `maxsize`, and whether it contains any forbidden nestings of functions.

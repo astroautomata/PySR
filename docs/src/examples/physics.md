@@ -47,7 +47,7 @@ model = PySRRegressor(
 )
 ```
 
-Pass numeric values to `fit`, with matching units in column order through `X_units` and the target unit through `y_units`. Unit strings follow the Julia syntax documented by [DynamicQuantities.jl](https://symbolicml.org/DynamicQuantities.jl/dev/#Usage).
+Pass numeric values to `fit`, with matching units in column order through `X_units` and the target unit through `y_units`. Unit strings follow the Julia syntax documented by [DynamicQuantities.jl](https://ai.damtp.cam.ac.uk/dynamicquantities/dev/#Usage).
 
 ```python
 import pandas as pd

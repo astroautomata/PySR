@@ -40,7 +40,7 @@ const nav = [
     text: 'Python',
     items: [
       { text: 'Python', link: '/' },
-      { text: 'Julia', link: `https://julia.pysr.ai/${symbolicRegressionDocsVersion}/` }
+      { text: 'Julia', link: `https://julia.pysr.ai/${symbolicRegressionDocsVersion}/`, target: '_self', noIcon: true }
     ]
   },
   {
@@ -58,7 +58,10 @@ export default defineConfig({
   outDir: '../dist',
   srcExclude: ['**/_*.md'],
   head: [
-    ['link', { rel: 'icon', href: `${baseTemp.base}favicon.png` }],
+    ['link', { rel: 'icon', type: 'image/x-icon', href: `${baseTemp.base}favicon.ico` }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: `${baseTemp.base}favicon-16x16.png` }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${baseTemp.base}favicon-32x32.png` }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: `${baseTemp.base}apple-touch-icon.png` }],
     ['script', {src: '/versions.js'}],
     ['script', {src: `${baseTemp.base}siteinfo.js`}]
   ],

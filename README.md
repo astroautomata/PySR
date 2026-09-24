@@ -242,7 +242,7 @@ There are also tips for tuning PySR on [this page](https://pysr.ai/tuning).
 
 The following code makes use of as many PySR features as possible.
 Note that is just a demonstration of features and you should not use this example as-is.
-For details on what each parameter does, check out the [API page](https://pysr.ai/api/).
+For details on what each parameter does, check out the [API page](https://pysr.ai/api).
 
 ```python
 model = PySRRegressor(

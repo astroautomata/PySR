@@ -122,7 +122,7 @@ model.fit(X_with_category, y)
 model.predict(X_with_category)
 ```
 
-See [Expression Specifications](/api/#expression-specifications) for the complete
+See [Expression Specifications](/api#expression-specifications) for the complete
 reference to this API. The same pattern extends to several template holes and to parameter
 vectors whose entries vary by category.
 

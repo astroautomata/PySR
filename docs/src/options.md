@@ -276,7 +276,7 @@ model = PySRRegressor(..., weights=weights, elementwise_loss="myloss(x, y, w) = 
 model.fit(..., weights=weights)
 ```
 
-Built-in loss (faster) (see [losses](https://julia.pysr.ai/dev/losses/)).
+Built-in loss (faster) (see [losses](https://julia.pysr.ai/dev/losses)).
 This one computes the L3 norm:
 
 ```python

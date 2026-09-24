@@ -3,7 +3,30 @@
 Generate VitePress-compatible index.md by combining _index.md template with README.md content.
 """
 
+import re
 from pathlib import Path
+from urllib.parse import urlsplit
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_URL = "https://github.com/astroautomata/PySR"
+
+
+def repo_link(match):
+    url = match.group(2)
+    parts = urlsplit(url)
+    if parts.scheme or parts.netloc or url.startswith(("/", "#")):
+        return match.group(0)
+
+    path = (REPO_ROOT / parts.path).resolve()
+    if not path.is_relative_to(REPO_ROOT) or not path.exists():
+        return match.group(0)
+    if path.is_relative_to(REPO_ROOT / "docs" / "src") and path.suffix == ".md":
+        return match.group(0)
+
+    kind = "tree" if path.is_dir() else "blob"
+    suffix = f"?{parts.query}" if parts.query else ""
+    suffix += f"#{parts.fragment}" if parts.fragment else ""
+    return f"{match.group(1)}{REPO_URL}/{kind}/master/{path.relative_to(REPO_ROOT).as_posix()}{suffix})"
 
 
 def process_readme_content(readme_content):
@@ -30,6 +53,7 @@ def process_readme_content(readme_content):
 
         # Fix internal links to use VitePress paths
         line = line.replace("(https://pysr.ai/papers)", "(/papers)")
+        line = re.sub(r"(?<!!)(\[[^]]+\]\()([^\s)]*)\)", repo_link, line)
 
         # Skip table of contents entries
         if line.startswith("**Contents**:") or (

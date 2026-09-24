@@ -34,6 +34,8 @@ function absoluteUrl(relative) {
 const props = defineProps<{ screenMenu?: boolean }>();
 const versions = ref<Array<{ text: string, link: string, class?: string }>>([]);
 const currentVersion = ref('Versions');
+// Releases are shown as vX.Y; links still point at the full vX.Y.Z folder.
+const minorLabel = (v: string) => /^(v\d+\.\d+)\.\d+$/.exec(v)?.[1] ?? v;
 const isClient = ref(false);
 const { site } = useData();
 
@@ -71,11 +73,19 @@ const loadVersions = async () => {
       const scriptsLoaded = await waitForScriptsToLoad();
 
       if (scriptsLoaded && window.DOC_VERSIONS && window.DOCUMENTER_CURRENT_VERSION) {
+        // DOC_VERSIONS lists releases newest first, so the first vX.Y.Z of each minor is its latest patch.
+        // Aliases (v1, v1.5) and prereleases stay reachable by URL, out of the picker.
+        const seenMinors = new Set();
         versions.value = window.DOC_VERSIONS
-          // Prerelease folders such as v2.0.0a2 stay reachable by URL, out of the picker
-          .filter(v => v === 'dev' || v === 'stable' || /^v\d+(\.\d+){0,2}$/.test(v))
+          .filter(v => {
+            if (v === 'dev' || v === 'stable') return true;
+            const minor = /^(v\d+\.\d+)\.\d+$/.exec(v)?.[1];
+            if (!minor || seenMinors.has(minor)) return false;
+            seenMinors.add(minor);
+            return true;
+          })
           .map(v => ({
-            text: v,
+            text: minorLabel(v),
             link: absoluteUrl(`/${v}/`),
           }));
         currentVersion.value = window.DOCUMENTER_CURRENT_VERSION;
@@ -92,12 +102,12 @@ const loadVersions = async () => {
   isClient.value = true;
 };
 
-const versionItems = computed(() => {
-  return versions.value.map((v) => ({
-    text: v.text,
-    link: v.link
-  }));
-});
+const versionItems = computed(() => versions.value.map((v) => ({
+  text: v.text,
+  link: v.link,
+  target: '_self',
+  noIcon: true
+})));
 
 onMounted(() => {
   if (typeof window !== 'undefined') {
@@ -111,12 +121,12 @@ onMounted(() => {
   <template v-if="isClient">
     <VPNavBarMenuGroup
       v-if="!screenMenu && versions.length > 0"
-      :item="{ text: currentVersion, items: versionItems }"
+      :item="{ text: minorLabel(currentVersion), items: versionItems }"
       class="VPVersionPicker"
     />
     <VPNavScreenMenuGroup
       v-else-if="screenMenu && versions.length > 0"
-      :text="currentVersion"
+      :text="minorLabel(currentVersion)"
       :items="versionItems"
       class="VPVersionPicker"
     />
