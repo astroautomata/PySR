@@ -3,7 +3,7 @@
     "packages": {
         "SymbolicRegression": {
             "uuid": "8254be44-1295-4e6a-a16d-46603ac705cb",
-            "version": "~2.4.1",
+            "version": "~2.4.2",
             "preferences": {
                 "precompile_float64": false
             }
