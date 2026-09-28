@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.5.2](https://github.com/astroautomata/PySR/compare/v2.5.1...v2.5.2) (2026-09-28)
+
+
+### Performance Improvements
+
+* check for Julia functions with isa ([#1395](https://github.com/astroautomata/PySR/issues/1395)) ([bfba1b6](https://github.com/astroautomata/PySR/commit/bfba1b62e3d4d4db843c7c9f4da7253e21caee72))
+* copy NumPy fit data through PyArray ([#1393](https://github.com/astroautomata/PySR/issues/1393)) ([415700d](https://github.com/astroautomata/PySR/commit/415700d6ce3083b380c846bfd47a9f9b4e760320))
+* pass operators and constraints to Julia as typed values ([#1394](https://github.com/astroautomata/PySR/issues/1394)) ([81cb12b](https://github.com/astroautomata/PySR/commit/81cb12b7d927ce3b9bf86465500fc5dd3fa74572))
+
+
+### Documentation
+
+* update moved UAV skin friction paper link ([#1391](https://github.com/astroautomata/PySR/issues/1391)) ([f60d7e4](https://github.com/astroautomata/PySR/commit/f60d7e49fec05e1b27fa15589f6cd56f4360c035))
+
 ## [2.5.1](https://github.com/astroautomata/PySR/compare/v2.5.0...v2.5.1) (2026-09-27)
 
 
