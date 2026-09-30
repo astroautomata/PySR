@@ -80,7 +80,7 @@ Print `model.equations_`; inspect sharp loss drops, held-out `model.predict(X_te
 
 Default: MSE.
 
-- Outliers: `elementwise_loss="L1DistLoss()"`, median-seeking versus mean-seeking.
+- MAE (mean absolute error): `elementwise_loss="L1DistLoss()"` works with or without weights. For unweighted data, the equivalent custom loss is `elementwise_loss="my_loss(x, y) = abs(x - y)"`. Useful for outliers, heavy-tailed noise, or costs proportional to absolute error; targets the conditional median rather than the mean.
 - Uncertainty: `model.fit(X, y, weights=1/sigma**2)`; built-ins apply weights automatically. Custom: `elementwise_loss="myloss(x, y, w) = w * abs(x - y)^2"`.
 - Wide target range: largest values dominate MSE; use log-space loss:
 
