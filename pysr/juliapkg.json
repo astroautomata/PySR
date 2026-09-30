@@ -1,6 +1,11 @@
 {
     "julia": "=1.10.0, 1.10.3",
     "packages": {
+        "PySRPrecompile": {
+            "uuid": "9a630b85-c22b-4139-8fb6-38ee7d473bba",
+            "path": "julia/PySRPrecompile",
+            "dev": true
+        },
         "SymbolicRegression": {
             "uuid": "8254be44-1295-4e6a-a16d-46603ac705cb",
             "version": "~2.5.0",
