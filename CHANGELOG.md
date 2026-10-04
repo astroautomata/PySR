@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.2](https://github.com/astroautomata/PySR/compare/v2.6.1...v2.6.2) (2026-10-04)
+
+
+### Documentation
+
+* publish llms.txt for coding agents ([#1406](https://github.com/astroautomata/PySR/issues/1406)) ([403c70e](https://github.com/astroautomata/PySR/commit/403c70ee35c07de744df71e11eba309728856b93))
+
 ## [2.6.1](https://github.com/astroautomata/PySR/compare/v2.6.0...v2.6.1) (2026-10-04)
 
 
