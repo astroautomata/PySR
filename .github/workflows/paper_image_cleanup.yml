@@ -86,7 +86,7 @@ jobs:
 
       - name: Create or update paper-image bot comment
         if: steps.comment-body.outputs.exists == 'true'
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
