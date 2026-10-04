@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vitepress'
+import { defineConfig, type DefaultTheme } from 'vitepress'
 import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 import mathjax3 from "markdown-it-mathjax3";
 import footnote from "markdown-it-footnote";
+import llmstxt from 'vitepress-plugin-llms'
 
 // Maps the juliapkg.json pin to the SymbolicRegression.jl docs folder covering
 // every version the pin admits, following Julia Pkg compat semantics:
@@ -27,6 +28,8 @@ const symbolicRegressionDocsVersion = symbolicRegressionDocsSubfolder(juliaPkg.p
 const baseTemp = {
   base: '/',
 }
+
+const description = 'High-Performance Symbolic Regression in Python and Julia'
 
 const nav = [
   { text: 'Home', link: '/' },
@@ -52,7 +55,7 @@ const nav = [
 export default defineConfig({
   base: '/',
   title: 'PySR',
-  description: 'High-Performance Symbolic Regression in Python and Julia',
+  description,
   lastUpdated: true,
   cleanUrls: true,
   outDir: '../dist',
@@ -70,6 +73,27 @@ export default defineConfig({
     define: {
       __DEPLOY_ABSPATH__: JSON.stringify('/'),
     },
+    plugins: [
+      llmstxt({
+        domain: 'https://pysr.ai',
+        description,
+        details:
+          'Coding agents should read the PySR agent skill before writing PySR code: ' +
+          'https://raw.githubusercontent.com/astroautomata/PySR/master/skills/pysr/SKILL.md. ' +
+          'Install it with `npx skills add astroautomata/PySR`.',
+        // vitepress-plugin-llms 1.14 drops the site base from links inside nested sidebar
+        // groups, so each nested group becomes its own top-level section here.
+        sidebar: (sidebar) =>
+          (sidebar as DefaultTheme.SidebarItem[]).flatMap((section) => [
+            { ...section, items: section.items?.map(({ items, ...item }) => item) },
+            ...(section.items ?? [])
+              .filter((item) => item.items?.length)
+              .map(({ text, items }) => ({ text, items })),
+          ]),
+        // The paper abstracts are a fifth of the bundle and do not help agents use PySR.
+        ignoreFilesPerOutput: { llmsFullTxt: ['papers.md'] },
+      }),
+    ],
     optimizeDeps: {
       exclude: [
         '@nolebase/vitepress-plugin-enhanced-readabilities/client',

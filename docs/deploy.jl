@@ -15,7 +15,7 @@ include("deploy_versions.jl")
 
 struct StableRedirectVersion
     base_version::DocumenterVitepress.BaseVersion
-    root_stubs::Dict{String,String}
+    root_files::Dict{String,String}
 end
 
 function Documenter.determine_deploy_subfolder(deploy_decision, ::StableRedirectVersion)
@@ -33,12 +33,12 @@ function Documenter.postprocess_before_push(
         versions.base_version; subfolder, devurl, deploy_dir, dirname
     )
     root = stable_deploy_root(deploy_dir)
-    for (path, content) in versions.root_stubs
+    for (path, content) in versions.root_files
         destination = joinpath(root, path)
         mkpath(Base.dirname(destination))
         write(destination, content)
     end
-    for path in stale_root_stubs(root, keys(versions.root_stubs))
+    for path in stale_root_stubs(root, keys(versions.root_files))
         println("Removing stale redirect $path")
         rm(joinpath(root, path))
         directory = joinpath(root, Base.dirname(path))
@@ -201,17 +201,21 @@ if claims_stable(subfolder)
     redirect_files = stable_redirect_files(built_pages(dist_dir), subfolder)
     stable_dir = joinpath(@__DIR__, "dist_stable")
     mkpath(stable_dir)
-    root_stubs = Dict{String,String}()
+    root_files = Dict{String,String}()
     for (path, content) in redirect_files
         if startswith(path, "stable/")
             destination = joinpath(stable_dir, path[(length("stable/") + 1):end])
             mkpath(Base.dirname(destination))
             write(destination, content)
         else
-            root_stubs[path] = content
+            root_files[path] = content
         end
     end
-    versions = StableRedirectVersion(DocumenterVitepress.BaseVersion("stable"), root_stubs)
+    for (path, content) in stable_llms_files(dist_dir)
+        write(joinpath(stable_dir, path), content)
+        root_files[path] = content
+    end
+    versions = StableRedirectVersion(DocumenterVitepress.BaseVersion("stable"), root_files)
     deploy("stable", "dist_stable"; versions)
 end
 
