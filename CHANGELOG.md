@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.6.1](https://github.com/astroautomata/PySR/compare/v2.6.0...v2.6.1) (2026-10-04)
+
+
+### Performance Improvements
+
+* size Julia GC threads from process affinity ([#1401](https://github.com/astroautomata/PySR/issues/1401)) ([10c300a](https://github.com/astroautomata/PySR/commit/10c300a5fc03ceb86121c5fc337af98afd6d1c4c))
+
+
+### Documentation
+
+* clarify MAE loss in PySR skill ([#1403](https://github.com/astroautomata/PySR/issues/1403)) ([c13687a](https://github.com/astroautomata/PySR/commit/c13687a5d0e7684144c8ab3b70a70ed2b9fd1dce))
+
 ## [2.6.0](https://github.com/astroautomata/PySR/compare/v2.5.2...v2.6.0) (2026-09-29)
 
 
