@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.6.1](https://github.com/astroautomata/PySR/compare/v2.6.0...v2.6.1) (2026-10-04)
+
+
+### Backend: SymbolicRegression.jl 2.5.1 → 2.6.0
+
+PySR now uses [SymbolicRegression.jl 2.6.0](https://github.com/astroautomata/SymbolicRegression.jl/releases/tag/v2.6.0) ([#1404](https://github.com/astroautomata/PySR/issues/1404)). The new backend speeds up `parallelism="multiprocessing"`, and a second node now makes a search faster instead of slower. Search behavior is unchanged.
+
+* **Less work on the main process.** With `parallelism="multiprocessing"`, the main process hands out every population and collects every result, and at scale it was the bottleneck. Each worker now keeps its own copy of the dataset and options, so they are no longer sent along with every population. Workers return populations as serialized bytes, which the main process decodes in parallel tasks. In a benchmark with default options, one worker per core on 128-core nodes, and eight threads on the main process, throughput went from 562 to 1094 populations per second on one node and from 527 to 1328 on two. ([SymbolicRegression.jl#753](https://github.com/astroautomata/SymbolicRegression.jl/pull/753))
+
+
+### Performance Improvements
+
+* size Julia GC threads from process affinity ([#1401](https://github.com/astroautomata/PySR/issues/1401)) ([10c300a](https://github.com/astroautomata/PySR/commit/10c300a5fc03ceb86121c5fc337af98afd6d1c4c))
+
+
+### Documentation
+
+* clarify MAE loss in PySR skill ([#1403](https://github.com/astroautomata/PySR/issues/1403)) ([c13687a](https://github.com/astroautomata/PySR/commit/c13687a5d0e7684144c8ab3b70a70ed2b9fd1dce))
+
 ## [2.6.0](https://github.com/astroautomata/PySR/compare/v2.5.2...v2.6.0) (2026-09-29)
 
 
