@@ -78,3 +78,10 @@ function stale_root_stubs(root, current_paths)
     end
     return sort(stale)
 end
+
+const LLMS_FILES = ("llms.txt", "llms-full.txt")
+
+# The llms.txt files a stable deployment copies verbatim to `stable/` and the root, since
+# agents fetching `/llms.txt` read the body and do not follow meta-refresh redirects.
+stable_llms_files(dist_dir) =
+    Dict(file => read(joinpath(dist_dir, file), String) for file in LLMS_FILES)
