@@ -470,6 +470,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
     on the [options page](https://pysr.ai/options) of the
     documentation.
 
+    Coding agents should read [pysr.ai/llms.txt](https://pysr.ai/llms.txt),
+    which links Markdown versions of these docs and the PySR agent skill.
+
     Parameters
     ----------
     model_selection : str
