@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.7.0](https://github.com/astroautomata/PySR/compare/v2.6.2...v2.7.0) (2026-10-07)
+
+
+### Dependencies
+
+* update backend to v2.7.0 ([#1411](https://github.com/astroautomata/PySR/issues/1411)) ([baa4bb4](https://github.com/astroautomata/PySR/commit/baa4bb424b25a37d2e473eeb28f6efa521fa43f4))
+
+
+### Documentation
+
+* point coding agents to llms.txt from docstring ([#1408](https://github.com/astroautomata/PySR/issues/1408)) ([4e31441](https://github.com/astroautomata/PySR/commit/4e31441f6e477cf52736fb90a429bdb41ea7f4f0))
+
 ## [2.6.2](https://github.com/astroautomata/PySR/compare/v2.6.1...v2.6.2) (2026-10-04)
 
 
