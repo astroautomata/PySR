@@ -20,15 +20,6 @@ PythonCall = jl.PythonCall
 jl.seval("using SymbolicRegression: plus, sub, mult, div, pow")
 
 
-def _escape_filename(filename):
-    """Turn a path into a string with correctly escaped backslashes."""
-    if filename is None:
-        return None
-    str_repr = str(filename)
-    str_repr = str_repr.replace("\\", "\\\\")
-    return str_repr
-
-
 def _load_cluster_manager(cluster_manager: str):
     if cluster_manager == "slurm":
         jl.seval("using Distributed: addprocs")
