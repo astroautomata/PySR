@@ -254,9 +254,11 @@ def _check_assertions(
     assert len(X.shape) == 2
     assert len(y.shape) in [1, 2]
     assert X.shape[0] == y.shape[0]
-    if weights is not None:
-        assert weights.shape == y.shape
-        assert X.shape[0] == weights.shape[0]
+    if weights is not None and weights.shape != y.shape:
+        raise ValueError(
+            f"`weights` must have the same shape as `y`, but got {weights.shape} "
+            f"for `weights` and {y.shape} for `y`."
+        )
     if use_custom_variable_names:
         if len(variable_names) != X.shape[1]:
             raise ValueError("`variable_names` must contain one name per feature.")
@@ -2112,6 +2114,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
             cols_str = X.columns.astype(str)
             if cols_str.str.contains(" ").any():
+                # Rename on a shallow copy, so the caller's DataFrame is untouched:
+                X = X.copy(deep=False)
                 X.columns = cols_str.str.replace(" ", "_")
                 warnings.warn(
                     "Spaces in DataFrame column names are not supported. "
@@ -2151,6 +2155,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         # Handle multioutput data
         if len(y.shape) == 1 or (len(y.shape) == 2 and y.shape[1] == 1):
             y = y.reshape(-1)
+            if weights is not None and weights.shape == (len(y), 1):
+                weights = weights.reshape(-1)
         elif len(y.shape) == 2:
             self.nout_ = y.shape[1]
         else:
@@ -3032,6 +3038,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             if isinstance(X.columns, pd.RangeIndex):
                 if self.selection_mask_ is not None:
                     X = X[X.columns[self.selection_mask_]]
+                X = X.copy(deep=False)
                 X.columns = self.feature_names_in_
 
             columns = X.columns.astype(str)
@@ -3047,6 +3054,10 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             X = self._validate_data_X(X)
             if self.expression_spec_.evaluates_in_julia:
                 X = X.astype(self._get_precision_mapped_dtype(X))
+            elif not np.issubdtype(X.dtype, np.inexact):
+                # The search evaluates expressions in floating point; integer
+                # inputs would silently overflow (e.g., `x^3` for large `x`):
+                X = X.astype(np.float64)
 
         try:
             if isinstance(best_equation, list):
