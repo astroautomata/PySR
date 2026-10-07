@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from textwrap import dedent
@@ -279,7 +278,6 @@ def _search_output_to_callable_expressions(
     search_output,
     i: int | None,
 ) -> pd.DataFrame:
-    equations = copy.deepcopy(equations)
     _, all_out_hof = search_output
     out_hof = all_out_hof[i] if i is not None else all_out_hof
     expressions = []

@@ -1592,6 +1592,24 @@ class TestBest(unittest.TestCase):
         for f in [self.model.predict, self.equations_.iloc[-1]["lambda_format"]]:
             np.testing.assert_almost_equal(f(X), y, decimal=3)
 
+    def test_lambda_format_compiles_once_and_stays_picklable(self):
+        f = self.equations_.iloc[-1]["lambda_format"]
+        with mock.patch("pysr.export_numpy.lambdify", wraps=sympy.lambdify) as lambdify:
+            for _ in range(3):
+                f(self.X)
+                self.model.predict(self.X)
+        self.assertEqual(lambdify.call_count, 1)
+
+        restored = pkl.loads(pkl.dumps(f))
+        np.testing.assert_array_equal(restored(self.X), f(self.X))
+
+    def test_latex_refreshes_once(self):
+        with mock.patch.object(
+            self.model, "refresh", wraps=self.model.refresh
+        ) as refresh:
+            self.model.latex()
+        self.assertEqual(refresh.call_count, 1)
+
     def test_all_selection_strategies(self):
         equations = pd.DataFrame(
             dict(

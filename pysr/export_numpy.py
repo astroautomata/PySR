@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import warnings
+from functools import cached_property
 
 import numpy as np
 import pandas as pd
@@ -29,6 +30,13 @@ class CallableEquation:
     def __repr__(self):
         return f"PySRFunction(X=>{self._sympy})"
 
+    def __getstate__(self):
+        # The lambdified function is generated code that cannot be pickled,
+        # so drop the cached copy; it is rebuilt on first use after loading.
+        state = self.__dict__.copy()
+        state.pop("_lambda", None)
+        return state
+
     def __call__(self, X):
         expected_shape = (X.shape[0],)
         if isinstance(X, pd.DataFrame):
@@ -49,6 +57,8 @@ class CallableEquation:
 
         return self._lambda(*X.T) * np.ones(expected_shape)
 
-    @property
+    @cached_property
     def _lambda(self):
+        # `lambdify` generates and compiles Python source, which costs far
+        # more than evaluating the result, so build it once per equation.
         return lambdify(self._sympy_symbols, self._sympy)

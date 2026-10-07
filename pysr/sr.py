@@ -2468,7 +2468,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         np_dtype = (
             None
             if type_spec_runtime is not None
-            else self._get_precision_mapped_dtype(np.array(X))
+            else self._get_precision_mapped_dtype(np.asarray(X))
         )
 
         if self.elementwise_loss is not None:
@@ -2693,19 +2693,20 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
         # Convert data to desired precision
 
-        # This converts the data into a Julia array:
+        # This converts the data into a Julia array. `jl_numpy_array` copies
+        # into Julia memory, so only convert dtypes here rather than copying:
         if type_spec_runtime is not None:
             jl_X = type_spec_to_julia_array(type_spec_runtime, X, transpose=True)
             jl_y = type_spec_to_julia_array(type_spec_runtime, y)
         else:
-            jl_X = jl_numpy_array(np.array(X, dtype=np_dtype).T)
-            numeric_y = np.array(y, dtype=np_dtype)
+            jl_X = jl_numpy_array(np.asarray(X, dtype=np_dtype).T)
+            numeric_y = np.asarray(y, dtype=np_dtype)
             jl_y = jl_numpy_array(numeric_y.T if numeric_y.ndim > 1 else numeric_y)
         if weights is not None:
             if len(weights.shape) == 1:
-                jl_weights = jl_numpy_array(np.array(weights, dtype=np_dtype))
+                jl_weights = jl_numpy_array(np.asarray(weights, dtype=np_dtype))
             else:
-                jl_weights = jl_numpy_array(np.array(weights, dtype=np_dtype).T)
+                jl_weights = jl_numpy_array(np.asarray(weights, dtype=np_dtype).T)
         else:
             jl_weights = None
 
@@ -3134,7 +3135,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             raise ValueError(
                 f"`expression_spec={self.expression_spec_}` does not support latex export."
             )
-        self.refresh()
         sympy_representation = self.sympy(index=index)
         if self.nout_ > 1:
             output = []
@@ -3411,8 +3411,7 @@ def idx_model_selection(equations: pd.DataFrame, model_selection: str):
         chosen_idx = equations["loss"].idxmin()
     elif model_selection == "best":
         threshold = 1.5 * equations["loss"].min()
-        filtered_equations = equations.query(f"loss <= {threshold}")
-        chosen_idx = filtered_equations["score"].idxmax()
+        chosen_idx = equations.loc[equations["loss"] <= threshold, "score"].idxmax()
     elif model_selection == "score":
         chosen_idx = equations["score"].idxmax()
     else:

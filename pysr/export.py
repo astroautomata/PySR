@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 from collections.abc import Callable
 
 import numpy as np
@@ -29,23 +28,22 @@ def add_export_formats(
 
     Returns a new dataframe containing only the exported formats.
     """
-    output = copy.deepcopy(output)
-
     sympy_format = []
     lambda_format = []
     jax_format = []
     torch_format = []
 
-    for _, eqn_row in output.iterrows():
+    sympy_symbols = create_sympy_symbols(feature_names_in)
+
+    for equation in output["equation"]:
         eqn = pysr2sympy(
-            eqn_row["equation"],
+            equation,
             feature_names_in=feature_names_in,
             extra_sympy_mappings=extra_sympy_mappings,
         )
         sympy_format.append(eqn)
 
         # NumPy:
-        sympy_symbols = create_sympy_symbols(feature_names_in)
         lambda_format.append(
             sympy2numpy(
                 eqn,
