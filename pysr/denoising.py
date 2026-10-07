@@ -18,16 +18,26 @@ def denoise(
     from sklearn.gaussian_process import GaussianProcessRegressor
     from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
 
-    gp_kernel = RBF(np.ones(X.shape[1])) + WhiteKernel(1e-1) + ConstantKernel()
+    # Standardize the inputs so the initial length scales suit any units of
+    # `X`; `normalize_y` below does the same for the targets.
+    X_mean = X.mean(axis=0)
+    X_scale = X.std(axis=0)
+    X_scale[X_scale == 0] = 1.0
+
+    # The `ConstantKernel` factor learns the signal variance. Without it the
+    # smooth component has unit variance, so targets far from unit scale are
+    # mostly attributed to noise.
+    gp_kernel = ConstantKernel() * RBF(np.ones(X.shape[1])) + WhiteKernel(1e-1)
     gpr = GaussianProcessRegressor(
-        kernel=gp_kernel, n_restarts_optimizer=50, random_state=random_state
+        kernel=gp_kernel,
+        normalize_y=True,
+        n_restarts_optimizer=50,
+        random_state=random_state,
     )
-    gpr.fit(X, y)
+    gpr.fit((X - X_mean) / X_scale, y)
 
-    if Xresampled is not None:
-        return Xresampled, cast(ndarray, gpr.predict(Xresampled))
-
-    return X, cast(ndarray, gpr.predict(X))
+    X_out = X if Xresampled is None else Xresampled
+    return X_out, cast(ndarray, gpr.predict((X_out - X_mean) / X_scale))
 
 
 def multi_denoise(

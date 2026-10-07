@@ -37,6 +37,7 @@ from pysr import (
     jl,
     load_all_packages,
 )
+from pysr.denoising import denoise
 from pysr.export_latex import sympy2latex
 from pysr.export_sympy import pysr2sympy
 from pysr.feature_selection import _handle_feature_selection, run_feature_selection
@@ -1605,6 +1606,26 @@ class TestBest(unittest.TestCase):
         self.assertEqual(idx_best, 3)
         idx_score = idx_model_selection(equations, "score")
         self.assertEqual(idx_score, 1)
+
+
+class TestDenoising(unittest.TestCase):
+    def test_denoise_learns_signal_amplitude(self):
+        rstate = np.random.RandomState(0)
+        X = rstate.uniform(-3, 3, size=(200, 1))
+        Xresampled = np.linspace(-2.5, 2.5, 50)[:, None]
+        for amplitude in [1.0, 100.0]:
+            with self.subTest(amplitude=amplitude):
+                noise = 0.1 * amplitude
+                y = amplitude * np.sin(2 * X[:, 0]) + noise * rstate.randn(len(X))
+                X_out, y_out = denoise(
+                    X, y, Xresampled=Xresampled, random_state=np.random.RandomState(0)
+                )
+                self.assertIs(X_out, Xresampled)
+                rmse = np.sqrt(
+                    np.mean((y_out - amplitude * np.sin(2 * Xresampled[:, 0])) ** 2)
+                )
+                # Denoising should beat the raw data's error (`noise`) comfortably:
+                self.assertLess(rmse, 0.5 * noise)
 
 
 class TestFeatureSelection(unittest.TestCase):
