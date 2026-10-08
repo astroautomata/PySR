@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -7,6 +8,8 @@ import sympy  # type: ignore
 
 import pysr
 from pysr import PySRRegressor, sympy2torch
+
+from .params import PIECEWISE_AND_EXTREMUM_EQUATIONS, piecewise_test_data
 
 
 class TestTorch(unittest.TestCase):
@@ -116,6 +119,53 @@ class TestTorch(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             true_out.detach(), torch_out.detach(), decimal=3
         )
+
+    def test_piecewise_comparison_and_extremum_operators(self):
+        X = piecewise_test_data()
+        symbols = sympy.symbols("x0 x1 x2")
+        for equation in PIECEWISE_AND_EXTREMUM_EQUATIONS:
+            with self.subTest(equation=equation):
+                expression = pysr.export_sympy.pysr2sympy(
+                    equation, feature_names_in=["x0", "x1", "x2"]
+                )
+                expected = sympy.lambdify(symbols, expression)(*X.T) * np.ones(len(X))
+                module = sympy2torch(expression, symbols)
+                np.testing.assert_allclose(
+                    module(self.torch.tensor(X)).detach().numpy(), expected
+                )
+
+    def test_extra_mappings_take_precedence(self):
+        x, y = sympy.symbols("x y")
+        module = sympy2torch(
+            sympy.Max(x, y), [x, y], extra_torch_mappings={sympy.Max: self.torch.add}
+        )
+        X = np.random.randn(5, 2)
+        np.testing.assert_allclose(
+            module(self.torch.tensor(X)).detach().numpy(), X.sum(axis=1)
+        )
+
+    def test_equal_constants_are_separate_parameters(self):
+        expression = pysr.export_sympy.pysr2sympy(
+            "(x0 * 2.5) + (x1 * 2.5)", feature_names_in=["x0", "x1"]
+        )
+        module = sympy2torch(expression, ["x0", "x1"])
+        self.assertEqual(len(list(module.parameters())), 2)
+
+    def test_failed_export_leaves_model_usable(self):
+        run_directory = Path(tempfile.mkdtemp()) / "run"
+        run_directory.mkdir()
+        pd.DataFrame(
+            {"Complexity": [1, 2], "Loss": [1.0, 0.1], "Equation": ["x0", "gamma(x0)"]}
+        ).to_csv(run_directory / "hall_of_fame.csv", index=False)
+        model = PySRRegressor.from_file(
+            run_directory=str(run_directory),
+            operators={1: ["gamma"], 2: ["+"]},
+            n_features_in=1,
+        )
+        with self.assertRaisesRegex(KeyError, "gamma"):
+            model.pytorch()
+        self.assertFalse(model.output_torch_format)
+        self.assertEqual(model.sympy(), sympy.gamma(sympy.Symbol("x0")))
 
     def test_custom_operator(self):
         X = np.random.randn(100, 3)

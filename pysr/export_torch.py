@@ -32,6 +32,15 @@ def _initialize_torch():
 
         torch = _torch
 
+        def _piecewise(*branches):
+            # The first branch whose condition holds applies, so nest the
+            # `where`s from the last branch outward. Where no branch applies,
+            # SymPy (and NumPy, via `lambdify`) gives NaN.
+            result = torch.tensor(float("nan"))
+            for value, condition in reversed(branches):
+                result = torch.where(condition, value, result)
+            return result
+
         _global_func_lookup = {
             sympy.Mul: _reduce(torch.mul),
             sympy.Add: _reduce(torch.add),
@@ -66,6 +75,7 @@ def _initialize_torch():
             sympy.arg: torch.angle,
             # Note: May raise error for ints and complexes
             sympy.erf: torch.erf,
+            sympy.erfc: torch.erfc,
             sympy.loggamma: torch.lgamma,
             sympy.Eq: torch.eq,
             sympy.Ne: torch.ne,
@@ -73,15 +83,19 @@ def _initialize_torch():
             sympy.StrictLessThan: torch.lt,
             sympy.LessThan: torch.le,
             sympy.GreaterThan: torch.ge,
-            sympy.And: torch.logical_and,
-            sympy.Or: torch.logical_or,
+            sympy.And: _reduce(torch.logical_and),
+            sympy.Or: _reduce(torch.logical_or),
             sympy.Not: torch.logical_not,
-            sympy.Max: torch.max,
-            sympy.Min: torch.min,
+            sympy.Max: _reduce(torch.maximum),
+            sympy.Min: _reduce(torch.minimum),
             sympy.Mod: torch.remainder,
             sympy.Heaviside: torch.heaviside,
             sympy.core.numbers.Half: (lambda: 0.5),
             sympy.core.numbers.One: (lambda: 1.0),
+            sympy.Piecewise: _piecewise,
+            sympy.functions.elementary.piecewise.ExprCondPair: (
+                lambda value, condition: (value, condition)
+            ),
         }
 
         class _Node(torch.nn.Module):
@@ -116,6 +130,10 @@ def _initialize_torch():
                     self.register_buffer("_value", torch.tensor(float(expr)))
                     self._torch_func = lambda: self._value
                     self._args = ()
+                elif expr is sympy.true or expr is sympy.false:
+                    self.register_buffer("_value", torch.tensor(bool(expr)))
+                    self._torch_func = lambda: self._value
+                    self._args = ()
                 elif issubclass(expr.func, sympy.Symbol):
                     self._name = expr.name
                     self._torch_func = lambda value: value
@@ -131,16 +149,20 @@ def _initialize_torch():
                         )
                     args = []
                     for arg in expr.args:
-                        try:
-                            arg_ = _memodict[arg]
-                        except KeyError:
+                        # Share nodes between equal subexpressions, except for
+                        # constants: those stay separate parameters, as they
+                        # are in the search and in the JAX export.
+                        shared = not issubclass(arg.func, sympy.Float)
+                        arg_ = _memodict.get(arg) if shared else None
+                        if arg_ is None:
                             arg_ = type(self)(
                                 expr=arg,
                                 _memodict=_memodict,
                                 _func_lookup=_func_lookup,
                                 **kwargs,
                             )
-                            _memodict[arg] = arg_
+                            if shared:
+                                _memodict[arg] = arg_
                         args.append(arg_)
                     self._args = torch.nn.ModuleList(args)
 
@@ -165,7 +187,8 @@ def _initialize_torch():
 
                 if extra_funcs is None:
                     extra_funcs = {}
-                _func_lookup = co.ChainMap(_global_func_lookup, extra_funcs)
+                # User mappings take precedence over the built-in ones:
+                _func_lookup = co.ChainMap(extra_funcs, _global_func_lookup)
 
                 _memodict = {}
                 self._node = _Node(
@@ -185,6 +208,7 @@ def _initialize_torch():
                 return self._node(symbols)
 
         SingleSymPyModule = _SingleSymPyModule
+        torch_initialized = True
 
 
 def sympy2torch(expression, symbols_in, selection=None, extra_torch_mappings=None):

@@ -1,3 +1,6 @@
+import functools
+from typing import NamedTuple
+
 import numpy as np  # noqa: F401
 import sympy  # type: ignore
 from sympy.codegen.cfunctions import log2, log10  # type: ignore
@@ -5,6 +8,14 @@ from sympy.codegen.cfunctions import log2, log10  # type: ignore
 # Special since need to reduce arguments.
 MUL = 0
 ADD = 1
+
+
+class _Fold(NamedTuple):
+    """A binary JAX function folded over the arguments of an n-ary SymPy node,
+    e.g., `Max(x, y, z)` becomes `jnp.maximum(jnp.maximum(x, y), z)`."""
+
+    function: str
+
 
 _jnp_func_lookup = {
     sympy.Mul: MUL,
@@ -41,13 +52,20 @@ _jnp_func_lookup = {
     # Note: May raise error for ints and complexes
     sympy.erf: "jsp.erf",
     sympy.erfc: "jsp.erfc",
-    sympy.LessThan: "jnp.less",
-    sympy.GreaterThan: "jnp.greater",
-    sympy.And: "jnp.logical_and",
-    sympy.Or: "jnp.logical_or",
+    sympy.gamma: "jsp.gamma",
+    sympy.loggamma: "jsp.gammaln",
+    sympy.Eq: "jnp.equal",
+    sympy.Ne: "jnp.not_equal",
+    sympy.StrictGreaterThan: "jnp.greater",
+    sympy.StrictLessThan: "jnp.less",
+    sympy.LessThan: "jnp.less_equal",
+    sympy.GreaterThan: "jnp.greater_equal",
+    sympy.And: _Fold("jnp.logical_and"),
+    sympy.Or: _Fold("jnp.logical_or"),
     sympy.Not: "jnp.logical_not",
-    sympy.Max: "jnp.max",
-    sympy.Min: "jnp.min",
+    # Elementwise; `jnp.max` and `jnp.min` are reductions over an axis:
+    sympy.Max: _Fold("jnp.maximum"),
+    sympy.Min: _Fold("jnp.minimum"),
     sympy.Mod: "jnp.mod",
     sympy.Heaviside: "jnp.heaviside",
     sympy.core.numbers.Half: "(lambda: 0.5)",
@@ -69,8 +87,35 @@ def sympy2jaxtext(expr, parameters, symbols_in, extra_jax_mappings=None):
         return (
             f"X[:, {[i for i in range(len(symbols_in)) if symbols_in[i] == expr][0]}]"
         )
+    elif expr is sympy.true or expr is sympy.false:
+        return str(bool(expr))
     if extra_jax_mappings is None:
         extra_jax_mappings = {}
+    if issubclass(expr.func, sympy.Piecewise):
+        branches = [
+            (
+                sympy2jaxtext(branch.expr, parameters, symbols_in, extra_jax_mappings),
+                (
+                    None
+                    if branch.cond is sympy.true
+                    else sympy2jaxtext(
+                        branch.cond, parameters, symbols_in, extra_jax_mappings
+                    )
+                ),
+            )
+            for branch in expr.args
+        ]
+        # The first branch whose condition holds applies, so nest the `where`s
+        # from the last branch outward. Where no branch applies, SymPy (and
+        # NumPy, via `lambdify`) gives NaN.
+        text = "jnp.nan"
+        for value, condition in reversed(branches):
+            text = (
+                value
+                if condition is None
+                else f"jnp.where({condition}, {value}, {text})"
+            )
+        return text
     try:
         _func = {**_jnp_func_lookup, **extra_jax_mappings}[expr.func]
     except KeyError:
@@ -89,6 +134,8 @@ def sympy2jaxtext(expr, parameters, symbols_in, extra_jax_mappings=None):
         return " * ".join(["(" + arg + ")" for arg in args])
     if _func == ADD:
         return " + ".join(["(" + arg + ")" for arg in args])
+    if isinstance(_func, _Fold):
+        return functools.reduce(lambda a, b: f"{_func.function}({a}, {b})", args)
     return f'{_func}({", ".join(args)})'
 
 
@@ -112,6 +159,7 @@ def _initialize_jax():
         jax = _jax
         jnp = _jnp
         jsp = _jsp
+        jax_initialized = True
 
 
 def sympy2jax(expression, symbols_in, selection=None, extra_jax_mappings=None):

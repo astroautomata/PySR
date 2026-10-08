@@ -11,6 +11,8 @@ import sympy  # type: ignore
 import pysr
 from pysr import PySRRegressor, sympy2jax
 
+from .params import PIECEWISE_AND_EXTREMUM_EQUATIONS, piecewise_test_data
+
 
 class TestJAX(unittest.TestCase):
     def setUp(self):
@@ -90,6 +92,38 @@ class TestJAX(unittest.TestCase):
             np.square(np.cos(X[:, 1])),  # Select feature 1
             decimal=3,
         )
+
+    def test_piecewise_comparison_and_extremum_operators(self):
+        X = piecewise_test_data()
+        symbols = sympy.symbols("x0 x1 x2")
+        for equation in PIECEWISE_AND_EXTREMUM_EQUATIONS:
+            with self.subTest(equation=equation):
+                expression = pysr.export_sympy.pysr2sympy(
+                    equation, feature_names_in=["x0", "x1", "x2"]
+                )
+                expected = sympy.lambdify(symbols, expression)(*X.T) * np.ones(len(X))
+                f, params = sympy2jax(expression, symbols)
+                np.testing.assert_allclose(
+                    np.array(f(self.jnp.array(X), params)), expected, rtol=1e-6
+                )
+
+    def test_failed_export_leaves_model_usable(self):
+        run_directory = Path(tempfile.mkdtemp()) / "run"
+        run_directory.mkdir()
+        pd.DataFrame(
+            {"Complexity": [1, 2], "Loss": [1.0, 0.1], "Equation": ["x0", "myop(x0)"]}
+        ).to_csv(run_directory / "hall_of_fame.csv", index=False)
+        myop = sympy.Function("myop")
+        model = PySRRegressor.from_file(
+            run_directory=str(run_directory),
+            operators={1: ["myop"], 2: ["+"]},
+            n_features_in=1,
+            extra_sympy_mappings={"myop": myop},
+        )
+        with self.assertRaisesRegex(KeyError, "myop"):
+            model.jax()
+        self.assertFalse(model.output_jax_format)
+        self.assertEqual(model.sympy(), myop(sympy.Symbol("x0")))
 
     def test_avoid_simplification(self):
         ex = pysr.export_sympy.pysr2sympy(
