@@ -131,6 +131,27 @@ class TestStartup(unittest.TestCase):
             )
             self.assertIn(warning_test["msg"], result.stderr.decode())
 
+    def test_julia_num_threads_is_respected(self):
+        thread_keys = (
+            "PYTHON_JULIACALL_THREADS",
+            "JULIA_NUM_THREADS",
+            "JULIA_NUM_GC_THREADS",
+        )
+        env = {k: v for k, v in os.environ.items() if k not in thread_keys}
+        env["JULIA_NUM_THREADS"] = "2"
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import pysr; print(f'threads={pysr.jl.Threads.nthreads()};')",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        self.assertIn("threads=2;", result.stdout.decode())
+
     def test_autoload_extension_env_precedence(self):
         autoload_key = "PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION"
         deprecated_key = "PYSR_AUTOLOAD_EXTENSIONS"

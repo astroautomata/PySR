@@ -14,7 +14,6 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, fields
 from functools import wraps
 from io import StringIO
-from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any, Literal, Tuple, Union, cast
 
@@ -81,6 +80,7 @@ from .type_specs import (
 from .utils import (
     ArrayLike,
     PathLike,
+    _available_cpu_count,
     _preprocess_julia_floats,
     _safe_check_feature_names_in,
     _subscriptify,
@@ -803,7 +803,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         Parallelism to use for the search. Can be `"serial"`, `"multithreading"`, or `"multiprocessing"`.
         Default is `"multithreading"`.
     procs: int | None
-        Number of processes to use for parallelism. If `None`, defaults to `cpu_count()`.
+        Number of processes to use for parallelism. If `None`, defaults to the
+        number of CPUs available to this process.
         Default is `None`.
     cluster_manager : str
         For distributed computing, this sets the job queue system. Set to
@@ -3638,6 +3639,12 @@ def _map_parallelism_params(
     else:
         _parallelism = "multithreading"
         _procs = None
+        if procs:
+            warnings.warn(
+                f"`procs={procs}` is ignored with the default "
+                "`parallelism='multithreading'`. Set `parallelism='multiprocessing'` "
+                "to search with worker processes."
+            )
 
     if _parallelism not in {"serial", "multithreading", "multiprocessing"}:
         raise ValueError(
@@ -3654,6 +3661,6 @@ def _map_parallelism_params(
         )
         _procs = None
     elif parallelism == "multiprocessing" and _procs is None:
-        _procs = cpu_count()
+        _procs = _available_cpu_count()
 
     return _parallelism, _procs
