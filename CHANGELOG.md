@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.7.1](https://github.com/astroautomata/PySR/compare/v2.7.0...v2.7.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* accept weights of shape (n, 1) with targets of shape (n, 1) ([1823414](https://github.com/astroautomata/PySR/commit/1823414ee962162115602eae68bad62328ce213f))
+* early rejection of bad variable names ([#1418](https://github.com/astroautomata/PySR/issues/1418)) ([e5db909](https://github.com/astroautomata/PySR/commit/e5db909788a346b7ab2d00fba206e86f7b24cc10))
+* evaluate integer and boolean inputs to predict in floating point ([1823414](https://github.com/astroautomata/PySR/commit/1823414ee962162115602eae68bad62328ce213f))
+* export max and min with three or more arguments ([1fd4114](https://github.com/astroautomata/PySR/commit/1fd411441da9e66a10b9a88f9de92f6a91d1361b))
+* export Piecewise-based operators to PyTorch and JAX ([#1415](https://github.com/astroautomata/PySR/issues/1415)) ([1fd4114](https://github.com/astroautomata/PySR/commit/1fd411441da9e66a10b9a88f9de92f6a91d1361b))
+* leave caller DataFrames untouched in fit and predict ([#1417](https://github.com/astroautomata/PySR/issues/1417)) ([1823414](https://github.com/astroautomata/PySR/commit/1823414ee962162115602eae68bad62328ce213f))
+* let extra_torch_mappings override built-in mappings ([1fd4114](https://github.com/astroautomata/PySR/commit/1fd411441da9e66a10b9a88f9de92f6a91d1361b))
+* use element-wise max and min in JAX export ([1fd4114](https://github.com/astroautomata/PySR/commit/1fd411441da9e66a10b9a88f9de92f6a91d1361b))
+
 ## [2.7.0](https://github.com/astroautomata/PySR/compare/v2.6.2...v2.7.0) (2026-10-07)
 
 
