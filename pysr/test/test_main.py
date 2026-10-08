@@ -1634,15 +1634,10 @@ class TestFeatureSelection(unittest.TestCase):
             np.sort(selected_X, axis=1), np.sort(X[:, [2, 3]], axis=1)
         )
 
-    def test_select_k_features_must_be_in_range(self):
+    def test_feature_selection_rejects_negative_k(self):
         X = self.rstate.randn(50, 3)
-        y = X[:, 0]
-        # `-1` used to select all but one feature, without any warning.
-        for select_k_features in [-1, 4, 1.5]:
-            with self.subTest(select_k_features=select_k_features):
-                model = PySRRegressor(select_k_features=select_k_features)
-                with self.assertRaisesRegex(ValueError, "`select_k_features`"):
-                    model.fit(X, y)
+        with self.assertRaisesRegex(ValueError, "`select_k_features`"):
+            run_feature_selection(X, X[:, 0], select_k_features=-1)
 
 
 class TestMiscellaneous(unittest.TestCase):

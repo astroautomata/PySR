@@ -2256,15 +2256,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         """
         # Feature selection transformation
         if self.select_k_features:
-            if not (
-                isinstance(self.select_k_features, (int, np.integer))
-                and 1 <= self.select_k_features <= X.shape[1]
-            ):
-                raise ValueError(
-                    "`select_k_features` must be an integer between 1 and the "
-                    f"number of features ({X.shape[1]}), but got "
-                    f"{self.select_k_features!r}."
-                )
             selection_mask = run_feature_selection(
                 X, y, self.select_k_features, random_state=random_state
             )

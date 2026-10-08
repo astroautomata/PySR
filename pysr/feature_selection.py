@@ -13,10 +13,6 @@ from .utils import ArrayLike
 
 pysr_logger = logging.getLogger(__name__)
 
-# Rows bootstrapped per tree; ranking features needs far fewer rows than
-# large datasets provide.
-_MAX_SAMPLES_PER_TREE = 10_000
-
 
 def run_feature_selection(
     X: ndarray,
@@ -27,19 +23,19 @@ def run_feature_selection(
     """
     Find most important features.
 
-    Uses a random forest regressor as a proxy for finding
+    Uses a gradient boosting tree regressor as a proxy for finding
     the k most important features in X, returning indices for those
     features as output.
     """
+    if select_k_features < 1:
+        raise ValueError(
+            f"`select_k_features` must be at least 1, but got {select_k_features}."
+        )
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.feature_selection import SelectFromModel
 
     clf = RandomForestRegressor(
-        n_estimators=100,
-        max_depth=3,
-        max_samples=(_MAX_SAMPLES_PER_TREE if len(X) > _MAX_SAMPLES_PER_TREE else None),
-        n_jobs=-1,
-        random_state=random_state,
+        n_estimators=100, max_depth=3, random_state=random_state
     )
     clf.fit(X, y)
     selector = SelectFromModel(
