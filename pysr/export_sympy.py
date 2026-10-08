@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import keyword
 from collections.abc import Callable
 
 import sympy  # type: ignore
@@ -108,6 +109,18 @@ def pysr2sympy(
         raise TypeError(f"Error processing equation '{equation}'") from e
 
 
-def assert_valid_sympy_symbol(var_name: str) -> None:
-    if var_name in sympy_mappings or var_name in sympy.__dict__.keys():
+def assert_valid_sympy_symbol(
+    var_name: str, extra_sympy_mappings: dict[str, Callable] | None
+) -> None:
+    if (
+        var_name in sympy_mappings
+        or var_name in sympy.__dict__.keys()
+        or var_name in (extra_sympy_mappings or {})
+    ):
         raise ValueError(f"Variable name {var_name} is already a function name.")
+    if not var_name.isidentifier() or keyword.iskeyword(var_name):
+        raise ValueError(
+            f"Variable name {var_name} cannot be parsed by SymPy: names must be "
+            "valid Python identifiers and not keywords. Rename it, e.g., "
+            "`lambda` -> `lambda_`, `x₁` -> `x_1`, `1x` -> `x1`."
+        )

@@ -2467,6 +2467,15 @@ class TestHelpMessages(unittest.TestCase):
             model.fit(X, y, variable_names=["x1", "N"])
         self.assertIn("Variable name", str(cm.exception))
 
+    def test_variable_names_sympy_cannot_parse_fail_before_search(self):
+        model = PySRRegressor(extra_sympy_mappings={"myop": lambda x: x})
+        X = np.random.randn(100, 2)
+        y = np.random.randn(100)
+        for name in ["lambda", "in", "1x", "12", "x₁", "myop"]:
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, "Variable name"):
+                    model.fit(X, y, variable_names=["x0", name])
+
     def test_bad_variable_names_fail(self):
         model = PySRRegressor()
         X = np.random.randn(100, 1)

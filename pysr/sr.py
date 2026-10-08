@@ -249,6 +249,7 @@ def _check_assertions(
     X_units,
     y_units,
     supports_sympy,
+    extra_sympy_mappings=None,
 ):
     # Check for potential errors before they happen
     assert len(X.shape) == 2
@@ -270,7 +271,7 @@ def _check_assertions(
                     "and underscores are allowed."
                 )
             if supports_sympy:
-                assert_valid_sympy_symbol(var_name)
+                assert_valid_sympy_symbol(var_name, extra_sympy_mappings)
     if (
         isinstance(complexity_of_variables, list)
         and len(complexity_of_variables) != X.shape[1]
@@ -2835,8 +2836,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             A list of names for the variables, rather than "x0", "x1", etc.
             If `X` is a pandas dataframe, the column names will be used
             instead of `variable_names`. Cannot contain spaces or special
-            characters. Avoid variable names which are also
-            function names in `sympy`, such as "N".
+            characters, start with a digit, or be a Python keyword such as
+            "lambda". Avoid variable names which are also function names in
+            `sympy` or `extra_sympy_mappings`, such as "N".
         X_units : list[str]
             A list of units for each variable in `X`. Each unit should be
             a string representing a Julia expression. See DynamicQuantities.jl
@@ -2934,6 +2936,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             X_units,
             y_units,
             self.type_spec is None and self._supports_export("sympy"),
+            extra_sympy_mappings=self.extra_sympy_mappings,
         )
 
         type_spec_runtime = (
