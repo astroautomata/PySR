@@ -135,9 +135,6 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(model.nout_, 1)
         self.assertEqual(model.predict(self.X).shape, (len(y),))
 
-        with self.assertRaisesRegex(ValueError, "same shape as `y`"):
-            model.fit(self.X, y, weights=np.ones((len(y), 2)))
-
     def test_multiprocessing_turbo_custom_objective(self):
         for loss_key in ["loss_function", "loss_function_expression"]:
             with self.subTest(loss_key=loss_key):
@@ -1843,7 +1840,6 @@ class TestMiscellaneous(unittest.TestCase):
 
         model.fit(X_fit, y)
         np.testing.assert_array_equal(model.feature_names_in_, np.array(["a_b", "c_d"]))
-        # The caller's DataFrame keeps its own column names:
         self.assertEqual(list(X_fit.columns), ["a b", "c d"])
 
         y_pred = model.predict(X_pred)

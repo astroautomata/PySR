@@ -254,11 +254,9 @@ def _check_assertions(
     assert len(X.shape) == 2
     assert len(y.shape) in [1, 2]
     assert X.shape[0] == y.shape[0]
-    if weights is not None and weights.shape != y.shape:
-        raise ValueError(
-            f"`weights` must have the same shape as `y`, but got {weights.shape} "
-            f"for `weights` and {y.shape} for `y`."
-        )
+    if weights is not None:
+        assert weights.shape == y.shape
+        assert X.shape[0] == weights.shape[0]
     if use_custom_variable_names:
         if len(variable_names) != X.shape[1]:
             raise ValueError("`variable_names` must contain one name per feature.")
@@ -2114,7 +2112,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
             cols_str = X.columns.astype(str)
             if cols_str.str.contains(" ").any():
-                # Rename on a shallow copy, so the caller's DataFrame is untouched:
                 X = X.copy(deep=False)
                 X.columns = cols_str.str.replace(" ", "_")
                 warnings.warn(
@@ -3055,8 +3052,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             if self.expression_spec_.evaluates_in_julia:
                 X = X.astype(self._get_precision_mapped_dtype(X))
             elif not np.issubdtype(X.dtype, np.inexact):
-                # The search evaluates expressions in floating point; integer
-                # inputs would silently overflow (e.g., `x^3` for large `x`):
+                # Fit evaluates in floating point; integer inputs would overflow:
                 X = X.astype(np.float64)
 
         try:
