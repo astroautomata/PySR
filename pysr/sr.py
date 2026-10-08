@@ -2836,8 +2836,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             A list of names for the variables, rather than "x0", "x1", etc.
             If `X` is a pandas dataframe, the column names will be used
             instead of `variable_names`. Cannot contain spaces or special
-            characters. Avoid variable names which are also
-            function names in `sympy`, such as "N".
+            characters, start with a digit, or be a Python keyword such as
+            "lambda". Avoid variable names which are also function names in
+            `sympy` or `extra_sympy_mappings`, such as "N".
         X_units : list[str]
             A list of units for each variable in `X`. Each unit should be
             a string representing a Julia expression. See DynamicQuantities.jl

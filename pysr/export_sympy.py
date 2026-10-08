@@ -110,7 +110,7 @@ def pysr2sympy(
 
 
 def assert_valid_sympy_symbol(
-    var_name: str, extra_sympy_mappings: dict[str, Callable] | None = None
+    var_name: str, extra_sympy_mappings: dict[str, Callable] | None
 ) -> None:
     if (
         var_name in sympy_mappings
@@ -118,11 +118,9 @@ def assert_valid_sympy_symbol(
         or var_name in (extra_sympy_mappings or {})
     ):
         raise ValueError(f"Variable name {var_name} is already a function name.")
-    # Equations are parsed as Python expressions, so anything else would only
-    # fail once the search has finished:
     if not var_name.isidentifier() or keyword.iskeyword(var_name):
         raise ValueError(
-            f"Variable name {var_name} cannot be parsed by SymPy, as it is not a "
-            "valid Python identifier (e.g., it is a Python keyword, starts with a "
-            "digit, or contains subscript characters)."
+            f"Variable name {var_name} cannot be parsed by SymPy: names must be "
+            "valid Python identifiers and not keywords. Rename it, e.g., "
+            "`lambda` -> `lambda_`, `x₁` -> `x_1`, `1x` -> `x1`."
         )
