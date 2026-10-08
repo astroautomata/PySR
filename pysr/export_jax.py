@@ -2,8 +2,6 @@ import numpy as np  # noqa: F401
 import sympy  # type: ignore
 from sympy.codegen.cfunctions import log1p, log2, log10  # type: ignore
 
-from .export_sympy import round_half_even
-
 # Special since need to reduce arguments.
 MUL = 0
 ADD = 1
@@ -17,7 +15,7 @@ _jnp_func_lookup = {
     # Note: May raise error for ints.
     sympy.ceiling: "jnp.ceil",
     sympy.floor: "jnp.floor",
-    round_half_even: "jnp.round",
+    sympy.Function("round"): "jnp.round",
     sympy.log: "jnp.log",
     log2: "jnp.log2",
     log10: "jnp.log10",

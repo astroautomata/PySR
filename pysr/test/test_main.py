@@ -1814,10 +1814,6 @@ class TestMiscellaneous(unittest.TestCase):
                 np.testing.assert_allclose(actual, expected, rtol=1e-14, equal_nan=True)
 
     def test_sympy_export_keeps_expression_structure(self):
-        # SymPy's parser passes `evaluate=False` to functions such as `sqrt`
-        # and `log`. Mappings that rejected the keyword made `pysr2sympy`
-        # re-parse the whole expression with simplification enabled, which
-        # merged constants and cancelled terms the search had evaluated.
         for operator in ["sqrt", "log", "cbrt", "acosh", "atanh"]:
             with self.subTest(operator=operator):
                 expression = pysr2sympy(

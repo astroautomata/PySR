@@ -7,8 +7,6 @@ import numpy as np  # noqa: F401
 import sympy  # type: ignore
 from sympy.codegen.cfunctions import log1p, log2, log10  # type: ignore
 
-from .export_sympy import round_half_even
-
 
 def _reduce(fn):
     def fn_(*args):
@@ -43,7 +41,7 @@ def _initialize_torch():
             # Note: May raise error for ints.
             sympy.ceiling: torch.ceil,
             sympy.floor: torch.floor,
-            round_half_even: torch.round,
+            sympy.Function("round"): torch.round,
             sympy.log: torch.log,
             log2: torch.log2,
             log10: torch.log10,
