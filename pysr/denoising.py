@@ -18,7 +18,7 @@ def denoise(
     from sklearn.gaussian_process import GaussianProcessRegressor
     from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
 
-    gp_kernel = ConstantKernel() * RBF(np.ones(X.shape[1])) + WhiteKernel(1e-1)
+    gp_kernel = RBF(np.ones(X.shape[1])) + WhiteKernel(1e-1) + ConstantKernel()
     gpr = GaussianProcessRegressor(
         kernel=gp_kernel,
         normalize_y=True,
