@@ -2108,7 +2108,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                 "targets are evaluated at the rows of `Xresampled` instead of `X`."
             )
         if isinstance(X, pd.DataFrame) and isinstance(Xresampled, pd.DataFrame):
-            # Match the columns of `Xresampled` to those of `X` by name:
             missing_columns = X.columns.difference(Xresampled.columns)
             if len(missing_columns) > 0:
                 raise ValueError(
@@ -2840,12 +2839,14 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             Resampled training data, of shape (n_resampled, n_features),
             to generate a denoised data on. This
             will be used as the training data, rather than `X`.
+            If both are DataFrames, columns are matched to `X` by name.
         weights : ndarray | pandas.DataFrame
             Weight array of the same shape as `y`.
             Each element is how to weight the mean-square-error loss
             for that particular element of `y`. Alternatively,
             if a custom `loss` was set, it will can be used
-            in arbitrary ways.
+            in arbitrary ways. Cannot be combined with `Xresampled`
+            when `denoise=True`.
         variable_names : list[str]
             A list of names for the variables, rather than "x0", "x1", etc.
             If `X` is a pandas dataframe, the column names will be used

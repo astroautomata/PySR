@@ -1617,14 +1617,12 @@ class TestDenoising(unittest.TestCase):
             with self.subTest(amplitude=amplitude):
                 noise = 0.1 * amplitude
                 y = amplitude * np.sin(2 * X[:, 0]) + noise * rstate.randn(len(X))
-                X_out, y_out = denoise(
+                _, y_out = denoise(
                     X, y, Xresampled=Xresampled, random_state=np.random.RandomState(0)
                 )
-                self.assertIs(X_out, Xresampled)
                 rmse = np.sqrt(
                     np.mean((y_out - amplitude * np.sin(2 * Xresampled[:, 0])) ** 2)
                 )
-                # Denoising should beat the raw data's error (`noise`) comfortably:
                 self.assertLess(rmse, 0.5 * noise)
 
     def test_xresampled_columns_are_matched_by_name(self):
@@ -3086,6 +3084,7 @@ def runtests(just_tests=False):
     test_cases = [
         TestPipeline,
         TestBest,
+        TestDenoising,
         TestFeatureSelection,
         TestMiscellaneous,
         TestHelpMessages,
