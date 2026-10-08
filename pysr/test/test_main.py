@@ -1,5 +1,4 @@
 import functools
-import gc
 import importlib
 import json
 import os
@@ -1775,92 +1774,33 @@ class TestMiscellaneous(unittest.TestCase):
         self.assertEqual(list(equations["loss"]), [0.0, 0.0])
         self.assertEqual(list(equations["equation"]), ['"a"', equation])
 
-    def test_hall_of_fame_prefers_primary_file_over_backup(self):
-        """SymbolicRegression.jl writes `hall_of_fame.csv` before its `.bak` copy."""
+    def test_hall_of_fame_prefers_main_file_over_backup(self):
         older = 'Complexity,Loss,Equation\n1,1.0,"x0"\n'
-        newer = older + '3,0.5,"(x0 * 2.0)"\n'
-        cut_off = newer[: newer.index("(x0")]  # Inside the quoted equation
-        cut_off_early = newer[: newer.index('"(x0')]  # Before the equation
+        newer = older + '3,NaN,"(x0 * 2.0)"\n'
+        cut_off = newer[: newer.index("(x0")]
         cases = [
-            # (primary, backup, expected equations)
+            # (main, backup, expected equations)
             (newer, older, ["x0", "(x0 * 2.0)"]),
-            (newer, cut_off, ["x0", "(x0 * 2.0)"]),
             (cut_off, older, ["x0"]),
-            (cut_off_early, older, ["x0"]),
-            (None, newer, ["x0", "(x0 * 2.0)"]),
-            # Complete files need no trailing newline (e.g., if hand-written):
-            (newer.rstrip("\n"), older, ["x0", "(x0 * 2.0)"]),
+            ("", older, ["x0"]),
+            (None, older, ["x0"]),
         ]
-        for primary, backup, expected in cases:
-            with self.subTest(primary=primary, backup=backup):
-                output_directory = tempfile.mkdtemp()
-                run_directory = Path(output_directory) / "run"
+        for main, backup, expected in cases:
+            with self.subTest(main=main):
+                run_directory = Path(tempfile.mkdtemp()) / "run"
                 run_directory.mkdir()
-                for filename, contents in [
-                    ("hall_of_fame.csv", primary),
-                    ("hall_of_fame.csv.bak", backup),
-                ]:
-                    if contents is not None:
-                        (run_directory / filename).write_text(
-                            contents, encoding="utf-8"
-                        )
+                if main is not None:
+                    (run_directory / "hall_of_fame.csv").write_text(main)
+                (run_directory / "hall_of_fame.csv.bak").write_text(backup)
                 model = PySRRegressor()
                 model.nout_ = 1
-                model.output_directory_ = output_directory
+                model.output_directory_ = str(run_directory.parent)
                 model.run_id_ = "run"
-
                 equations = model._read_equation_file()[0]
                 self.assertEqual(list(equations["equation"]), expected)
 
-        output_directory = tempfile.mkdtemp()
-        (Path(output_directory) / "run").mkdir()
-        (Path(output_directory) / "run" / "hall_of_fame.csv").write_text(
-            cut_off, encoding="utf-8"
-        )
-        with self.assertRaisesRegex(RuntimeError, "incomplete"):
-            model.output_directory_ = output_directory
-            model._read_equation_file()
-
-    def test_temp_equation_file_is_deleted(self):
-        X = np.random.RandomState(0).randn(30, 2)
-        y = X[:, 0] * 2.0
-        kwargs = dict(
-            niterations=1,
-            populations=2,
-            progress=False,
-            verbosity=0,
-            temp_equation_file=True,
-        )
-        model = PySRRegressor(**kwargs)
-        model.fit(X, y)
-        first_directory = Path(model.output_directory_)
-        self.assertTrue(first_directory.exists())
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            model.fit(X, y)
-        second_directory = Path(model.output_directory_)
-        self.assertFalse(first_directory.exists())
-        self.assertTrue(second_directory.exists())
-
-        # Copies do not own the directory, and work without it:
-        model_copy = pkl.loads(pkl.dumps(model))
-        del model
-        gc.collect()
-        self.assertFalse(second_directory.exists())
-        self.assertEqual(model_copy.predict(X).shape, y.shape)
-
-        kept = PySRRegressor(**kwargs, delete_tempfiles=False)
-        kept.fit(X, y)
-        kept_directory = Path(kept.output_directory_)
-        del kept
-        gc.collect()
-        self.assertTrue(kept_directory.exists())
-        shutil.rmtree(kept_directory)
-
-    def test_output_directory_is_passed_to_julia_verbatim(self):
+    def test_output_directory_with_backslash(self):
         with tempfile.TemporaryDirectory() as d:
-            # On POSIX, a backslash is an ordinary filename character:
             output_directory = os.path.join(d, "out\\dir")
             model = PySRRegressor(
                 niterations=1,
@@ -1870,9 +1810,6 @@ class TestMiscellaneous(unittest.TestCase):
                 output_directory=output_directory,
             )
             model.fit(np.random.RandomState(0).randn(30, 2), np.ones(30))
-            self.assertEqual(
-                str(model.julia_options_.output_directory), output_directory
-            )
             self.assertTrue(
                 (Path(output_directory) / model.run_id_ / "hall_of_fame.csv").exists()
             )

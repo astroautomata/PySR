@@ -7,11 +7,9 @@ import logging
 import os
 import pickle as pkl
 import re
-import shutil
 import sys
 import tempfile
 import warnings
-import weakref
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, fields
 from functools import wraps
@@ -1611,12 +1609,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                     warnings.warn(warn_msg)
                 else:
                     pysr_logger.debug(warn_msg)
-        state_keys_to_clear = [
-            *state_keys_containing_lambdas,
-            "logger_",
-            # The temporary directory belongs to this instance, not to copies:
-            "_tempdir_cleanup",
-        ]
+        state_keys_to_clear = [*state_keys_containing_lambdas, "logger_"]
         pickled_state = {
             key: (None if key in state_keys_to_clear else value)
             for key, value in state.items()
@@ -1844,7 +1837,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                 if self.tempdir is not None:
                     Path(self.tempdir).mkdir(parents=True, exist_ok=True)
                 self.output_directory_ = tempfile.mkdtemp(dir=self.tempdir)
-                self._schedule_tempdir_cleanup()
             else:
                 self.output_directory_ = (
                     "outputs"
@@ -1858,25 +1850,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             )
             if self.temp_equation_file:
                 assert self.output_directory is None
-
-    def _schedule_tempdir_cleanup(self):
-        """Delete the temporary output directory once it is no longer needed.
-
-        The previous search's directory is removed when a new one is created,
-        and the current one when the model is garbage collected or the
-        interpreter exits. By then the hall of fame is held in memory, in
-        `equation_file_contents_`.
-        """
-        previous_cleanup = getattr(self, "_tempdir_cleanup", None)
-        if previous_cleanup is not None:
-            previous_cleanup()
-        self._tempdir_cleanup = (
-            weakref.finalize(
-                self, shutil.rmtree, self.output_directory_, ignore_errors=True
-            )
-            if self.delete_tempfiles
-            else None
-        )
 
     def _clear_equation_file_contents(self):
         self.equation_file_contents_ = None
@@ -3257,10 +3230,25 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             filenames = [self.get_equation_file(i) for i in range(1, self.nout_ + 1)]
         else:
             filenames = [self.get_equation_file()]
-        return [
-            self._postprocess_dataframe(_read_hall_of_fame_csv(filename))
-            for filename in filenames
-        ]
+        all_outputs = []
+        for filename in filenames:
+            # SymbolicRegression.jl writes the main file, then the `.bak`, and every
+            # complete write ends in a newline. A main file without one was cut off
+            # mid-write, so the `.bak` holds the last complete copy.
+            copies = [
+                path.read_bytes()
+                for path in (Path(filename), Path(f"{filename}.bak"))
+                if path.exists()
+            ]
+            if not copies:
+                raise RuntimeError(
+                    "Couldn't find equation file! The equation search likely exited "
+                    "before a single iteration completed."
+                )
+            buf = next((c for c in copies if c.endswith(b"\n")), copies[-1])
+            buf = _preprocess_julia_floats(buf.decode("utf-8"))
+            all_outputs.append(self._postprocess_dataframe(pd.read_csv(StringIO(buf))))
+        return all_outputs
 
     def _postprocess_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.rename(
@@ -3405,44 +3393,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             )
 
         return with_preamble(table_string)
-
-
-def _read_hall_of_fame_csv(filename: Path) -> pd.DataFrame:
-    """Read a hall of fame CSV, falling back to its `.bak` copy.
-
-    SymbolicRegression.jl writes each hall of fame to `filename` and then
-    again to `filename.bak`, so that a complete copy survives if the process
-    stops part-way through a write. The primary file is therefore the newest
-    copy, and the backup is only needed when the primary is missing or was
-    left incomplete.
-    """
-    incomplete = []
-    for candidate in (Path(filename), Path(f"{filename}.bak")):
-        try:
-            with open(candidate, "r", encoding="utf-8") as f:
-                buf = f.read()
-        except FileNotFoundError:
-            continue
-        try:
-            equations = pd.read_csv(StringIO(_preprocess_julia_floats(buf)))
-        except (pd.errors.ParserError, pd.errors.EmptyDataError):
-            # e.g., cut off inside a quoted equation
-            incomplete.append(candidate)
-            continue
-        if len(equations) > 0 and equations.iloc[-1].isna().any():
-            # Cut off before the end of the last row
-            incomplete.append(candidate)
-            continue
-        return equations
-    if incomplete:
-        raise RuntimeError(
-            "Could not read the equation file, as every copy is incomplete: "
-            + ", ".join(map(str, incomplete))
-        )
-    raise RuntimeError(
-        "Couldn't find equation file! The equation search likely exited "
-        "before a single iteration completed."
-    )
 
 
 def idx_model_selection(equations: pd.DataFrame, model_selection: str):
