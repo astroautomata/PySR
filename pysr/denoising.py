@@ -31,7 +31,10 @@ def denoise(
     gpr = GaussianProcessRegressor(
         kernel=gp_kernel,
         normalize_y=True,
-        n_restarts_optimizer=50,
+        # With standardized inputs and targets, extra restarts from random
+        # hyperparameters did not change the fit, but each one costs a full
+        # optimization, at O(n^3) per step:
+        n_restarts_optimizer=5,
         random_state=random_state,
     )
     gpr.fit((X - X_mean) / X_scale, y)
