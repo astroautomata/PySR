@@ -181,6 +181,18 @@ class TestTorch(unittest.TestCase):
             decimal=3,
         )
 
+    def test_round_and_log1p_mappings(self):
+        expression = pysr.export_sympy.pysr2sympy(
+            "round(x0) + log1p(x1)", feature_names_in=["x0", "x1"]
+        )
+        module = sympy2torch(expression, ["x0", "x1"])
+        X = np.array([[0.5, 1e-17], [1.5, 1.0], [2.5, 0.25], [-0.5, 3.0]])
+        np.testing.assert_allclose(
+            module(self.torch.tensor(X)).detach().numpy(),
+            np.round(X[:, 0]) + np.log1p(X[:, 1]),
+            rtol=1e-12,
+        )
+
     def test_issue_656(self):
         # Should correctly map numeric symbols to floats
         E_plus_x1 = sympy.exp(1) + sympy.symbols("x1")

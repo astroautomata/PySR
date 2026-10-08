@@ -106,6 +106,18 @@ class TestJAX(unittest.TestCase):
             decimal=3,
         )
 
+    def test_round_and_log1p_mappings(self):
+        expression = pysr.export_sympy.pysr2sympy(
+            "round(x0) + log1p(x1)", feature_names_in=["x0", "x1"]
+        )
+        f, params = sympy2jax(expression, sympy.symbols("x0 x1"))
+        X = np.array([[0.5, 1e-17], [1.5, 1.0], [2.5, 0.25], [-0.5, 3.0]])
+        np.testing.assert_allclose(
+            np.array(f(self.jnp.array(X), params)),
+            np.round(X[:, 0]) + np.log1p(X[:, 1]),
+            rtol=1e-6,
+        )
+
     def test_issue_656(self):
         import sympy  # type: ignore
 

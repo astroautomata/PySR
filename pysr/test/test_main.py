@@ -1796,6 +1796,43 @@ class TestMiscellaneous(unittest.TestCase):
         # Check that the same operator mapping was used (1/x for inv)
         self.assertEqual(original_result, 0.5 + 3.0)  # 1/2 + 3 = 3.5
 
+    def test_exported_operators_match_backend(self):
+        """Exported expressions should compute what the search evaluated."""
+        x = np.array([-3.0, -1.5, -0.5, 1e-17, 0.25, 0.5, 1.0, 1.5, 2.5])
+        backend_operators = {
+            "round": "round",
+            "atanh": "SymbolicRegression.safe_atanh",
+            "log1p": "SymbolicRegression.safe_log1p",
+        }
+        for operator, backend_operator in backend_operators.items():
+            with self.subTest(operator=operator):
+                expression = pysr2sympy(f"{operator}(x0)", feature_names_in=["x0"])
+                exported = sympy.lambdify([sympy.Symbol("x0")], expression)
+                with np.errstate(all="ignore"):
+                    actual = exported(x)
+                expected = np.array(jl.seval(f"x -> {backend_operator}.(x)")(x))
+                np.testing.assert_allclose(actual, expected, rtol=1e-14, equal_nan=True)
+
+    def test_sympy_export_keeps_expression_structure(self):
+        # SymPy's parser passes `evaluate=False` to functions such as `sqrt`
+        # and `log`. Mappings that rejected the keyword made `pysr2sympy`
+        # re-parse the whole expression with simplification enabled, which
+        # merged constants and cancelled terms the search had evaluated.
+        for operator in ["sqrt", "log", "cbrt", "acosh", "atanh"]:
+            with self.subTest(operator=operator):
+                expression = pysr2sympy(
+                    f"(x1 + ({operator}(x0) - {operator}(x0))) * (2.0 * 3.0)",
+                    feature_names_in=["x0", "x1"],
+                )
+                self.assertEqual(expression.atoms(sympy.Float), {2.0, 3.0})
+                if operator != "cbrt":
+                    # Outside the domain, the backend gives NaN:
+                    with np.errstate(all="ignore"):
+                        value = sympy.lambdify(sympy.symbols("x0 x1"), expression)(
+                            np.array([-2.0]), np.array([1.0])
+                        )
+                    self.assertTrue(np.isnan(value).all())
+
     def test_predict_replaces_spaces_in_dataframe_columns(self):
         # Regression for #690.
         model = PySRRegressor(
