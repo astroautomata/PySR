@@ -3171,7 +3171,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             raise ValueError(
                 f"`expression_spec={self.expression_spec_}` does not support jax export."
             )
-        self._refresh_with_exports(output_jax_format=True)
+        self.set_params(output_jax_format=True)
+        self.refresh()
         best_equation = self.get_best(index=index)
         if isinstance(best_equation, list):
             assert self.nout_ > 1
@@ -3206,26 +3207,13 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             raise ValueError(
                 f"`expression_spec={self.expression_spec_}` does not support torch export."
             )
-        self._refresh_with_exports(output_torch_format=True)
+        self.set_params(output_torch_format=True)
+        self.refresh()
         best_equation = self.get_best(index=index)
         if isinstance(best_equation, list):
             return [eq["torch_format"] for eq in best_equation]
         else:
             return best_equation["torch_format"]
-
-    def _refresh_with_exports(self, **export_params: bool) -> None:
-        """Enable export formats and refresh, restoring them if that fails.
-
-        Otherwise a single equation that cannot be exported would make every
-        later `refresh()`, and so `sympy()`, `latex()`, etc., fail as well.
-        """
-        previous_params = {name: getattr(self, name) for name in export_params}
-        self.set_params(**export_params)
-        try:
-            self.refresh()
-        except Exception:
-            self.set_params(**previous_params)
-            raise
 
     def get_equation_file(self, i: int | None = None) -> Path:
         if i is not None:

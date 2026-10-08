@@ -1,4 +1,3 @@
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -143,29 +142,6 @@ class TestTorch(unittest.TestCase):
         np.testing.assert_allclose(
             module(self.torch.tensor(X)).detach().numpy(), X.sum(axis=1)
         )
-
-    def test_equal_constants_are_separate_parameters(self):
-        expression = pysr.export_sympy.pysr2sympy(
-            "(x0 * 2.5) + (x1 * 2.5)", feature_names_in=["x0", "x1"]
-        )
-        module = sympy2torch(expression, ["x0", "x1"])
-        self.assertEqual(len(list(module.parameters())), 2)
-
-    def test_failed_export_leaves_model_usable(self):
-        run_directory = Path(tempfile.mkdtemp()) / "run"
-        run_directory.mkdir()
-        pd.DataFrame(
-            {"Complexity": [1, 2], "Loss": [1.0, 0.1], "Equation": ["x0", "gamma(x0)"]}
-        ).to_csv(run_directory / "hall_of_fame.csv", index=False)
-        model = PySRRegressor.from_file(
-            run_directory=str(run_directory),
-            operators={1: ["gamma"], 2: ["+"]},
-            n_features_in=1,
-        )
-        with self.assertRaisesRegex(KeyError, "gamma"):
-            model.pytorch()
-        self.assertFalse(model.output_torch_format)
-        self.assertEqual(model.sympy(), sympy.gamma(sympy.Symbol("x0")))
 
     def test_custom_operator(self):
         X = np.random.randn(100, 3)

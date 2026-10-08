@@ -32,12 +32,10 @@ def _initialize_torch():
 
         torch = _torch
 
-        def _piecewise(*branches):
-            # The first branch whose condition holds applies, so nest the
-            # `where`s from the last branch outward. Where no branch applies,
-            # SymPy (and NumPy, via `lambdify`) gives NaN.
+        def _piecewise(*pairs):
+            # SymPy gives NaN where no condition holds.
             result = torch.tensor(float("nan"))
-            for value, condition in reversed(branches):
+            for value, condition in reversed(pairs):
                 result = torch.where(condition, value, result)
             return result
 
@@ -75,7 +73,6 @@ def _initialize_torch():
             sympy.arg: torch.angle,
             # Note: May raise error for ints and complexes
             sympy.erf: torch.erf,
-            sympy.erfc: torch.erfc,
             sympy.loggamma: torch.lgamma,
             sympy.Eq: torch.eq,
             sympy.Ne: torch.ne,
@@ -83,8 +80,8 @@ def _initialize_torch():
             sympy.StrictLessThan: torch.lt,
             sympy.LessThan: torch.le,
             sympy.GreaterThan: torch.ge,
-            sympy.And: _reduce(torch.logical_and),
-            sympy.Or: _reduce(torch.logical_or),
+            sympy.And: torch.logical_and,
+            sympy.Or: torch.logical_or,
             sympy.Not: torch.logical_not,
             sympy.Max: _reduce(torch.maximum),
             sympy.Min: _reduce(torch.minimum),
@@ -149,20 +146,16 @@ def _initialize_torch():
                         )
                     args = []
                     for arg in expr.args:
-                        # Share nodes between equal subexpressions, except for
-                        # constants: those stay separate parameters, as they
-                        # are in the search and in the JAX export.
-                        shared = not issubclass(arg.func, sympy.Float)
-                        arg_ = _memodict.get(arg) if shared else None
-                        if arg_ is None:
+                        try:
+                            arg_ = _memodict[arg]
+                        except KeyError:
                             arg_ = type(self)(
                                 expr=arg,
                                 _memodict=_memodict,
                                 _func_lookup=_func_lookup,
                                 **kwargs,
                             )
-                            if shared:
-                                _memodict[arg] = arg_
+                            _memodict[arg] = arg_
                         args.append(arg_)
                     self._args = torch.nn.ModuleList(args)
 
@@ -187,7 +180,6 @@ def _initialize_torch():
 
                 if extra_funcs is None:
                     extra_funcs = {}
-                # User mappings take precedence over the built-in ones:
                 _func_lookup = co.ChainMap(extra_funcs, _global_func_lookup)
 
                 _memodict = {}

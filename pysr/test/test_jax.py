@@ -107,24 +107,6 @@ class TestJAX(unittest.TestCase):
                     np.array(f(self.jnp.array(X), params)), expected, rtol=1e-6
                 )
 
-    def test_failed_export_leaves_model_usable(self):
-        run_directory = Path(tempfile.mkdtemp()) / "run"
-        run_directory.mkdir()
-        pd.DataFrame(
-            {"Complexity": [1, 2], "Loss": [1.0, 0.1], "Equation": ["x0", "myop(x0)"]}
-        ).to_csv(run_directory / "hall_of_fame.csv", index=False)
-        myop = sympy.Function("myop")
-        model = PySRRegressor.from_file(
-            run_directory=str(run_directory),
-            operators={1: ["myop"], 2: ["+"]},
-            n_features_in=1,
-            extra_sympy_mappings={"myop": myop},
-        )
-        with self.assertRaisesRegex(KeyError, "myop"):
-            model.jax()
-        self.assertFalse(model.output_jax_format)
-        self.assertEqual(model.sympy(), myop(sympy.Symbol("x0")))
-
     def test_avoid_simplification(self):
         ex = pysr.export_sympy.pysr2sympy(
             "square(exp(sign(0.44796443))) + 1.5 * x1",
