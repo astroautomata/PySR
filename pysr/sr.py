@@ -2102,6 +2102,21 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                 y_units,
             )
 
+        if Xresampled is not None and self.denoise and weights is not None:
+            raise ValueError(
+                "`weights` cannot be combined with `Xresampled`, as the denoised "
+                "targets are evaluated at the rows of `Xresampled` instead of `X`."
+            )
+        if isinstance(X, pd.DataFrame) and isinstance(Xresampled, pd.DataFrame):
+            # Match the columns of `Xresampled` to those of `X` by name:
+            missing_columns = X.columns.difference(Xresampled.columns)
+            if len(missing_columns) > 0:
+                raise ValueError(
+                    "`Xresampled` is missing columns of `X`: "
+                    f"{list(missing_columns)}."
+                )
+            Xresampled = Xresampled[X.columns]
+
         if isinstance(X, pd.DataFrame):
             if variable_names:
                 variable_names = None

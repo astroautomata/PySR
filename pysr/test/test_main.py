@@ -1627,6 +1627,26 @@ class TestDenoising(unittest.TestCase):
                 # Denoising should beat the raw data's error (`noise`) comfortably:
                 self.assertLess(rmse, 0.5 * noise)
 
+    def test_xresampled_columns_are_matched_by_name(self):
+        rstate = np.random.RandomState(0)
+        X = pd.DataFrame({"T": rstate.uniform(300, 400, 20), "x": rstate.rand(20)})
+        y = X["T"] * X["x"]
+        Xresampled = pd.DataFrame(
+            {"x": rstate.rand(5), "T": rstate.uniform(300, 400, 5)}
+        )
+        model = PySRRegressor(denoise=True)
+        Xresampled_validated = model._validate_and_set_fit_params(
+            X, y, Xresampled, None, None, None, None, None
+        )[2]
+        np.testing.assert_array_equal(
+            Xresampled_validated, Xresampled[["T", "x"]].to_numpy()
+        )
+
+        with self.assertRaisesRegex(ValueError, "missing columns"):
+            model.fit(X, y, Xresampled=Xresampled[["x"]])
+        with self.assertRaisesRegex(ValueError, "`weights` cannot be combined"):
+            model.fit(X, y, Xresampled=Xresampled, weights=np.ones(len(y)))
+
 
 class TestFeatureSelection(unittest.TestCase):
     def setUp(self):
