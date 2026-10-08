@@ -2113,6 +2113,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
             cols_str = X.columns.astype(str)
             if cols_str.str.contains(" ").any():
+                X = X.copy(deep=False)
                 X.columns = cols_str.str.replace(" ", "_")
                 warnings.warn(
                     "Spaces in DataFrame column names are not supported. "
@@ -2152,6 +2153,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         # Handle multioutput data
         if len(y.shape) == 1 or (len(y.shape) == 2 and y.shape[1] == 1):
             y = y.reshape(-1)
+            if weights is not None and weights.shape == (len(y), 1):
+                weights = weights.reshape(-1)
         elif len(y.shape) == 2:
             self.nout_ = y.shape[1]
         else:
@@ -3035,6 +3038,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             if isinstance(X.columns, pd.RangeIndex):
                 if self.selection_mask_ is not None:
                     X = X[X.columns[self.selection_mask_]]
+                X = X.copy(deep=False)
                 X.columns = self.feature_names_in_
 
             columns = X.columns.astype(str)
@@ -3050,6 +3054,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             X = self._validate_data_X(X)
             if self.expression_spec_.evaluates_in_julia:
                 X = X.astype(self._get_precision_mapped_dtype(X))
+            elif not np.issubdtype(X.dtype, np.inexact):
+                # Fit evaluates in floating point; integer inputs would overflow:
+                X = X.astype(np.float64)
 
         try:
             if isinstance(best_equation, list):

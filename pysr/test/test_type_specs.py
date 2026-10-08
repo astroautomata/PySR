@@ -1550,6 +1550,9 @@ print(json.dumps({{
         with self.assertWarnsRegex(UserWarning, "Spaces"):
             out = prepare_type_spec_prediction_data(model, pd.DataFrame({"a b": ["a"]}))
         self.assertEqual(out.shape, (1, 1))
+        X = pd.DataFrame([["a"]])
+        prepare_type_spec_prediction_data(model, X)
+        self.assertIsInstance(X.columns, pd.RangeIndex)
 
         model.n_features_in_ = 2
         model.selection_mask_ = np.array([True, False])

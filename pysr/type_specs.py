@@ -1315,6 +1315,7 @@ def prepare_type_spec_prediction_data(model: Any, X: Any) -> np.ndarray:
     if isinstance(X.columns, pd.RangeIndex):
         if model.selection_mask_ is not None:
             X = X[X.columns[model.selection_mask_]]
+        X = X.copy(deep=False)
         X.columns = model.feature_names_in_
     columns = X.columns.astype(str)
     if columns.str.contains(" ").any():

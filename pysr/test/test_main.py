@@ -126,6 +126,15 @@ class TestPipeline(unittest.TestCase):
             jl.seval("((::Val{x}) where x) -> x")(model.julia_options_.bumper), True
         )
 
+    def test_column_vector_targets_and_weights(self):
+        y = self.X[:, [0]]
+        model = PySRRegressor(
+            **{**self.default_test_kwargs, "niterations": 0, "guesses": ["x0"]}
+        )
+        model.fit(self.X, y, weights=np.ones_like(y))
+        self.assertEqual(model.nout_, 1)
+        self.assertEqual(model.predict(self.X).shape, (len(y),))
+
     def test_multiprocessing_turbo_custom_objective(self):
         for loss_key in ["loss_function", "loss_function_expression"]:
             with self.subTest(loss_key=loss_key):
@@ -1583,6 +1592,24 @@ class TestBest(unittest.TestCase):
         self.assertEqual(self.model.sympy(1), sympy.cos(sympy.Symbol("x0")))
         self.assertEqual(self.model.sympy(0), 1.0)
 
+    def test_predict_leaves_caller_dataframe_untouched(self):
+        X = pd.DataFrame(self.X)
+        np.testing.assert_almost_equal(self.model.predict(X), self.y, decimal=3)
+        self.assertIsInstance(X.columns, pd.RangeIndex)
+
+    def test_predict_with_integer_inputs_does_not_overflow(self):
+        model = manually_create_model(
+            pd.DataFrame(
+                {
+                    "equation": ["x0", "cube(x0)"],
+                    "loss": [1.0, 0.0],
+                    "complexity": [1, 2],
+                }
+            )
+        )
+        X = np.array([[3_000_000, 1]], dtype=np.int64)
+        np.testing.assert_allclose(model.predict(X), [2.7e19])
+
     def test_best_tex(self):
         self.assertEqual(self.model.latex(), "\\cos^{2}{\\left(x_{0} \\right)}")
 
@@ -1813,6 +1840,7 @@ class TestMiscellaneous(unittest.TestCase):
 
         model.fit(X_fit, y)
         np.testing.assert_array_equal(model.feature_names_in_, np.array(["a_b", "c_d"]))
+        self.assertEqual(list(X_fit.columns), ["a b", "c d"])
 
         y_pred = model.predict(X_pred)
         assert np.isfinite(y_pred).all()
