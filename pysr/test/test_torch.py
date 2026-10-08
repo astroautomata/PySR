@@ -117,6 +117,43 @@ class TestTorch(unittest.TestCase):
             true_out.detach(), torch_out.detach(), decimal=3
         )
 
+    def test_piecewise_comparison_and_extremum_operators(self):
+        X = np.random.RandomState(0).randn(40, 3)
+        X[:10, 1] = X[:10, 0]  # Ties distinguish `<` from `<=`
+        symbols = sympy.symbols("x0 x1 x2")
+        for equation in [
+            "greater(x0, x1)",
+            "less(x0, x1)",
+            "greater_equal(x0, x1)",
+            "less_equal(x0, x1)",
+            "cond(x0, x1)",
+            "logical_or(x0, x1)",
+            "logical_and(x0, x1)",
+            "relu(x0) + relu(x1)",
+            "max(max(x0, x1), x2)",
+            "min(x0, 0.5)",
+            "clamp(x0, -0.5, 0.5)",
+        ]:
+            with self.subTest(equation=equation):
+                expression = pysr.export_sympy.pysr2sympy(
+                    equation, feature_names_in=["x0", "x1", "x2"]
+                )
+                expected = sympy.lambdify(symbols, expression)(*X.T) * np.ones(len(X))
+                module = sympy2torch(expression, symbols)
+                np.testing.assert_allclose(
+                    module(self.torch.tensor(X)).detach().numpy(), expected
+                )
+
+    def test_extra_mappings_take_precedence(self):
+        x, y = sympy.symbols("x y")
+        module = sympy2torch(
+            sympy.Max(x, y), [x, y], extra_torch_mappings={sympy.Max: self.torch.add}
+        )
+        X = np.random.randn(5, 2)
+        np.testing.assert_allclose(
+            module(self.torch.tensor(X)).detach().numpy(), X.sum(axis=1)
+        )
+
     def test_custom_operator(self):
         X = np.random.randn(100, 3)
         y = np.ones(X.shape[0])

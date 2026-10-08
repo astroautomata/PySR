@@ -91,6 +91,33 @@ class TestJAX(unittest.TestCase):
             decimal=3,
         )
 
+    def test_piecewise_comparison_and_extremum_operators(self):
+        X = np.random.RandomState(0).randn(40, 3)
+        X[:10, 1] = X[:10, 0]  # Ties distinguish `<` from `<=`
+        symbols = sympy.symbols("x0 x1 x2")
+        for equation in [
+            "greater(x0, x1)",
+            "less(x0, x1)",
+            "greater_equal(x0, x1)",
+            "less_equal(x0, x1)",
+            "cond(x0, x1)",
+            "logical_or(x0, x1)",
+            "logical_and(x0, x1)",
+            "relu(x0) + relu(x1)",
+            "max(max(x0, x1), x2)",
+            "min(x0, 0.5)",
+            "clamp(x0, -0.5, 0.5)",
+        ]:
+            with self.subTest(equation=equation):
+                expression = pysr.export_sympy.pysr2sympy(
+                    equation, feature_names_in=["x0", "x1", "x2"]
+                )
+                expected = sympy.lambdify(symbols, expression)(*X.T) * np.ones(len(X))
+                f, params = sympy2jax(expression, symbols)
+                np.testing.assert_allclose(
+                    np.array(f(self.jnp.array(X), params)), expected, rtol=1e-6
+                )
+
     def test_avoid_simplification(self):
         ex = pysr.export_sympy.pysr2sympy(
             "square(exp(sign(0.44796443))) + 1.5 * x1",

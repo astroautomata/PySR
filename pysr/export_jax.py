@@ -1,3 +1,5 @@
+import functools
+
 import numpy as np  # noqa: F401
 import sympy  # type: ignore
 from sympy.codegen.cfunctions import log2, log10  # type: ignore
@@ -41,13 +43,15 @@ _jnp_func_lookup = {
     # Note: May raise error for ints and complexes
     sympy.erf: "jsp.erf",
     sympy.erfc: "jsp.erfc",
-    sympy.LessThan: "jnp.less",
-    sympy.GreaterThan: "jnp.greater",
+    sympy.StrictLessThan: "jnp.less",
+    sympy.StrictGreaterThan: "jnp.greater",
+    sympy.LessThan: "jnp.less_equal",
+    sympy.GreaterThan: "jnp.greater_equal",
     sympy.And: "jnp.logical_and",
     sympy.Or: "jnp.logical_or",
     sympy.Not: "jnp.logical_not",
-    sympy.Max: "jnp.max",
-    sympy.Min: "jnp.min",
+    sympy.Max: "jnp.maximum",
+    sympy.Min: "jnp.minimum",
     sympy.Mod: "jnp.mod",
     sympy.Heaviside: "jnp.heaviside",
     sympy.core.numbers.Half: "(lambda: 0.5)",
@@ -69,8 +73,23 @@ def sympy2jaxtext(expr, parameters, symbols_in, extra_jax_mappings=None):
         return (
             f"X[:, {[i for i in range(len(symbols_in)) if symbols_in[i] == expr][0]}]"
         )
+    elif expr is sympy.true or expr is sympy.false:
+        return str(bool(expr))
     if extra_jax_mappings is None:
         extra_jax_mappings = {}
+    if expr.func is sympy.Piecewise:
+        branches = [
+            [
+                sympy2jaxtext(arg, parameters, symbols_in, extra_jax_mappings)
+                for arg in pair.args
+            ]
+            for pair in expr.args
+        ]
+        # SymPy gives NaN where no condition holds.
+        text = "jnp.nan"
+        for value, condition in reversed(branches):
+            text = f"jnp.where({condition}, {value}, {text})"
+        return text
     try:
         _func = {**_jnp_func_lookup, **extra_jax_mappings}[expr.func]
     except KeyError:
@@ -89,6 +108,8 @@ def sympy2jaxtext(expr, parameters, symbols_in, extra_jax_mappings=None):
         return " * ".join(["(" + arg + ")" for arg in args])
     if _func == ADD:
         return " + ".join(["(" + arg + ")" for arg in args])
+    if expr.func in (sympy.Max, sympy.Min):
+        return functools.reduce(lambda a, b: f"{_func}({a}, {b})", args)
     return f'{_func}({", ".join(args)})'
 
 
@@ -112,6 +133,7 @@ def _initialize_jax():
         jax = _jax
         jnp = _jnp
         jsp = _jsp
+        jax_initialized = True
 
 
 def sympy2jax(expression, symbols_in, selection=None, extra_jax_mappings=None):
