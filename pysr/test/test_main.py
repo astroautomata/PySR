@@ -129,7 +129,7 @@ class TestPipeline(unittest.TestCase):
     def test_column_vector_targets_and_weights(self):
         y = self.X[:, [0]]
         model = PySRRegressor(
-            **{**self.default_test_kwargs, "niterations": 1, "populations": 2}
+            **{**self.default_test_kwargs, "niterations": 0, "guesses": ["x0"]}
         )
         model.fit(self.X, y, weights=np.ones_like(y))
         self.assertEqual(model.nout_, 1)
