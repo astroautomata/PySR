@@ -315,7 +315,7 @@ model.fit(X, y, X_units=["Constants.M_sun", "kg", "m"], y_units="kg * m / s^2")
 
 ## Parallelism
 
-- Default `parallelism="multithreading"` suits laptops/single nodes. Thread count is fixed at Julia startup: set `PYTHON_JULIACALL_THREADS=<n>` before importing pysr; `JULIA_NUM_THREADS` is inappropriate under juliacall.
+- Default `parallelism="multithreading"` suits laptops/single nodes. Thread count is fixed at Julia startup: set `PYTHON_JULIACALL_THREADS=<n>` or `JULIA_NUM_THREADS=<n>` before importing pysr; otherwise PySR uses every available CPU.
 - Keep `populations` ~2-3x threads/cores for worker utilization; default `populations=31` covers typical machines.
 - Saturated coordinating thread: increase `ncycles_per_iteration`, reducing communication.
 - Long runs: `parallelism="multiprocessing"`, `procs=n` costs substantially more startup/fit, potentially faster steady-state. Multiple nodes: `cluster_manager="slurm"` or native SlurmClusterManager.jl, https://julia.pysr.ai/dev/slurm/. Launch once on one node, let it spawn workers, avoid `srun`; put worker packages in `worker_imports`.

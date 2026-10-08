@@ -53,7 +53,13 @@ from .julia_helpers import (
     jl_numpy_array,
     jl_serialize,
 )
-from .julia_import import AnyValue, SymbolicRegression, VectorValue, jl
+from .julia_import import (
+    AnyValue,
+    SymbolicRegression,
+    VectorValue,
+    _available_cpu_count,
+    jl,
+)
 from .logger_specs import AbstractLoggerSpec
 from .mutations import (
     _LEGACY_MUTATION_PARAMETERS,
@@ -80,7 +86,6 @@ from .type_specs import (
 from .utils import (
     ArrayLike,
     PathLike,
-    _available_cpu_count,
     _preprocess_julia_floats,
     _safe_check_feature_names_in,
     _subscriptify,
@@ -3639,12 +3644,6 @@ def _map_parallelism_params(
     else:
         _parallelism = "multithreading"
         _procs = None
-        if procs:
-            warnings.warn(
-                f"`procs={procs}` is ignored with the default "
-                "`parallelism='multithreading'`. Set `parallelism='multiprocessing'` "
-                "to search with worker processes."
-            )
 
     if _parallelism not in {"serial", "multithreading", "multiprocessing"}:
         raise ValueError(

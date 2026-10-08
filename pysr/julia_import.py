@@ -19,34 +19,18 @@ if autoload_extensions is not None:
     )
 
 
-def _requested_julia_threads() -> str | None:
-    """The Julia thread count the user asked for, if any.
-
-    This follows juliacall's own precedence: `-X juliacall-threads`, then
-    `PYTHON_JULIACALL_THREADS`, then `JULIA_NUM_THREADS`.
-    """
-    threads = sys._xoptions.get("juliacall-threads")
-    if isinstance(threads, str):
-        return threads
-    for key in ("PYTHON_JULIACALL_THREADS", "JULIA_NUM_THREADS"):
-        if key in os.environ:
-            return os.environ[key]
-    return None
+def _available_cpu_count() -> int:
+    # Match Julia's --threads=auto, which respects the CPU affinity mask.
+    if hasattr(os, "sched_getaffinity"):
+        return len(os.sched_getaffinity(0))
+    return os.cpu_count() or 1
 
 
-def _default_gc_threads(threads: str) -> str | None:
-    threads = threads.split(",")[0].strip()
+def _default_gc_threads(threads: str) -> str:
+    threads = threads.split(",")[0]
     if threads == "auto":
-        # Match Julia's --threads=auto, which respects the CPU affinity mask.
-        if hasattr(os, "sched_getaffinity"):
-            threads = str(len(os.sched_getaffinity(0)))
-        else:
-            threads = str(os.cpu_count() or 2)
-    try:
-        return f"{max(1, int(threads) // 2)},1"
-    except ValueError:
-        # Leave anything we don't understand to Julia:
-        return None
+        threads = str(_available_cpu_count())
+    return f"{max(1, int(threads) // 2)},1"
 
 
 pysr_set_gc_threads = False
@@ -58,7 +42,7 @@ if "juliacall" in sys.modules:
     warnings.warn(
         "juliacall module already imported. "
         "Make sure that you have set the environment variable `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` to avoid segfaults. "
-        "Also note that PySR will not be able to configure `PYTHON_JULIACALL_THREADS` for you."
+        "Also note that PySR will not be able to configure `PYTHON_JULIACALL_THREADS` or `PYTHON_JULIACALL_OPTLEVEL` for you."
     )
 else:
     # Required to avoid segfaults (https://juliapy.github.io/PythonCall.jl/dev/faq/)
@@ -68,35 +52,30 @@ else:
             + "You will experience segfaults if running with multithreading."
         )
 
-    if os.environ.get("PYTHON_JULIACALL_THREADS", "auto") != "auto":
-        warnings.warn(
-            "PYTHON_JULIACALL_THREADS environment variable is set to something other than 'auto', "
-            "so PySR was not able to set it. You may wish to set it to `'auto'` for full use "
-            "of your CPU."
-        )
+    pysr_set_gc_threads = "JULIA_NUM_GC_THREADS" not in os.environ
 
-    # Use every CPU by default, but respect a thread count the user already
-    # requested, including through Julia's own `JULIA_NUM_THREADS`:
-    requested_threads = _requested_julia_threads()
-    if requested_threads is None:
-        requested_threads = os.environ["PYTHON_JULIACALL_THREADS"] = "auto"
-
-    if "JULIA_NUM_GC_THREADS" not in os.environ:
-        # Concurrent GC sweeping (`N,1`): the search is GC-bound at high
-        # thread counts, and this was neutral at 8 threads, 8% faster at 32,
-        # and 25% faster at 96.
-        gc_threads = _default_gc_threads(requested_threads)
-        if gc_threads is not None:
-            os.environ["JULIA_NUM_GC_THREADS"] = gc_threads
-            pysr_set_gc_threads = True
+    # juliacall's own precedence, except that an empty JULIA_NUM_THREADS
+    # would make juliacall pass `--threads=` and fail.
+    threads = (
+        sys._xoptions.get("juliacall-threads")
+        or os.environ.get("PYTHON_JULIACALL_THREADS")
+        or os.environ.get("JULIA_NUM_THREADS")
+        or "auto"
+    )
 
     # TODO: Remove these when juliapkg lets you specify this
     for k, default in (
         ("PYTHON_JULIACALL_HANDLE_SIGNALS", "yes"),
+        ("PYTHON_JULIACALL_THREADS", threads),
+        ("PYTHON_JULIACALL_OPTLEVEL", "3"),
         # Don't hijack `%%julia` magics in notebooks unless asked;
         # opt back in with PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=yes
         # or `%load_ext juliacall`.
         ("PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION", "no"),
+        # Concurrent GC sweeping (`N,1`): the search is GC-bound at high
+        # thread counts, and this was neutral at 8 threads, 8% faster at 32,
+        # and 25% faster at 96.
+        ("JULIA_NUM_GC_THREADS", _default_gc_threads(threads)),
     ):
         os.environ[k] = os.environ.get(k, default)
 

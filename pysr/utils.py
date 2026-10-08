@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import difflib
 import inspect
-import os
 import re
 from pathlib import Path
 from typing import Any, TypeVar, Union
@@ -54,21 +53,6 @@ def _safe_check_feature_names_in(self, variable_names, generate_names=True):
         )
     except TypeError:
         return _check_feature_names_in(self, variable_names)
-
-
-def _available_cpu_count() -> int:
-    """The number of CPUs this process may run on.
-
-    Unlike `os.cpu_count()`, this respects the CPU affinity mask, e.g. of a
-    Slurm or container allocation that only grants some of a node's cores.
-    """
-    if hasattr(os, "process_cpu_count"):  # Python 3.13+
-        count = os.process_cpu_count()
-    elif hasattr(os, "sched_getaffinity"):
-        count = len(os.sched_getaffinity(0))
-    else:
-        count = os.cpu_count()
-    return count or 1
 
 
 def _subscriptify(i: int) -> str:

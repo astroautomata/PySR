@@ -2033,31 +2033,6 @@ class TestMiscellaneous(unittest.TestCase):
 
         self.assertFalse(any("progress bar" in str(w.message) for w in caught))
 
-    def test_parallelism_defaults(self):
-        from pysr.sr import _map_parallelism_params
-        from pysr.utils import _available_cpu_count
-
-        # `procs` used to be dropped silently without `parallelism`:
-        with self.assertWarnsRegex(UserWarning, "`procs=8` is ignored"):
-            self.assertEqual(
-                _map_parallelism_params(None, 8, None), ("multithreading", None)
-            )
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            self.assertEqual(
-                _map_parallelism_params(None, 0, None), ("multithreading", None)
-            )
-
-        # Worker processes default to the CPUs this process may use:
-        with mock.patch("pysr.sr._available_cpu_count", return_value=3):
-            self.assertEqual(
-                _map_parallelism_params("multiprocessing", None, None),
-                ("multiprocessing", 3),
-            )
-        self.assertGreaterEqual(_available_cpu_count(), 1)
-        if hasattr(os, "sched_getaffinity"):
-            self.assertEqual(_available_cpu_count(), len(os.sched_getaffinity(0)))
-
     def test_builtin_mutation_and_plugin_configs(self):
         from pysr import (
             AdaptiveMutationWeightsPlugin,
