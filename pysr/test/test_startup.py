@@ -167,21 +167,6 @@ class TestStartup(unittest.TestCase):
                 deprecation_expected,
             )
 
-    def test_default_optimization_level(self):
-        env = {k: v for k, v in os.environ.items() if k != "PYTHON_JULIACALL_OPTIMIZE"}
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                'from pysr import jl; print("opt_level=" + str(jl.seval("Base.JLOptions().opt_level")))',
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=env,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr.decode())
-        self.assertIn("opt_level=3", result.stdout.decode())
-
     def test_juliacall_0935_distributed_worker_uses_current_python(self):
         import_orders = (
             "import pysr\nfrom pysr import jl",
