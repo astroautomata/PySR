@@ -39,7 +39,7 @@ if "juliacall" in sys.modules:
     warnings.warn(
         "juliacall module already imported. "
         "Make sure that you have set the environment variable `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` to avoid segfaults. "
-        "Also note that PySR will not be able to configure `PYTHON_JULIACALL_THREADS` or `PYTHON_JULIACALL_OPTLEVEL` for you."
+        "Also note that PySR will not be able to configure `PYTHON_JULIACALL_THREADS` or `PYTHON_JULIACALL_OPTIMIZE` for you."
     )
 else:
     # Required to avoid segfaults (https://juliapy.github.io/PythonCall.jl/dev/faq/)
@@ -62,7 +62,7 @@ else:
     for k, default in (
         ("PYTHON_JULIACALL_HANDLE_SIGNALS", "yes"),
         ("PYTHON_JULIACALL_THREADS", "auto"),
-        ("PYTHON_JULIACALL_OPTLEVEL", "3"),
+        ("PYTHON_JULIACALL_OPTIMIZE", "3"),
         # Don't hijack `%%julia` magics in notebooks unless asked;
         # opt back in with PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=yes
         # or `%load_ext juliacall`.
