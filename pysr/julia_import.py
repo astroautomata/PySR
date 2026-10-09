@@ -95,6 +95,7 @@ jl = cast(ModuleType, jl)
 
 jl_version = (jl.VERSION.major, jl.VERSION.minor, jl.VERSION.patch)
 
+jl.seval("using PySRPrecompile")
 jl.seval("using SymbolicRegression")
 SymbolicRegression = jl.SymbolicRegression
 

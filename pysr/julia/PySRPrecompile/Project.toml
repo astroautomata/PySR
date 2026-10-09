@@ -1,0 +1,15 @@
+name = "PySRPrecompile"
+uuid = "9a630b85-c22b-4139-8fb6-38ee7d473bba"
+version = "0.1.0"
+
+[deps]
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+SymbolicRegression = "8254be44-1295-4e6a-a16d-46603ac705cb"
+
+[compat]
+julia = "1.10"
+PrecompileTools = "1"
+PythonCall = "=0.9.36"
+Serialization = "1"
