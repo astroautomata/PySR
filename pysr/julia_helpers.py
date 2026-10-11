@@ -51,9 +51,9 @@ def jl_array(x, dtype=None):
     if x is None:
         return None
     elif dtype is None:
-        return jl_convert(jl.Array, x)
+        return PythonCall.pyconvert(jl.Array, x)
     else:
-        return jl_convert(jl.Array[dtype], x)
+        return PythonCall.pyconvert(jl.Array[dtype], x)
 
 
 def jl_numpy_array(x):
