@@ -1489,8 +1489,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                     "TypeSpec models require the original `checkpoint.pkl`; "
                     "CSV-only reconstruction is not supported."
                 )
-            csv_filename = Path(run_directory) / "hall_of_fame.csv"
-            csv_filename_bak = Path(run_directory) / "hall_of_fame.csv.bak"
+            csv_name = "hall_of_fame_output1.csv" if nout > 1 else "hall_of_fame.csv"
+            csv_filename = Path(run_directory) / csv_name
+            csv_filename_bak = Path(str(csv_filename) + ".bak")
             if not csv_filename.exists() and not csv_filename_bak.exists():
                 raise FileNotFoundError(
                     f"Hall of fame file `{csv_filename}` or `{csv_filename_bak}` does not exist. "
