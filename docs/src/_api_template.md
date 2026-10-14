@@ -2,6 +2,8 @@
 
 `PySRRegressor` has many options for controlling a symbolic regression search.
 Let's look at them below.
+See the [backend documentation](backend.md#rust-backend) for installation
+and selection, and [Rust options](options.md#rust-options) for limitations.
 
 PARAMSKEY
 
