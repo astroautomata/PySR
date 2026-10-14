@@ -82,6 +82,7 @@
   - timeout_in_seconds
   - early_stop_condition
 - Performance and Parallelization:
+  - backend
   - parallelism
   - procs
   - cluster_manager

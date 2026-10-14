@@ -11,10 +11,9 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from juliacall import JuliaError  # type: ignore
 
 from .julia_helpers import jl_array
-from .julia_import import AnyValue, SymbolicRegression, jl
+from .julia_import import AnyValue, JuliaError, SymbolicRegression, jl
 
 _TYPE_MODULE_INSTALLED = "_PYSR_TYPE_SPEC_INSTALLED"
 

@@ -28,6 +28,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+rust = [
+    "symbolic-regression-rs>=0.1.0",
+]
 docs = [
     "docstring-parser>=0.17.0",
     "pyyaml>=6.0.0",
