@@ -2,21 +2,10 @@ import os
 import sys
 import warnings
 from types import ModuleType
-from typing import cast
+from typing import TYPE_CHECKING, Any, cast
 
+from ._backend import JULIA_DISABLED, require_julia
 from .julia_registry_helpers import try_with_registry_fallback
-
-autoload_extensions = os.environ.get("PYSR_AUTOLOAD_EXTENSIONS")
-if autoload_extensions is not None:
-    warnings.warn(
-        "PYSR_AUTOLOAD_EXTENSIONS is deprecated and will be removed in a future release. "
-        "Set PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION instead.",
-        FutureWarning,
-    )
-    # Only fill the gap; an explicitly set juliacall variable takes precedence.
-    os.environ.setdefault(
-        "PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION", autoload_extensions
-    )
 
 
 def _default_gc_threads() -> str:
@@ -30,79 +19,119 @@ def _default_gc_threads() -> str:
     return f"{max(1, int(threads) // 2)},1"
 
 
-pysr_set_gc_threads = False
+# Keep Julia's dynamic types visible to static checkers in either import mode.
+if TYPE_CHECKING:
+    from juliacall import AnyValue, JuliaError, VectorValue  # type: ignore
 
-# Check if JuliaCall is already loaded, and if so, warn the user
-# about the relevant environment variables. If not loaded,
-# set up sensible defaults.
-if "juliacall" in sys.modules:
-    warnings.warn(
-        "juliacall module already imported. "
-        "Make sure that you have set the environment variable `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` to avoid segfaults. "
-        "Also note that PySR will not be able to configure `PYTHON_JULIACALL_THREADS` or `PYTHON_JULIACALL_OPTLEVEL` for you."
-    )
+    jl: Any
+    SymbolicRegression: Any
+    Pkg: Any
+    jl_version: tuple[int, int, int]
+elif JULIA_DISABLED:
+
+    class _JuliaUnavailable:
+        def __getattr__(self, name):
+            require_julia()
+
+        def __call__(self, *args, **kwargs):
+            require_julia()
+
+    class AnyValue:
+        def __new__(cls, *args, **kwargs):
+            require_julia()
+
+    class VectorValue(AnyValue):
+        pass
+
+    class JuliaError(Exception):
+        pass
+
+    jl = _JuliaUnavailable()
+    SymbolicRegression = _JuliaUnavailable()
+    Pkg = _JuliaUnavailable()
 else:
-    # Required to avoid segfaults (https://juliapy.github.io/PythonCall.jl/dev/faq/)
-    if os.environ.get("PYTHON_JULIACALL_HANDLE_SIGNALS", "yes") != "yes":
+    autoload_extensions = os.environ.get("PYSR_AUTOLOAD_EXTENSIONS")
+    if autoload_extensions is not None:
         warnings.warn(
-            "PYTHON_JULIACALL_HANDLE_SIGNALS environment variable is set to something other than 'yes' or ''. "
-            + "You will experience segfaults if running with multithreading."
+            "PYSR_AUTOLOAD_EXTENSIONS is deprecated and will be removed in a future release. "
+            "Set PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION instead.",
+            FutureWarning,
+        )
+        # Only fill the gap; an explicitly set juliacall variable takes precedence.
+        os.environ.setdefault(
+            "PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION", autoload_extensions
         )
 
-    if os.environ.get("PYTHON_JULIACALL_THREADS", "auto") != "auto":
+    pysr_set_gc_threads = False
+
+    # Check if JuliaCall is already loaded, and if so, warn the user
+    # about the relevant environment variables. If not loaded,
+    # set up sensible defaults.
+    if "juliacall" in sys.modules:
         warnings.warn(
-            "PYTHON_JULIACALL_THREADS environment variable is set to something other than 'auto', "
-            "so PySR was not able to set it. You may wish to set it to `'auto'` for full use "
-            "of your CPU."
+            "juliacall module already imported. "
+            "Make sure that you have set the environment variable `PYTHON_JULIACALL_HANDLE_SIGNALS=yes` to avoid segfaults. "
+            "Also note that PySR will not be able to configure `PYTHON_JULIACALL_THREADS` or `PYTHON_JULIACALL_OPTLEVEL` for you."
         )
+    else:
+        # Required to avoid segfaults (https://juliapy.github.io/PythonCall.jl/dev/faq/)
+        if os.environ.get("PYTHON_JULIACALL_HANDLE_SIGNALS", "yes") != "yes":
+            warnings.warn(
+                "PYTHON_JULIACALL_HANDLE_SIGNALS environment variable is set to something other than 'yes' or ''. "
+                + "You will experience segfaults if running with multithreading."
+            )
 
-    pysr_set_gc_threads = "JULIA_NUM_GC_THREADS" not in os.environ
+        if os.environ.get("PYTHON_JULIACALL_THREADS", "auto") != "auto":
+            warnings.warn(
+                "PYTHON_JULIACALL_THREADS environment variable is set to something other than 'auto', "
+                "so PySR was not able to set it. You may wish to set it to `'auto'` for full use "
+                "of your CPU."
+            )
 
-    # TODO: Remove these when juliapkg lets you specify this
-    for k, default in (
-        ("PYTHON_JULIACALL_HANDLE_SIGNALS", "yes"),
-        ("PYTHON_JULIACALL_THREADS", "auto"),
-        ("PYTHON_JULIACALL_OPTLEVEL", "3"),
-        # Don't hijack `%%julia` magics in notebooks unless asked;
-        # opt back in with PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=yes
-        # or `%load_ext juliacall`.
-        ("PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION", "no"),
-        # Concurrent GC sweeping (`N,1`): the search is GC-bound at high
-        # thread counts, and this was neutral at 8 threads, 8% faster at 32,
-        # and 25% faster at 96.
-        ("JULIA_NUM_GC_THREADS", _default_gc_threads()),
-    ):
-        os.environ[k] = os.environ.get(k, default)
+        pysr_set_gc_threads = "JULIA_NUM_GC_THREADS" not in os.environ
 
+        # TODO: Remove these when juliapkg lets you specify this
+        for k, default in (
+            ("PYTHON_JULIACALL_HANDLE_SIGNALS", "yes"),
+            ("PYTHON_JULIACALL_THREADS", "auto"),
+            ("PYTHON_JULIACALL_OPTLEVEL", "3"),
+            # Don't hijack `%%julia` magics in notebooks unless asked;
+            # opt back in with PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION=yes
+            # or `%load_ext juliacall`.
+            ("PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION", "no"),
+            # Concurrent GC sweeping (`N,1`): the search is GC-bound at high
+            # thread counts, and this was neutral at 8 threads, 8% faster at 32,
+            # and 25% faster at 96.
+            ("JULIA_NUM_GC_THREADS", _default_gc_threads()),
+        ):
+            os.environ[k] = os.environ.get(k, default)
 
-def _import_juliacall():
-    import juliacall  # type: ignore
+    def _import_juliacall():
+        import juliacall  # type: ignore
 
+    try_with_registry_fallback(_import_juliacall)
 
-try_with_registry_fallback(_import_juliacall)
+    if pysr_set_gc_threads:
+        # Julia has read this setting. Let child workers use Julia's own default.
+        del os.environ["JULIA_NUM_GC_THREADS"]
 
-if pysr_set_gc_threads:
-    # Julia has read this setting. Let child workers use Julia's own default.
-    del os.environ["JULIA_NUM_GC_THREADS"]
+    from juliacall import AnyValue  # type: ignore
+    from juliacall import JuliaError  # type: ignore
+    from juliacall import VectorValue  # type: ignore
+    from juliacall import Main as jl  # type: ignore
 
+    jl = cast(ModuleType, jl)
 
-from juliacall import AnyValue  # type: ignore
-from juliacall import VectorValue  # type: ignore
-from juliacall import Main as jl  # type: ignore
+    jl_version = (jl.VERSION.major, jl.VERSION.minor, jl.VERSION.patch)
 
-jl = cast(ModuleType, jl)
+    jl.seval("using SymbolicRegression")
+    SymbolicRegression = jl.SymbolicRegression
 
+    # Expose `D` operator:
+    jl.seval("using SymbolicRegression: D")
 
-jl_version = (jl.VERSION.major, jl.VERSION.minor, jl.VERSION.patch)
+    # Expose other operators:
+    jl.seval("using SymbolicRegression: less, greater_equal, less_equal")
 
-jl.seval("using SymbolicRegression")
-SymbolicRegression = jl.SymbolicRegression
-
-# Expose `D` operator:
-jl.seval("using SymbolicRegression: D")
-
-# Expose other operators:
-jl.seval("using SymbolicRegression: less, greater_equal, less_equal")
-
-jl.seval("using Pkg: Pkg")
-Pkg = jl.Pkg
+    jl.seval("using Pkg: Pkg")
+    Pkg = jl.Pkg

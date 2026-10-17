@@ -14,10 +14,14 @@ if os.environ.get("PYSR_USE_BEARTYPE", "0") == "1":
 
     beartype_this_package()
 
+from ._backend import JULIA_DISABLED as _JULIA_DISABLED
+from ._backend import require_julia as _require_julia
+
 # This must be imported as early as possible to prevent
 # library linking issues caused by numpy/pytorch/etc. importing
 # old libraries:
-from .julia_import import jl, SymbolicRegression  # isort:skip
+if not _JULIA_DISABLED:
+    from .julia_import import jl, SymbolicRegression  # isort:skip
 
 # Get the version using importlib.metadata (Python >= 3.8 is required):
 from importlib.metadata import PackageNotFoundError, version
@@ -65,6 +69,13 @@ except PackageNotFoundError:  # pragma: no cover
     # package is not installed
     __version__ = "unknown"
 
+
+def __getattr__(name: str):
+    if _JULIA_DISABLED and name in {"jl", "SymbolicRegression"}:
+        _require_julia()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
     "jl",
     "SymbolicRegression",
@@ -106,3 +117,6 @@ __all__ = [
     "pysr",
     "__version__",
 ]
+
+if _JULIA_DISABLED:
+    __all__ = [name for name in __all__ if name not in {"jl", "SymbolicRegression"}]

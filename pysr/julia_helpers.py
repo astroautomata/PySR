@@ -3,21 +3,27 @@
 from typing import Any, Callable, cast, overload
 
 import numpy as np
-from juliacall import convert as jl_convert  # type: ignore
 from numpy.typing import NDArray
 
+from ._backend import JULIA_DISABLED
 from .deprecated import init_julia, install
 from .julia_import import AnyValue, jl
 
-jl_convert = cast(Callable[[Any, Any], Any], jl_convert)
+if JULIA_DISABLED:
+    Serialization = PythonCall = jl
+    jl_convert = jl
+else:
+    from juliacall import convert as jl_convert  # type: ignore
 
-jl.seval("using Serialization: Serialization")
-jl.seval("using PythonCall: PythonCall")
+    jl_convert = cast(Callable[[Any, Any], Any], jl_convert)
 
-Serialization = jl.Serialization
-PythonCall = jl.PythonCall
+    jl.seval("using Serialization: Serialization")
+    jl.seval("using PythonCall: PythonCall")
 
-jl.seval("using SymbolicRegression: plus, sub, mult, div, pow")
+    Serialization = jl.Serialization
+    PythonCall = jl.PythonCall
+
+    jl.seval("using SymbolicRegression: plus, sub, mult, div, pow")
 
 
 def _escape_filename(filename):

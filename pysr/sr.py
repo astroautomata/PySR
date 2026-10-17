@@ -27,6 +27,7 @@ from sklearn.utils import check_array, check_consistent_length, check_random_sta
 from sklearn.utils.validation import _check_feature_names_in  # type: ignore
 from sklearn.utils.validation import check_is_fitted
 
+from ._backend import DEFAULT_BACKEND, require_julia
 from .denoising import denoise, multi_denoise
 from .deprecated import DEPRECATED_KWARGS
 from .export_latex import (
@@ -409,6 +410,7 @@ VALID_OPTIMIZER_ALGORITHMS = ["BFGS", "NelderMead"]
 
 _WARM_START_MUTABLE_STATE = (
     "equations_",
+    "rust_state_stream_",
     "equation_file_contents_",
     "julia_state_stream_",
     "julia_options_stream_",
@@ -427,7 +429,10 @@ def _rollback_failed_warm_start(
     @wraps(fit_method)
     def wrapped(self, *args, **kwargs):
         previous_state = None
-        if self.warm_start and getattr(self, "julia_state_stream_", None) is not None:
+        if self.warm_start and (
+            getattr(self, "julia_state_stream_", None) is not None
+            or getattr(self, "rust_state_stream_", None) is not None
+        ):
             previous_state = self.__dict__.copy()
             for name in _WARM_START_MUTABLE_STATE:
                 if name in previous_state:
@@ -476,6 +481,10 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
     Parameters
     ----------
+    backend : Literal["julia", "rust"]
+        Search engine. Set `PYSR_BACKEND=rust` before importing pysr to skip
+        Julia startup and make `"rust"` the default. Selecting `backend="rust"`
+        alone retains the normal Julia import behavior. Default is `"julia"`.
     model_selection : str
         Model selection criterion when selecting a final expression from
         the list of best expression at each complexity.
@@ -1093,6 +1102,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         self,
         model_selection: Literal["best", "accuracy", "score"] = "best",
         *,
+        backend: Literal["julia", "rust"] = DEFAULT_BACKEND,
         binary_operators: list[str] | None = None,
         unary_operators: list[str] | None = None,
         operators: dict[int, list[str]] | None = None,
@@ -1217,6 +1227,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         # Hyperparameters
         # - Model search parameters
         self.model_selection = model_selection
+        self.backend = backend
         self.binary_operators = binary_operators
         self.unary_operators = unary_operators
         self.operators = operators
@@ -1489,8 +1500,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                     "TypeSpec models require the original `checkpoint.pkl`; "
                     "CSV-only reconstruction is not supported."
                 )
-            csv_filename = Path(run_directory) / "hall_of_fame.csv"
-            csv_filename_bak = Path(run_directory) / "hall_of_fame.csv.bak"
+            csv_name = "hall_of_fame_output1.csv" if nout > 1 else "hall_of_fame.csv"
+            csv_filename = Path(run_directory) / csv_name
+            csv_filename_bak = Path(str(csv_filename) + ".bak")
             if not csv_filename.exists() and not csv_filename_bak.exists():
                 raise FileNotFoundError(
                     f"Hall of fame file `{csv_filename}` or `{csv_filename_bak}` does not exist. "
@@ -1651,6 +1663,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
     def __setstate__(self, state: dict[str, Any]) -> None:
         schema_version = state.pop("_checkpoint_schema_version", None)
         state.setdefault("type_spec", None)
+        state.setdefault("backend", "julia")
         if schema_version != _CHECKPOINT_SCHEMA_VERSION:
             raise ValueError(
                 "Unsupported PySR checkpoint schema: "
@@ -1699,6 +1712,12 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         return self.equations_
 
     @property
+    def rust_state_(self):
+        """The deserialized Rust search state."""
+        stream = getattr(self, "rust_state_stream_", None)
+        return None if stream is None else pkl.loads(stream)
+
+    @property
     def julia_options_(self):
         """The deserialized julia options."""
         stream = getattr(self, "julia_options_stream_", None)
@@ -1743,6 +1762,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
     def _has_julia_backed_equations(self) -> bool:
         """Whether `equations_` holds live Julia objects that cannot be pickled."""
+        if self.backend == "rust":
+            return False
         return self._has_fitted_type_spec() or isinstance(
             self.expression_spec_, TemplateExpressionSpec
         )
@@ -1825,6 +1846,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
     def _setup_equation_file(self):
         """Set the pathname of the output directory."""
+        if self.backend == "rust":
+            from .rust_backend import generate_run_id
+
         if self.warm_start and (
             hasattr(self, "run_id_") or hasattr(self, "output_directory_")
         ):
@@ -1846,7 +1870,13 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                     else self.output_directory
                 )
             self.run_id_ = (
-                cast(str, SymbolicRegression.SearchUtilsModule.generate_run_id())
+                (
+                    generate_run_id()
+                    if self.backend == "rust"
+                    else cast(
+                        str, SymbolicRegression.SearchUtilsModule.generate_run_id()
+                    )
+                )
                 if self.run_id is None
                 else self.run_id
             )
@@ -2358,6 +2388,26 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         ImportError
             Raised when the julia backend fails to import a package.
         """
+        if self.deterministic and parallelism != "serial":
+            raise ValueError(
+                "To ensure deterministic searches, you must set `parallelism='serial'`. "
+                "Additionally, make sure to set `random_state` to a seed."
+            )
+        if self.random_state is not None and (
+            parallelism != "serial" or not self.deterministic
+        ):
+            warnings.warn(
+                "Note: Setting `random_state` without also setting `deterministic=True` "
+                "and `parallelism='serial'` will result in non-deterministic searches."
+            )
+
+        if self.backend == "rust":
+            from .rust_backend import run_rust_search
+
+            return run_rust_search(
+                self, X, y, runtime_params, weights, seed, parallelism
+            )
+
         # Need to be global as we don't want to recreate/reinstate julia for
         # every new instance of PySRRegressor
         global ALREADY_RAN
@@ -2401,19 +2451,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         # Start julia backend processes
         if not ALREADY_RAN and runtime_params.update_verbosity != 0:
             pysr_logger.info("Compiling Julia backend...")
-
-        if self.deterministic and parallelism != "serial":
-            raise ValueError(
-                "To ensure deterministic searches, you must set `parallelism='serial'`. "
-                "Additionally, make sure to set `random_state` to a seed."
-            )
-        if self.random_state is not None and (
-            parallelism != "serial" or not self.deterministic
-        ):
-            warnings.warn(
-                "Note: Setting `random_state` without also setting `deterministic=True` "
-                "and `parallelism='serial'` will result in non-deterministic searches."
-            )
 
         if cluster_manager is not None:
             if parallelism != "multiprocessing":
@@ -2856,6 +2893,15 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         self : object
             Fitted estimator.
         """
+        if self.backend == "rust":
+            from .rust_backend import validate_rust_params
+
+            validate_rust_params(self)
+        elif self.backend == "julia":
+            require_julia()
+        else:
+            raise ValueError("`backend` must be 'julia' or 'rust'.")
+
         # Init attributes that are not specified in BaseEstimator
         if self.warm_start and hasattr(self, "julia_state_stream_"):
             pass
@@ -2872,6 +2918,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             self.selection_mask_ = None
             self.julia_state_stream_ = None
             self.julia_options_stream_ = None
+            self.rust_state_stream_ = None
             self.complexity_of_variables_ = None
             self.X_units_ = None
             self.y_units_ = None
@@ -3312,6 +3359,12 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             search_output = jl_deserialize(self.julia_state_stream_)
 
         def create_exports(output: pd.DataFrame, output_index: int):
+            if self.backend == "rust" and isinstance(
+                self.expression_spec_, TemplateExpressionSpec
+            ):
+                from .rust_backend import create_rust_template_exports
+
+                return create_rust_template_exports(self, output, output_index)
             if type_spec_runtime is not None:
                 return create_type_spec_exports(
                     type_spec_runtime,

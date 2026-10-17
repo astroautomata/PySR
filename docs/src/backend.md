@@ -1,13 +1,40 @@
 # Customization
 
+## Rust backend
+
+Install the optional Rust backend with:
+
+```bash
+pip install "pysr[rust]"
+```
+
+Use `PySRRegressor(backend="rust")` to select Rust for a model. To skip
+Julia startup and make Rust the default, set `PYSR_BACKEND=rust` before
+importing PySR:
+
+```bash
+export PYSR_BACKEND=rust
+```
+
+Selecting `backend="rust"` after a normal import does not skip Julia
+startup. To use the Julia backend, `jl`, or Julia-only objects, unset
+`PYSR_BACKEND` before starting a new Python process. See the
+[supported options and limitations](options.md#rust-options).
+
+## Julia backend customization
+
 If you have explored the [options](options.md) and [PySRRegressor reference](api.md), and still haven't figured out how to specify a constraint or objective required for your problem, you might consider editing the backend.
-The backend of PySR is written as a pure Julia package under the name [SymbolicRegression.jl](https://github.com/astroautomata/SymbolicRegression.jl).
+The default Julia backend is the pure Julia package [SymbolicRegression.jl](https://github.com/astroautomata/SymbolicRegression.jl).
 This package is accessed with [`juliacall`](https://github.com/JuliaPy/PythonCall.jl), which allows us to transfer objects back and forth between the Python and Julia runtimes.
+
+The instructions below apply to the Julia backend. For the optional Rust
+backend, see [backend selection and supported options](options.md#backend).
+Unset `PYSR_BACKEND` before importing PySR to use Julia-only objects.
 
 PySR gives you access to everything in SymbolicRegression.jl, but there are some specific use-cases which require modifications to the backend itself.
 Generally you can do this as follows:
 
-## 1. Check out the source code
+### 1. Check out the source code
 
 Clone a copy of the backend as well as PySR:
 
@@ -27,7 +54,7 @@ cd ../SymbolicRegression.jl
 git checkout <backend_version>
 ```
 
-## 2. Edit the source to your requirements
+### 2. Edit the source to your requirements
 
 The main search code can be found in `src/SymbolicRegression.jl`.
 
@@ -42,7 +69,7 @@ Here are some tips:
         - Note that all expressions, *even intermediate expressions*, must comply with constraints. Therefore, make sure that evolution can still reach your desired expression (with one mutation at a time), before setting a hard constraint. In other cases you might want to instead put in the loss function.
     - [`src/Options.jl`](https://github.com/astroautomata/SymbolicRegression.jl/blob/master/src/Options.jl), as well as the struct definition in [`src/OptionsStruct.jl`](https://github.com/astroautomata/SymbolicRegression.jl/blob/master/src/OptionsStruct.jl). This file specifies all the options used in the search: an instance of `Options` is typically available throughout every function in `SymbolicRegression.jl`. If you add new functionality to the backend, and wish to make it parameterizable (including from PySR), you should specify it in the options.
 
-## 3. Let PySR use the modified backend
+### 3. Let PySR use the modified backend
 
 Once you have made your changes, you should edit the `pysr/juliapkg.json` file
 in the PySR repository to point to this local copy.
@@ -68,7 +95,7 @@ pip install .
 
 For more information on `juliapkg.json`, see [`pyjuliapkg`](https://github.com/JuliaPy/pyjuliapkg).
 
-## Additional notes
+### Additional notes
 
 If you get comfortable enough with the backend, you might consider using the Julia package directly: the API is given on the [SymbolicRegression.jl documentation](https://julia.pysr.ai/dev/).
 

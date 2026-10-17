@@ -48,7 +48,9 @@ pip install pysr
 conda install -c conda-forge pysr
 ```
 
-Julia dependencies will be installed at first import.
+Julia is the default backend, and its dependencies will be installed at first import.
+An optional Rust backend is also available. See the [backend documentation](https://pysr.ai/backend#rust-backend)
+for installation, backend selection, and supported options.
 
 ### AI Agent Skill
 

@@ -6,17 +6,20 @@ import warnings
 
 import click
 
-from ..test import (
-    get_runtests_cli,
-    runtests,
-    runtests_autodiff,
-    runtests_dev,
-    runtests_interrupt,
-    runtests_jax,
-    runtests_slurm,
-    runtests_startup,
-    runtests_torch,
-)
+from .._backend import JULIA_DISABLED, require_julia
+
+if not JULIA_DISABLED:
+    from ..test import (
+        get_runtests_cli,
+        runtests,
+        runtests_autodiff,
+        runtests_dev,
+        runtests_interrupt,
+        runtests_jax,
+        runtests_slurm,
+        runtests_startup,
+        runtests_torch,
+    )
 
 
 @click.group("pysr")
@@ -80,6 +83,8 @@ def _tests(tests, expressions):
     Choose from main, jax, torch, autodiff, cli, dev, startup, slurm, and interrupt.
     You can give multiple tests, separated by commas.
     """
+    require_julia()
+
     try:
         shard_count = int(os.environ.get("PYSR_TEST_SHARD_COUNT", "1"))
         shard_index = int(os.environ.get("PYSR_TEST_SHARD_INDEX", "0"))

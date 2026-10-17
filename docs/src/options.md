@@ -3,6 +3,7 @@
 Some configurable features and options in `PySR` which you
 may find useful include:
 
+- [Backend](#backend)
 - [Selecting from the accuracy-complexity curve](#model-selection)
 - [Operators](#operators)
 - [Number of outer search iterations](#iterations)
@@ -31,6 +32,43 @@ It will also dump to a csv
 at the end of every iteration,
 which is `.hall_of_fame_{date_time}.csv` by default.
 It also prints the equations to stdout.
+
+## Backend
+
+`PySRRegressor(backend="julia")` uses SymbolicRegression.jl and is the
+default when `PYSR_BACKEND` is unset. `PySRRegressor(backend="rust")` uses
+the optional `symbolic-regression-rs` package. Install it with
+`pip install "pysr[rust]"`; see the [backend documentation](backend.md#rust-backend).
+
+Set `PYSR_BACKEND=rust` before importing PySR to skip Julia startup
+completely and make Rust the default for new models. Selecting
+`backend="rust"` after a normal import also works, but Julia has already
+started. To use the Julia backend, `jl`, or Julia-only objects, unset
+`PYSR_BACKEND` before starting a new Python process.
+
+### Rust options
+
+Use the PySR parameter names when configuring a Rust model, and pass
+data weights through `fit(..., weights=...)`.
+Use `TemplateExpressionSpec(combine=..., expressions=...,
+variable_names=..., parameters=...)` for templates. Template prediction and
+`lambda_format` use the Rust search state; template exports to SymPy,
+PyTorch, JAX, and LaTeX are unsupported.
+
+The Rust backend does not support the following options and features:
+
+- `loss_function`, `loss_function_expression`, and `complexity_mapping`.
+- `turbo`, `bumper`, `autodiff_backend`, and `logger_spec`.
+- `cluster_manager`, `procs`, `heap_size_hint_in_bytes`,
+  `worker_timeout`, and `worker_imports`.
+- `fast_cycle`, `type_spec`, and `update=True`.
+- Custom Julia mutations or plugins.
+- Complex-valued data.
+- `precision=16` and `parallelism="multiprocessing"`.
+- Expression specifications other than `ExpressionSpec` and the current
+  `TemplateExpressionSpec` form described above.
+
+Use the Julia backend when your search requires these features.
 
 ## Model selection
 

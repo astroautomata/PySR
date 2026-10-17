@@ -804,6 +804,25 @@ class TestPipeline(unittest.TestCase):
             y_test = model.predict(X, 2)
             np.testing.assert_allclose(y_truth, y_test)
 
+    def test_load_csv_only_multi_output(self):
+        X = self.X[:, :2]
+        for from_backup in [False, True]:
+            with tempfile.TemporaryDirectory() as directory:
+                for output, equation in enumerate(["x0", "x1"], start=1):
+                    filename = f"hall_of_fame_output{output}.csv"
+                    if from_backup:
+                        filename += ".bak"
+                    pd.DataFrame(
+                        {"Complexity": [1], "Loss": [0.0], "Equation": [equation]}
+                    ).to_csv(Path(directory) / filename, index=False)
+                model = PySRRegressor.from_file(
+                    run_directory=directory,
+                    binary_operators=["+"],
+                    n_features_in=2,
+                    nout=2,
+                )
+                np.testing.assert_array_equal(model.predict(X), X)
+
     def test_load_model_simple(self):
         # Test that we can simply load a model from its equation file.
         y = self.X[:, [0, 1]] ** 2
