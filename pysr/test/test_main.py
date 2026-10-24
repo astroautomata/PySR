@@ -40,6 +40,7 @@ from pysr import (
 from pysr.export_latex import sympy2latex
 from pysr.export_sympy import pysr2sympy
 from pysr.feature_selection import _handle_feature_selection, run_feature_selection
+from pysr.julia_extensions import _loaded_packages_with_changed_versions
 from pysr.julia_helpers import _load_cluster_manager, init_julia
 from pysr.sr import (
     _check_assertions,
@@ -2383,6 +2384,48 @@ class TestMiscellaneous(unittest.TestCase):
         with mock.patch.dict(os.environ, {"SLURM_JOB_ID": "1", "SLURM_NTASKS": "2"}):
             with self.assertRaisesRegex(JuliaError, "allocation has 2 tasks"):
                 _load_cluster_manager("slurm")(1)
+
+    def test_detects_loaded_package_whose_environment_version_changed(self):
+        # Like a Pkg downgrade: the environment switches to another copy of a
+        # package the session already loaded.
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            def write_package(version):
+                package_dir = Path(tmpdir) / f"StaleProbe-{version}"
+                (package_dir / "src").mkdir(parents=True)
+                (package_dir / "Project.toml").write_text(
+                    'name = "StaleProbe"\n'
+                    'uuid = "6237ea7f-c583-4a58-b324-7730bf35ba0f"\n'
+                    f'version = "{version}"\n',
+                    encoding="utf-8",
+                )
+                (package_dir / "src" / "StaleProbe.jl").write_text(
+                    "module StaleProbe end\n", encoding="utf-8"
+                )
+                return json.dumps(package_dir.as_posix())
+
+            original_project = jl.seval("Base.active_project()")
+            try:
+                env = json.dumps((Path(tmpdir) / "env").as_posix())
+                jl.seval(f"Pkg.activate({env}; io=devnull)")
+                jl.seval(f"Pkg.develop(path={write_package('0.1.0')}; io=devnull)")
+                jl.seval("using StaleProbe")
+                self.assertFalse(
+                    any(
+                        entry.startswith("StaleProbe ")
+                        for entry in _loaded_packages_with_changed_versions()
+                    )
+                )
+
+                jl.seval(f"Pkg.develop(path={write_package('0.2.0')}; io=devnull)")
+                self.assertIn(
+                    "StaleProbe 0.1.0 -> 0.2.0",
+                    _loaded_packages_with_changed_versions(),
+                )
+            finally:
+                jl.seval(
+                    f"Pkg.activate({json.dumps(Path(original_project).as_posix())}; io=devnull)"
+                )
 
     def test_batching_auto(self):
         """Test that batching configuration is passed to SymbolicRegression.jl."""

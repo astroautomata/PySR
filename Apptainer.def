@@ -44,6 +44,7 @@ Stage: runtime
 	export PYTHON_JULIAPKG_PROJECT="/pysr/env"
 
 	# Pull in all the Julia dependencies
+	python3 -c 'from pysr.julia_extensions import install_all_packages; install_all_packages()'
 	python3 -c 'import pysr; pysr.load_all_packages()'
 
 %test
