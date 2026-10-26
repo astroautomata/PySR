@@ -1,10 +1,10 @@
 # Build an Apptainer SIF file containing a working copy of PySR and its prereqs
 Bootstrap: docker
-From: julia:1.11.1-bullseye
+From: julia:1.11.6-bullseye
 Stage: jl
 
 Bootstrap: docker
-From: python:3.12.6-bullseye
+From: python:3.12.11-bullseye
 Stage: runtime
 
 %environment
