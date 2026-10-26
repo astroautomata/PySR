@@ -45,5 +45,7 @@ jobs:
       - name: "Assert Julia version"
         if: ${{ matrix.julia-version != '1'}}
         run: python3 -c "from pysr import jl; assert jl.VERSION.major == jl.seval('v\"${{ matrix.julia-version }}\"').major; assert jl.VERSION.minor == jl.seval('v\"${{ matrix.julia-version }}\"').minor"
+      - name: "Install Julia extensions"
+        run: python -c 'from pysr.julia_extensions import install_all_packages; install_all_packages()'
       - name: "Run tests"
         run: python -m pysr test main,cli,startup
