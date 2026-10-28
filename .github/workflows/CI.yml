@@ -58,7 +58,6 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.config.python-version }}
-          cache: pip
       - name: "Install PySR"
         run: |
             python -m pip install --upgrade pip
@@ -189,7 +188,6 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
       - name: "Install PySR and all dependencies"
         run: |
             python -m pip install --upgrade pip
@@ -220,7 +218,6 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
       - name: "Install PySR and all dependencies"
         run: |
             python -m pip install --upgrade pip
@@ -252,7 +249,6 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
       - name: "Install PySR and all dependencies"
         run: |
             python -m pip install --upgrade pip
@@ -276,7 +272,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.julia-version }}
