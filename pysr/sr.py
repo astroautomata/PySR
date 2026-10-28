@@ -2111,6 +2111,16 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                     "Using DataFrame column names instead."
                 )
 
+            # scikit-learn ignores column names that are str subclasses
+            # (e.g., StrEnum members), so convert them to plain strings.
+            # Only when every name is a string: next to a non-string name,
+            # a plain str name makes scikit-learn raise a TypeError.
+            if all(isinstance(c, str) for c in X.columns) and any(
+                type(c) is not str for c in X.columns
+            ):
+                X = X.copy(deep=False)
+                X.columns = [str.__str__(c) for c in X.columns]
+
             cols_str = X.columns.astype(str)
             if cols_str.str.contains(" ").any():
                 X = X.copy(deep=False)
