@@ -9,7 +9,7 @@ repos:
       - id: check-added-large-files
   # General formatting
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 26.3.0
+    rev: 26.10.1
     hooks:
       - id: black
       - id: black-jupyter
@@ -22,12 +22,12 @@ repos:
         exclude: pysr/test/test_nb.ipynb
   # Unused imports
   - repo: https://github.com/hadialqattan/pycln
-    rev: "v2.6.0"
+    rev: "v2.6.1"
     hooks:
       - id: pycln
   # Sorted imports
   - repo: https://github.com/PyCQA/isort
-    rev: "8.0.1"
+    rev: "10.0.0b2"
     hooks:
       - id: isort
         additional_dependencies: [toml]
