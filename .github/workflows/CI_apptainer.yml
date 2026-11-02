@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: eWaterCycle/setup-apptainer@v2
+      - uses: eWaterCycle/setup-apptainer@v3
         with:
             apptainer-version: 1.3.0
       - name: Build apptainer
