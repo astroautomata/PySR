@@ -79,6 +79,7 @@ FROM pysr-runtime AS pysr
 RUN pip install --no-cache-dir ipython matplotlib
 
 # Install Julia pre-requisites:
-RUN python3 -c 'import pysr; pysr.load_all_packages()'
+RUN python3 -c 'from pysr.julia_extensions import install_all_packages; install_all_packages()' \
+    && python3 -c 'import pysr; pysr.load_all_packages()'
 
 CMD ["ipython"]

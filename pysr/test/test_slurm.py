@@ -158,6 +158,8 @@ class TestSlurm(unittest.TestCase):
                     "#SBATCH --time=40:00",
                     "set -euo pipefail",
                     "export JULIA_DEBUG=SlurmClusterManager",
+                    "python3 -c 'from pysr.julia_extensions import install_packages; "
+                    'install_packages(["SlurmClusterManager"])\'',
                     "python3 - <<'PY'",
                     "import numpy as np",
                     "from pysr import PySRRegressor",

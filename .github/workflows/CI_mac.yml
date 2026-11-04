@@ -55,6 +55,8 @@ jobs:
             python -m pip install --upgrade pip
             pip install '.[dev]'
             python -c 'import pysr'
+      - name: "Install Julia extensions"
+        run: python -c 'from pysr.julia_extensions import install_all_packages; install_all_packages()'
       - name: "Run tests"
         run: |
             python -m pysr test main,cli,startup,interrupt
