@@ -2982,9 +2982,10 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
         Parameters
         ----------
-        checkpoint_file : str or Path
-            Path to checkpoint hall of fame file to be loaded.
-            The default will use the set `equation_file_`.
+        run_directory : str or Path
+            The directory containing outputs from a previous run.
+            This is of the form `[output_directory]/[run_id]`.
+            The default will use the directory from the last fit.
         """
         if run_directory is not None:
             self.output_directory_ = str(Path(run_directory).parent)
