@@ -63,7 +63,7 @@ Set guesses on the estimator, never `.fit()`. Continue with `model.set_params(gu
 
 ## Recommended workflow
 
-1. **Subsample:** usually 1,000-5,000 representative rows suffice even from millions. Many features, heavy noise, or rare regimes benefit from more. PySR 2.0 automatically batches larger datasets; `batching=False` forces full-data search evaluations. Batching still reevaluates hall-of-fame candidates fully. Fewer rows proportionally accelerate search.
+1. **Subsample:** usually 1,000-5,000 representative rows suffice even from millions. Many features, heavy noise, or rare regimes benefit from more. PySR automatically batches larger datasets; `batching=False` forces full-data search evaluations. Batching still reevaluates hall-of-fame candidates fully. Fewer rows proportionally accelerate search.
 2. **Minimize operators:** select domain-plausible operators. Redundant `pow`/`square`/`cube` or `-`/`neg` enlarge search. Polynomials: `["+", "-", "*"]`, omit `/` and `^`.
 3. **Use defaults:** populations, parsimony, mutation weights, and `ncycles_per_iteration` were tuned by large-scale search in 2024-2025. Avoid older forum/paper recipes.
 4. **Debug briefly:** check operators, loss, and sensible equations in a few-minute run before one long search.
@@ -147,7 +147,7 @@ model = PySRRegressor(
 ```
 `parameters={"p": 3, "q": 3}` declares vector lengths; guesses initialize vectors and `f`. Declare disjoint component/parameter names and every guess key; supply every component formula. Match parameter lengths using Python lists/1D NumPy arrays; omit vectors for normal initialization. Values remain learnable, are copied without modifying caller arrays, and use model precision. Parameter guesses require SymbolicRegression.jl ≥2.3.0. `#1`/`#2` denote passed arguments, here `x1`/`x2`; with `combine="f(x, p[1])"`, `#2` denotes `p[1]`.
 `combine` accepts arbitrary Julia/multiple statements: reuse `fx = f(x); fx + fx^2`, change arguments `f(x1) - f(x2)`, differentiate `df = D(f, 1); df(x)`. Vector/multi-output problems: append extra targets to X, return per-row residuals, fit dummy y with `elementwise_loss="(p, t) -> p"` so output itself is loss.
-PySR 2.0 caveats: arbitrary Julia prevents `.sympy()`, `.latex()`, `.jax()`, `.pytorch()` export; manually reassemble component strings from `model.equations_`. Arguments print positionally as `#1, #2` because components may receive different inputs. Combine values are `ValidVector`s (`.x` data, `.valid` flag); arithmetic propagates validity, custom manipulation must unwrap/rebuild `ValidVector(raw, valid)`. Use Float32-safe `0.5f0` or explicit conversion; bare Float64 `0.5` risks type instability. Custom objectives require `loss_function_expression`. Learnable parameters use `TemplateExpressionSpec(parameters=...)`; pre-1.4 `function_symbols`/lambda-style combine API is removed in 2.0.
+Template caveats: arbitrary Julia prevents `.sympy()`, `.latex()`, `.jax()`, `.pytorch()` export; manually reassemble component strings from `model.equations_`. Arguments print positionally as `#1, #2` because components may receive different inputs. Combine values are `ValidVector`s (`.x` data, `.valid` flag); arithmetic propagates validity, custom manipulation must unwrap/rebuild `ValidVector(raw, valid)`. Use Float32-safe `0.5f0` or explicit conversion; bare Float64 `0.5` risks type instability. Custom objectives require `loss_function_expression`. Learnable parameters use `TemplateExpressionSpec(parameters=...)`; pre-1.4 `function_symbols`/lambda-style combine API is removed in 2.0.
 
 ## Custom value types: `TypeSpec`
 `TypeSpec` generates Julia structs for nodes, independently of `expression_spec`, including fixed structures. Supply fields in declaration order: `triple`, then `code`; the nested tuple remains one field. Keep X 2D/y 1D and assign object cells individually to prevent extra NumPy axes:
@@ -352,7 +352,7 @@ Use native SymbolicRegression.jl, `SRRegressor` via MLJ, for Julia pipelines/dee
 
 ## Version notes
 
-Target: PySR 2.0.0, SymbolicRegression.jl 2.x. Relative to 1.5.x: n-ary `operators={1: ["sin"], 2: ["+", "*"], 3: ["clamp"]}`, `guesses`, `TypeSpec`, automatic batching, autodiff plugins. Defaults: `batching="auto"`, `batch_size=None`, `annealing=True`, `crossover_probability=0.2`, new mutation mix; use 2.0 defaults rather than 1.x tuning.
+Target: PySR 2.x, SymbolicRegression.jl 2.x. Relative to 1.x: n-ary `operators={1: ["sin"], 2: ["+", "*"], 3: ["clamp"]}`, `guesses`, `TypeSpec`, automatic batching, autodiff plugins. Defaults: `batching="auto"`, `batch_size=None`, `annealing=True`, `crossover_probability=0.2`, new mutation mix; use 2.x defaults rather than 1.x tuning.
 
 | Deprecated | Current |
 |---|---|
