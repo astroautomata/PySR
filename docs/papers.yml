@@ -2,6 +2,18 @@
 # information to generate the "Research Showcase"
 
 papers:
+  - title: "Parametric modeling of cardiac radar signatures via symbolic regression"
+    authors:
+      - Kristina Hess (1)
+      - Bartosz Tegowski (1)
+      - Frederik Vollmer (1)
+      - Alexander Koelpin (1)
+    affiliations:
+      1: Institute of High-Frequency Technology, Hamburg University of Technology, Germany
+    link: https://doi.org/10.23919/EuRAD69232.2026.11747165
+    abstract: "Due to its contactless nature, vital-sign monitoring using radar has gained increasing attention. The complex relationship between cardiac motion and radar signals makes signal analysis and the development of reliable heartbeat detection algorithms challenging. This work presents a symbolic regression approach for deriving analytical expressions of the phase and magnitude of radar heartbeat signatures, trained on measurements from 30 adults. Similar heartbeat morphologies are clustered prior to learning compact parametric formulas incorporating the heart rate frequency and sinusoidal components representing its harmonics, along with subject-specific scaling parameters. The models enable accurate signal reconstruction of the training data and synthetic heartbeat generation for arbitrary heart rate trajectories, supporting scalable data augmentation to train machine learning models without extensive measurement campaigns."
+    image: cardiac_radar_models.png
+    date: 2026-11-03
   - title: "Maximum updraft velocity beyond CAPE: the role of boundary layer dynamics and pressure perturbations"
     authors:
       - Bety Pechacova (1)
