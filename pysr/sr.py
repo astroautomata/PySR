@@ -112,7 +112,10 @@ def _process_constraints(
     operators: dict[int, list[str]],
     constraints: dict[str, int | tuple[int, ...]],
 ) -> dict[str, int | tuple[int, ...]]:
-    constraints = constraints.copy()
+    processed = {}
+    for op, c in constraints.items():
+        processed[op] = tuple(c) if isinstance(c, list) else c
+    constraints = processed
 
     for arity, op_list in operators.items():
         for op in op_list:
