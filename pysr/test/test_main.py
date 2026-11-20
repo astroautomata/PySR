@@ -2070,6 +2070,24 @@ class TestMiscellaneous(unittest.TestCase):
             any("less than the number of processes" in str(w.message) for w in caught)
         )
 
+    def test_no_populations_warning_for_multi_output_y(self):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            model = PySRRegressor(
+                parallelism="multiprocessing",
+                procs=2,
+                populations=1,
+                niterations=1,
+                progress=False,
+            )
+            X = np.random.randn(10, 2)
+            y = X.copy()
+            model.fit(X, y)
+
+        self.assertFalse(
+            any("less than the number of processes" in str(w.message) for w in caught)
+        )
+
     def test_progress_silently_disabled_when_stdout_lacks_buffer(self):
         fake_stdout = type(
             "FakeStdout", (), {"write": lambda self, *_args, **_kwargs: None}

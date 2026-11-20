@@ -2887,16 +2887,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             self.procs,
             getattr(self, "multithreading", None),
         )
-        if (
-            parallelism == "multiprocessing"
-            and numprocs is not None
-            and self.populations < numprocs
-        ):
-            warnings.warn(
-                f"`populations={self.populations}` is less than the number of processes "
-                f"(`procs={numprocs}`). Some processes will sit idle. "
-                "Consider increasing `populations`."
-            )
 
         (
             X,
@@ -2917,6 +2907,17 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             X_units,
             y_units,
         )
+
+        if (
+            parallelism == "multiprocessing"
+            and numprocs is not None
+            and self.populations * self.nout_ < numprocs
+        ):
+            warnings.warn(
+                f"`populations={self.populations}` is less than the number of processes "
+                f"(`procs={numprocs}`). Some processes will sit idle. "
+                "Consider increasing `populations`."
+            )
 
         random_state = check_random_state(self.random_state)  # For np random
         seed = cast(int, random_state.randint(0, 2**31 - 1))  # For julia random
