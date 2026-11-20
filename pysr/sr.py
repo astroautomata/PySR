@@ -2887,6 +2887,16 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             self.procs,
             getattr(self, "multithreading", None),
         )
+        if (
+            parallelism == "multiprocessing"
+            and numprocs is not None
+            and self.populations < numprocs
+        ):
+            warnings.warn(
+                f"`populations={self.populations}` is less than the number of processes "
+                f"(`procs={numprocs}`). Some processes will sit idle. "
+                "Consider increasing `populations`."
+            )
 
         (
             X,
