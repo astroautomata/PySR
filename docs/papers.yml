@@ -2,6 +2,15 @@
 # information to generate the "Research Showcase"
 
 papers:
+  - title: "What Do RL Spacecraft Guidance Policies Learn? Symbolic Distillation against a Known Control Law"
+    authors:
+      - Joun Won (1)
+    affiliations:
+      1: Haeryong High School
+    link: https://openreview.net/forum?id=XTuN0nml2m
+    abstract: "Reinforcement learning (RL) produces effective low-thrust spacecraft guidance policies, but what they learn remains opaque. We ask whether an RL agent rediscovers the steering structure that optimal control already prescribes for this task. We train five SAC policies on planar orbit raising, distill each into closed-form steering laws with symbolic regression, and compare them term by term with Q-law, a classical Lyapunov-based guidance law. Although the raw networks steer very differently, 10 of 15 distilled laws share one two-term template that matches the small-eccentricity form of Q-law's steering. A two-line law assembled from the template's median parameters uses 7% less fuel than the policies it came from and slightly less than Q-law (-1.6%). Part of this agreement is built into the objective, since the reward is itself a Lyapunov-like distance to the target, and what training adds is convergence onto one specific form with a seed stable gain. The match is also local, being tightest near the target orbit, and not every distilled law shares Q-law's indifference to how the orbit is oriented."
+    image: glassbox_guidance.png
+    date: 2026-10-02
   - title: "Maximum updraft velocity beyond CAPE: the role of boundary layer dynamics and pressure perturbations"
     authors:
       - Bety Pechacova (1)
