@@ -1858,8 +1858,6 @@ class TestMiscellaneous(unittest.TestCase):
         assert np.isfinite(y_pred).all()
 
     def test_str_subclass_dataframe_columns(self):
-        # Regression for #887. A str mixin Enum is used because StrEnum
-        # needs Python 3.11; scikit-learn ignores both as feature names.
         class Cols(str, Enum):
             A = "a"
             B = "b"
@@ -1884,9 +1882,6 @@ class TestMiscellaneous(unittest.TestCase):
         assert np.isfinite(y_pred).all()
 
     def test_str_subclass_mixed_with_non_str_dataframe_columns(self):
-        # Next to a non-string column name, a str subclass name is left as it
-        # is: scikit-learn ignores the names, as before, instead of raising
-        # a TypeError for a mix of str and non-str names.
         class Cols(str, Enum):
             A = "a"
 
