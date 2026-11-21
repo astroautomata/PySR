@@ -2908,6 +2908,21 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             y_units,
         )
 
+        total_populations = self.populations * self.nout_
+        if (
+            parallelism == "multiprocessing"
+            and numprocs is not None
+            and total_populations < numprocs
+        ):
+            pop_desc = (
+                f"`populations={self.populations}`"
+                if self.nout_ == 1
+                else f"`populations={self.populations}` ({total_populations} across {self.nout_} outputs)"
+            )
+            warnings.warn(
+                f"{pop_desc} is less than `procs={numprocs}`; consider increasing `populations`."
+            )
+
         random_state = check_random_state(self.random_state)  # For np random
         seed = cast(int, random_state.randint(0, 2**31 - 1))  # For julia random
 

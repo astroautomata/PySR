@@ -2052,6 +2052,22 @@ class TestMiscellaneous(unittest.TestCase):
 
         self.assertTrue(any("batch_size" in str(w.message) for w in caught))
 
+    def test_warns_when_populations_less_than_procs(self):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            model = PySRRegressor(
+                parallelism="multiprocessing",
+                procs=2,
+                populations=1,
+                niterations=1,
+                progress=False,
+            )
+            X = np.random.randn(10, 2)
+            y = X[:, 0]
+            model.fit(X, y)
+
+        self.assertTrue(any("is less than `procs=2`" in str(w.message) for w in caught))
+
     def test_progress_silently_disabled_when_stdout_lacks_buffer(self):
         fake_stdout = type(
             "FakeStdout", (), {"write": lambda self, *_args, **_kwargs: None}
