@@ -2908,15 +2908,19 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             y_units,
         )
 
+        total_populations = self.populations * self.nout_
         if (
             parallelism == "multiprocessing"
             and numprocs is not None
-            and self.populations * self.nout_ < numprocs
+            and total_populations < numprocs
         ):
+            pop_desc = (
+                f"`populations={self.populations}`"
+                if self.nout_ == 1
+                else f"`populations={self.populations}` ({total_populations} across {self.nout_} outputs)"
+            )
             warnings.warn(
-                f"`populations={self.populations}` is less than the number of processes "
-                f"(`procs={numprocs}`). Some processes will sit idle. "
-                "Consider increasing `populations`."
+                f"{pop_desc} is less than `procs={numprocs}`; consider increasing `populations`."
             )
 
         random_state = check_random_state(self.random_state)  # For np random

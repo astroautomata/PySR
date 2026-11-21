@@ -2066,9 +2066,7 @@ class TestMiscellaneous(unittest.TestCase):
             y = X[:, 0]
             model.fit(X, y)
 
-        self.assertTrue(
-            any("less than the number of processes" in str(w.message) for w in caught)
-        )
+        self.assertTrue(any("is less than `procs=2`" in str(w.message) for w in caught))
 
     def test_progress_silently_disabled_when_stdout_lacks_buffer(self):
         fake_stdout = type(
