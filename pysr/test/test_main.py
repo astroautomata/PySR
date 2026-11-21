@@ -2976,6 +2976,12 @@ class TestDimensionalConstraints(unittest.TestCase):
 
         self.assertEqual(processed["mult"], (-1, 1))
 
+    def test_process_constraints_lists(self):
+        operators = {2: ["/"]}
+        self.assertEqual(_process_constraints(operators, {"/": [-1, 9]})["/"], (-1, 9))
+        with self.assertRaises(ValueError):
+            _process_constraints(operators, {"/": [-1, 9, 3]})
+
 
 # TODO: Determine desired behavior if second .fit() call does not have units
 

@@ -110,16 +110,18 @@ pysr_logger = logging.getLogger(__name__)
 
 def _process_constraints(
     operators: dict[int, list[str]],
-    constraints: dict[str, int | tuple[int, ...]],
+    constraints: dict[str, int | tuple[int, ...] | list[int]],
 ) -> dict[str, int | tuple[int, ...]]:
-    constraints = constraints.copy()
+    processed_constraints: dict[str, int | tuple[int, ...]] = {
+        op: tuple(c) if isinstance(c, list) else c for op, c in constraints.items()
+    }
 
     for arity, op_list in operators.items():
         for op in op_list:
-            if op not in constraints:
+            if op not in processed_constraints:
                 if arity == 1:
                     # Unary operators get complexity -1
-                    constraints[op] = -1
+                    processed_constraints[op] = -1
                 else:
                     # Multi-arity operators (arity >= 2)
                     if op in ["^", "pow"]:
@@ -133,11 +135,11 @@ def _process_constraints(
                             "For more tips, please see https://pysr.ai/tuning"
                         )
                     # Create default constraint tuple with -1 for each argument
-                    constraints[op] = tuple([-1] * arity)
+                    processed_constraints[op] = tuple([-1] * arity)
 
             # Apply arity-specific validation for existing constraints
-            if isinstance(constraints[op], tuple):
-                constraint_tuple = cast(Tuple[int, ...], constraints[op])
+            if isinstance(processed_constraints[op], tuple):
+                constraint_tuple = cast(Tuple[int, ...], processed_constraints[op])
                 # Validate that constraint tuple length matches operator arity
                 if len(constraint_tuple) != arity:
                     raise ValueError(
@@ -161,8 +163,11 @@ def _process_constraints(
                             constraint_tuple[1] == -1
                             or constraint_tuple[0] < constraint_tuple[1]
                         ):
-                            constraints[op] = (constraint_tuple[1], constraint_tuple[0])
-    return constraints
+                            processed_constraints[op] = (
+                                constraint_tuple[1],
+                                constraint_tuple[0],
+                            )
+    return processed_constraints
 
 
 def _maybe_create_inline_operators(
@@ -449,7 +454,7 @@ class _DynamicallySetParams:
 
     operators: dict[int, list[str]]
     maxdepth: int
-    constraints: dict[str, int | tuple[int, ...]]
+    constraints: dict[str, int | tuple[int, ...] | list[int]]
     batch_size: int | None
     update_verbosity: int
     progress: bool
@@ -1106,7 +1111,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         maxdepth: int | None = None,
         warmup_maxsize_by: float | None = None,
         timeout_in_seconds: float | None = None,
-        constraints: dict[str, int | tuple[int, ...]] | None = None,
+        constraints: dict[str, int | tuple[int, ...] | list[int]] | None = None,
         nested_constraints: dict[str, dict[str, int]] | None = None,
         elementwise_loss: str | None = None,
         loss_function: str | None = None,
