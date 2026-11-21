@@ -112,16 +112,16 @@ def _process_constraints(
     operators: dict[int, list[str]],
     constraints: dict[str, int | tuple[int, ...] | list[int]],
 ) -> dict[str, int | tuple[int, ...]]:
-    processed: dict[str, int | tuple[int, ...]] = {}
-    for op, c in constraints.items():
-        processed[op] = tuple(c) if isinstance(c, list) else c
+    processed_constraints: dict[str, int | tuple[int, ...]] = {
+        op: tuple(c) if isinstance(c, list) else c for op, c in constraints.items()
+    }
 
     for arity, op_list in operators.items():
         for op in op_list:
-            if op not in processed:
+            if op not in processed_constraints:
                 if arity == 1:
                     # Unary operators get complexity -1
-                    processed[op] = -1
+                    processed_constraints[op] = -1
                 else:
                     # Multi-arity operators (arity >= 2)
                     if op in ["^", "pow"]:
@@ -135,11 +135,11 @@ def _process_constraints(
                             "For more tips, please see https://pysr.ai/tuning"
                         )
                     # Create default constraint tuple with -1 for each argument
-                    processed[op] = tuple([-1] * arity)
+                    processed_constraints[op] = tuple([-1] * arity)
 
             # Apply arity-specific validation for existing constraints
-            if isinstance(processed[op], tuple):
-                constraint_tuple = cast(Tuple[int, ...], processed[op])
+            if isinstance(processed_constraints[op], tuple):
+                constraint_tuple = cast(Tuple[int, ...], processed_constraints[op])
                 # Validate that constraint tuple length matches operator arity
                 if len(constraint_tuple) != arity:
                     raise ValueError(
@@ -163,8 +163,11 @@ def _process_constraints(
                             constraint_tuple[1] == -1
                             or constraint_tuple[0] < constraint_tuple[1]
                         ):
-                            processed[op] = (constraint_tuple[1], constraint_tuple[0])
-    return processed
+                            processed_constraints[op] = (
+                                constraint_tuple[1],
+                                constraint_tuple[0],
+                            )
+    return processed_constraints
 
 
 def _maybe_create_inline_operators(
