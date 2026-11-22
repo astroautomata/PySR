@@ -14,6 +14,7 @@ import traceback
 import unittest
 import warnings
 from dataclasses import fields, is_dataclass
+from enum import Enum
 from pathlib import Path
 from textwrap import dedent
 from unittest import mock
@@ -1855,6 +1856,38 @@ class TestMiscellaneous(unittest.TestCase):
 
         y_pred = model.predict(X_pred)
         assert np.isfinite(y_pred).all()
+
+    def test_str_subclass_dataframe_columns(self):
+        class Cols(str, Enum):
+            A = "a"
+            B = "b"
+
+        model = PySRRegressor(
+            niterations=1,
+            populations=1,
+            procs=0,
+            progress=False,
+            verbosity=0,
+            temp_equation_file=True,
+        )
+
+        X = pd.DataFrame({Cols.A: [1.0, 2.0, 3.0], Cols.B: [3.0, 4.0, 5.0]})
+        y = X[Cols.A] + X[Cols.B]
+
+        model.fit(X, y)
+        np.testing.assert_array_equal(model.feature_names_in_, np.array(["a", "b"]))
+        self.assertEqual(list(X.columns), [Cols.A, Cols.B])
+        assert np.isfinite(model.predict(X)).all()
+
+        X_mixed = pd.DataFrame({Cols.A: [1.0, 2.0, 3.0], 0: [3.0, 4.0, 5.0]})
+        mixed_model = PySRRegressor()
+        mixed_model._validate_and_set_fit_params(
+            X_mixed, y, None, None, None, None, None, None
+        )
+        np.testing.assert_array_equal(
+            mixed_model.feature_names_in_, np.array(["x0", "x1"])
+        )
+        self.assertEqual(list(X_mixed.columns), [Cols.A, 0])
 
     def test_pickle_with_temp_equation_file(self):
         """If we have a temporary equation file, unpickle the estimator."""

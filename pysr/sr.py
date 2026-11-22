@@ -2116,6 +2116,13 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                     "Using DataFrame column names instead."
                 )
 
+            # sklearn ignores str-subclass column names and raises on mixed str/non-str.
+            if all(isinstance(c, str) for c in X.columns) and any(
+                type(c) is not str for c in X.columns
+            ):
+                X = X.copy(deep=False)
+                X.columns = [str.__str__(c) for c in X.columns]
+
             cols_str = X.columns.astype(str)
             if cols_str.str.contains(" ").any():
                 X = X.copy(deep=False)
