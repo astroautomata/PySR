@@ -1880,8 +1880,13 @@ class TestMiscellaneous(unittest.TestCase):
         assert np.isfinite(model.predict(X)).all()
 
         X_mixed = pd.DataFrame({Cols.A: [1.0, 2.0, 3.0], 0: [3.0, 4.0, 5.0]})
-        model.fit(X_mixed, y)
-        np.testing.assert_array_equal(model.feature_names_in_, np.array(["x0", "x1"]))
+        mixed_model = PySRRegressor()
+        mixed_model._validate_and_set_fit_params(
+            X_mixed, y, None, None, None, None, None, None
+        )
+        np.testing.assert_array_equal(
+            mixed_model.feature_names_in_, np.array(["x0", "x1"])
+        )
         self.assertEqual(list(X_mixed.columns), [Cols.A, 0])
 
     def test_pickle_with_temp_equation_file(self):
