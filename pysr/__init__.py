@@ -24,8 +24,6 @@ from importlib.metadata import PackageNotFoundError, version
 
 from . import sklearn_monkeypatch
 from .deprecated import best, best_callable, best_row, best_tex, install, pysr
-from .export_jax import sympy2jax
-from .export_torch import sympy2torch
 from .expression_specs import (
     AbstractExpressionSpec,
     ExpressionSpec,
@@ -106,3 +104,17 @@ __all__ = [
     "pysr",
     "__version__",
 ]
+
+
+def __getattr__(name: str):
+    if name == "sympy2jax":
+        from .export_jax import sympy2jax
+
+        globals()["sympy2jax"] = sympy2jax
+        return sympy2jax
+    if name == "sympy2torch":
+        from .export_torch import sympy2torch
+
+        globals()["sympy2torch"] = sympy2torch
+        return sympy2torch
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -7,10 +7,8 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from .export_jax import sympy2jax
 from .export_numpy import sympy2numpy
 from .export_sympy import create_sympy_symbols, pysr2sympy
-from .export_torch import sympy2torch
 from .utils import ArrayLike
 
 
@@ -56,6 +54,8 @@ def add_export_formats(
 
         # JAX:
         if output_jax_format:
+            from .export_jax import sympy2jax
+
             func, params = sympy2jax(
                 eqn,
                 sympy_symbols,
@@ -66,6 +66,8 @@ def add_export_formats(
 
         # Torch:
         if output_torch_format:
+            from .export_torch import sympy2torch
+
             module = sympy2torch(
                 eqn,
                 sympy_symbols,

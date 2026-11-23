@@ -72,7 +72,8 @@ def jl_is_function(f) -> bool:
 def jl_serialize(obj: Any) -> NDArray[np.uint8]:
     buf = jl.IOBuffer()
     Serialization.serialize(buf, obj)
-    return np.array(jl.take_b(buf))
+    raw = PythonCall.pybytes(jl.take_b(buf))
+    return np.frombuffer(raw, dtype=np.uint8).copy()
 
 
 @overload

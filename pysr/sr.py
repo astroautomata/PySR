@@ -32,12 +32,6 @@ from sklearn.utils.validation import check_is_fitted
 
 from .denoising import denoise, multi_denoise
 from .deprecated import DEPRECATED_KWARGS
-from .export_latex import (
-    sympy2latex,
-    sympy2latextable,
-    sympy2multilatextable,
-    with_preamble,
-)
 from .export_sympy import assert_valid_sympy_symbol
 from .expression_specs import (
     AbstractExpressionSpec,
@@ -366,7 +360,14 @@ def _check_assertions(
                     "and underscores are allowed."
                 )
             if supports_sympy:
-                assert_valid_sympy_symbol(var_name, extra_sympy_mappings)
+                if not (
+                    re.match(r"^x[0-9]+$", var_name)
+                    and (
+                        extra_sympy_mappings is None
+                        or var_name not in extra_sympy_mappings
+                    )
+                ):
+                    assert_valid_sympy_symbol(var_name, extra_sympy_mappings)
     if (
         isinstance(complexity_of_variables, list)
         and len(complexity_of_variables) != X.shape[1]
@@ -3285,6 +3286,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             )
         self.refresh()
         sympy_representation = self.sympy(index=index)
+        from .export_latex import sympy2latex
+
         if self.nout_ > 1:
             output = []
             for s in sympy_representation:
@@ -3523,6 +3526,11 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                 f"`expression_spec={self.expression_spec_}` does not support latex export."
             )
         self.refresh()
+        from .export_latex import (
+            sympy2latextable,
+            sympy2multilatextable,
+            with_preamble,
+        )
 
         if isinstance(self.equations_, list):
             if indices is not None:
