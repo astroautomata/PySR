@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import copy
+import datetime
 import logging
 import os
 import pickle as pkl
 import re
+import secrets
+import string
 import sys
 import tempfile
 import warnings
@@ -103,6 +106,93 @@ except ImportError:
 _CHECKPOINT_SCHEMA_VERSION = 3
 
 ALREADY_RAN = False
+
+_RUN_ID_ALPHABET = string.digits + string.ascii_lowercase + string.ascii_uppercase
+
+_BUILTIN_JL_OPERATOR_NAMES = frozenset(
+    {
+        "+",
+        "-",
+        "*",
+        "/",
+        "^",
+        "sin",
+        "cos",
+        "tan",
+        "sinh",
+        "cosh",
+        "tanh",
+        "asin",
+        "acos",
+        "atan",
+        "asinh",
+        "acosh",
+        "atanh",
+        "exp",
+        "log",
+        "log2",
+        "log10",
+        "log1p",
+        "sqrt",
+        "cbrt",
+        "abs",
+        "sign",
+        "floor",
+        "ceil",
+        "round",
+        "max",
+        "min",
+        "mod",
+        "plus",
+        "sub",
+        "mult",
+        "div",
+        "pow",
+        "neg",
+        "square",
+        "cube",
+        "greater",
+        "less",
+        "greater_equal",
+        "less_equal",
+        "cond",
+        "relu",
+        "logical_or",
+        "logical_and",
+        "gamma",
+        "erf",
+        "erfc",
+    }
+)
+_BUILTIN_JL_OPERATOR_CACHE: dict[str, AnyValue] = {}
+
+
+def _generate_run_id() -> str:
+    date_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    suffix = "".join(secrets.choice(_RUN_ID_ALPHABET) for _ in range(6))
+    return f"{date_str}_{suffix}"
+
+
+def _is_unconstrained_value(constraint: int | tuple[int, ...]) -> bool:
+    if isinstance(constraint, int):
+        return constraint == -1
+    return all(v == -1 for v in constraint)
+
+
+def _resolve_julia_operator(op: str) -> AnyValue:
+    if op in _BUILTIN_JL_OPERATOR_NAMES:
+        cached = _BUILTIN_JL_OPERATOR_CACHE.get(op)
+        if cached is not None:
+            return cached
+        jl_op = jl.seval(op)
+        if not jl_is_function(jl_op):
+            raise ValueError(f"`'{op}'` did not return a Julia function")
+        _BUILTIN_JL_OPERATOR_CACHE[op] = jl_op
+        return jl_op
+    jl_op = jl.seval(op)
+    if not jl_is_function(jl_op):
+        raise ValueError(f"`'{op}'` did not return a Julia function")
+    return jl_op
 
 
 pysr_logger = logging.getLogger(__name__)
@@ -1851,7 +1941,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                     else self.output_directory
                 )
             self.run_id_ = (
-                cast(str, SymbolicRegression.SearchUtilsModule.generate_run_id())
+                _generate_run_id()
                 if self.run_id is None
                 else self.run_id
             )
@@ -2484,7 +2574,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         np_dtype = (
             None
             if type_spec_runtime is not None
-            else self._get_precision_mapped_dtype(np.array(X))
+            else self._get_precision_mapped_dtype(np.asarray(X))
         )
 
         if self.elementwise_loss is not None:
@@ -2503,16 +2593,22 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             _validate_custom_expression_objective(custom_loss_expression)
 
         early_stop_condition = (
-            jl.seval(
-                str(self.early_stop_condition)
+            (
+                jl.seval(str(self.early_stop_condition))
                 if self.early_stop_condition is not None
-                else "nothing"
+                else None
             )
             if type_spec_runtime is None
             else type_spec_runtime.early_stop_condition
         )
 
-        input_stream = jl.seval(_resolve_input_stream(self.input_stream))
+        resolved_stream = _resolve_input_stream(self.input_stream)
+        if resolved_stream == "stdin":
+            input_stream = jl.stdin
+        elif resolved_stream == "devnull":
+            input_stream = jl.devnull
+        else:
+            input_stream = jl.seval(resolved_stream)
 
         load_required_packages(
             turbo=self.turbo,
@@ -2554,7 +2650,11 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             if self.default_mutations is None
             else convert_mutations(self.default_mutations)
         )
-        plugins = jl_array([plugin.julia_plugin() for plugin in (self.plugins or [])])
+        plugins = (
+            jl_array([plugin.julia_plugin() for plugin in self.plugins])
+            if self.plugins
+            else ()
+        )
         default_plugins = (
             None
             if self.default_plugins is None
@@ -2571,14 +2671,19 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                 jl_op_list = []
                 for op_index, op in enumerate(operators[arity]):
                     if type_spec_runtime is None:
-                        jl_op = jl.seval(op)
+                        try:
+                            jl_op = _resolve_julia_operator(op)
+                        except ValueError as err:
+                            raise ValueError(
+                                f"When building operators for arity {arity}, {err}"
+                            ) from err
                     else:
                         assert type_spec_operator_functions is not None
                         jl_op = type_spec_operator_functions[arity][op_index]
-                    if not jl_is_function(jl_op):
-                        raise ValueError(
-                            f"When building operators for arity {arity}, `'{op}'` did not return a Julia function"
-                        )
+                        if not jl_is_function(jl_op):
+                            raise ValueError(
+                                f"When building operators for arity {arity}, `'{op}'` did not return a Julia function"
+                            )
                     jl_op_list.append(jl_op)
                 jl_operators_dict[arity] = tuple(jl_op_list)
             else:
@@ -2609,9 +2714,15 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             tuple(jl_operators_dict.values())
         )
 
-        # Build constraints dict with same structure
+        # Build constraints dict only when at least one operator has a non-default
+        # constraint; passing `nothing` to Julia yields identical `-1` defaults without
+        # allocating or compiling PythonCall Dict{Int,Vector} conversion/setitem paths.
+        has_active_constraints = any(
+            c is not None and any(not _is_unconstrained_value(v) for v in c)
+            for c in constraints_by_arity.values()
+        )
         jl_constraints_dict = None
-        if any(c for c in constraints_by_arity.values() if c is not None):
+        if has_active_constraints:
             jl_constraints_dict = jl.Dict[jl.Int, jl.Vector]()
             for arity in range(1, max_arity + 1):
                 if constraints_by_arity[arity] is not None:
@@ -2636,7 +2747,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             loss_scale=jl.Symbol(self.loss_scale),
             maxsize=int(self.maxsize),
             output_directory=_escape_filename(self.output_directory_),
-            npopulations=int(self.populations),
+            populations=int(self.populations),
             batching=(
                 jl.Symbol(self.batching)
                 if isinstance(self.batching, str)
@@ -2669,7 +2780,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             use_frequency=self.use_frequency,
             use_frequency_in_tournament=self.use_frequency_in_tournament,
             adaptive_parsimony_scaling=self.adaptive_parsimony_scaling,
-            npop=self.population_size,
+            population_size=self.population_size,
             ncycles_per_iteration=self.ncycles_per_iteration,
             fraction_replaced=self.fraction_replaced,
             fraction_replaced_guesses=self.fraction_replaced_guesses,
