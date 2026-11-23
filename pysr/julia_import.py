@@ -86,8 +86,8 @@ if pysr_set_gc_threads:
 
 
 from juliacall import AnyValue  # type: ignore
-from juliacall import VectorValue  # type: ignore
 from juliacall import Main as jl  # type: ignore
+from juliacall import VectorValue  # type: ignore
 
 jl = cast(ModuleType, jl)
 

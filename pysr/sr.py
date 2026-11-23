@@ -24,8 +24,10 @@ from numpy import ndarray
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, MultiOutputMixin, RegressorMixin
 from sklearn.utils import check_array, check_consistent_length, check_random_state
-from sklearn.utils.validation import _check_feature_names_in  # type: ignore
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils.validation import (  # type: ignore
+    _check_feature_names_in,
+    check_is_fitted,
+)
 
 from .denoising import denoise, multi_denoise
 from .deprecated import DEPRECATED_KWARGS
