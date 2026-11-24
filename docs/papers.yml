@@ -2,6 +2,19 @@
 # information to generate the "Research Showcase"
 
 papers:
+  - title: "Molecular Thermodynamics of Lower Critical Solution Temperature Ionic Liquid/Water Mixtures: Tetrabutylphosphonium Trifluoroacetate"
+    authors:
+      - Shehan M. Parmar (1)
+      - Ahmed Mahfouz (2)
+      - Akanksha K. Menon (2)
+      - Jesse G. McDaniel (1)
+    affiliations:
+      1: Department of Chemistry and Biochemistry, Georgia Institute of Technology
+      2: George W. Woodruff School of Mechanical Engineering, Georgia Institute of Technology
+    link: https://doi.org/10.1021/acs.jpcb.6c04599
+    abstract: "Lower critical solution temperature (LCST) ionic liquids (ILs) are thermoresponsive materials that undergo liquid–liquid demixing with water into water-rich (WR) and IL-rich (ILR) phases upon heating. Despite the vast combinatorial space of cation–anion pairings, LCST behavior is observed in only a handful of aqueous ILs. To uncover the enthalpic and entropic driving forces that govern this unique phase behavior among molecular liquids, we investigate an exemplary LCST IL, tetrabutylphosphonium trifluoroacetate ([P4444][TFA]), by pairing equilibrium molecular dynamics and finite-concentration thermodynamic integration with chilled-mirror dew point water activity experimental measurements. Computationally predicted excess chemical potentials of water show excellent agreement with experimental measurements over IL weight fractions of 85–95% at 300 K and 323 K, with absolute deviations ranging from 0.04 to 1.2 kJ/mol, establishing accurate resolution of the non-ideal solvation contribution. The excess chemical potential is counterbalanced by a strongly favorable ideal entropy of mixing, governed by the large (~19:1) IL/water molar volume ratio, and a uniformly unfavorable solvation free energy (relative to bulk water). The excess partial molar enthalpy of water is marked by strong temperature sensitivity, undergoing an exothermic to endothermic shift of ~5–6 kJ/mol from 300–373 K. On the other hand, the non-ideal entropy of solvation is uniformly unfavorable. Mechanistically, this enthalpy/entropy temperature dependence is traced to electrostatic screening probed by the charge-correlation structure factor, the competing water–water and water–anion interactions, and the structural organization of water imposed by the hydrophobic [P4444]+ cation. Symbolic regression (PySR) was used to discover the analytic excess-enthalpy-of-mixing fit from which the partial molar enthalpy of water is derived, selected along the accuracy–complexity Pareto front with a second-derivative roughness penalty and bootstrap-based uncertainty quantification."
+    image: lcst_ionic_liquid_thermodynamics.png
+    date: 2026-11-03
   - title: "Maximum updraft velocity beyond CAPE: the role of boundary layer dynamics and pressure perturbations"
     authors:
       - Bety Pechacova (1)
