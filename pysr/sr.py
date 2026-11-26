@@ -1941,11 +1941,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
                     if self.output_directory is None
                     else self.output_directory
                 )
-            self.run_id_ = (
-                _generate_run_id()
-                if self.run_id is None
-                else self.run_id
-            )
+            self.run_id_ = _generate_run_id() if self.run_id is None else self.run_id
             if self.temp_equation_file:
                 assert self.output_directory is None
 
