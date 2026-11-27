@@ -518,7 +518,8 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
     type_spec : TypeSpec
         Declarative custom value type. PySR builds an isolated Julia wrapper,
         interface methods, operators, and loss from this specification.
-        Default is `None`, which uses the numeric path.
+        When `None`, PySR uses the numeric path.
+        Default is `None`.
     niterations : int
         Number of iterations of the algorithm to run. The best
         equations are printed and migrate between populations at the
@@ -559,7 +560,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         Default is `None`.
     nested_constraints : dict[str, dict]
         Specifies how many times a combination of operators can be
-        nested. For example, `{"sin": {"cos": 0}}, "cos": {"cos": 2}}`
+        nested. For example, `{"sin": {"cos": 0}, "cos": {"cos": 2}}`
         specifies that `cos` may never appear within a `sin`, but `sin`
         can be nested with itself an unlimited number of times. The
         second term specifies that `cos` can be nested up to 2 times
@@ -625,7 +626,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         differences between losses; this mode handles any loss values
         (including negative) and is useful for custom loss functions,
         especially those based on likelihoods.
-        Default is "log".
+        Default is `"log"`.
     complexity_of_operators : dict[str, int | float]
         If you would like to use a complexity other than 1 for an
         operator, specify the complexity here. For example,
@@ -651,9 +652,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
     parsimony : float
         Multiplicative factor for how much to punish complexity.
         Default is `0.0`.
-    dimensional_constraint_penalty : float
+    dimensional_constraint_penalty : float | None
         Additive penalty for if dimensional analysis of an expression fails.
-        By default, this is `1000.0`.
+        Default is `None` (mapping to `1000.0`).
     dimensionless_constants_only : bool
         Whether to only search for dimensionless constants, if using units.
         Default is `False`.
@@ -722,7 +723,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         Relative likelihood for mutation to change which feature a variable node references.
         Default is `None` (mapping to `0.1`).
     weight_swap_operands : float | None
-        Relative likehood for swapping operands in binary operators.
+        Relative likelihood for swapping operands in binary operators.
         Default is `None` (mapping to `0.198`).
     weight_rotate_tree : float | None
         How often to perform a tree rotation at a random node.
@@ -816,23 +817,24 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
         "slurm" to use an existing Slurm allocation, with `procs` equal to
         its task count. Other supported values are "pbs", "lsf", "sge",
         "qrsh", "scyld", and "htc". Default is `None`.
-    heap_size_hint_in_bytes : int
+    heap_size_hint_in_bytes : int | None
         For multiprocessing, this sets the `--heap-size-hint` parameter
         for new Julia processes. This can be configured when using
         multi-node distributed compute, to give a hint to each process
         about how much memory they can use before aggressive garbage
         collection.
+        Default is `None`.
     worker_timeout : float | None
         Timeout in seconds for worker processes during multiprocessing to respond.
         If a worker does not respond within this time, it will be restarted.
         Default is `None`.
     worker_imports : list[str] | None
         Module names to import on multiprocessing workers. For example,
-        ``["MyPackage", "OtherPackage"]`` runs
-        ``using MyPackage, OtherPackage`` on every worker. TypeSpec preambles,
+        `["MyPackage", "OtherPackage"]` runs
+        `using MyPackage, OtherPackage` on every worker. TypeSpec preambles,
         operators, objectives, and expression specifications may depend on
-        packages listed here; arbitrary bindings from ``Main`` are unavailable.
-        Default is ``None``.
+        packages listed here; arbitrary bindings from `Main` are unavailable.
+        Default is `None`.
     batching : bool | "auto"
         Whether to compare population members on small batches during
         evolution. Still uses full dataset for comparing against hall
@@ -1408,10 +1410,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
         Parameters
         ----------
-        run_directory : str
+        run_directory : PathLike
             The directory containing outputs from a previous run.
             This is of the form `[output_directory]/[run_id]`.
-            Default is `None`.
         binary_operators : list[str]
             The same binary operators used when creating the model.
             Not needed if loading from a pickle file.
@@ -2845,7 +2846,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             Weight array of the same shape as `y`.
             Each element is how to weight the mean-square-error loss
             for that particular element of `y`. Alternatively,
-            if a custom `loss` was set, it will can be used
+            if a custom `elementwise_loss` was set, it can be used
             in arbitrary ways.
         variable_names : list[str]
             A list of names for the variables, rather than "x0", "x1", etc.
@@ -2854,6 +2855,9 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             characters, start with a digit, or be a Python keyword such as
             "lambda". Avoid variable names which are also function names in
             `sympy` or `extra_sympy_mappings`, such as "N".
+        complexity_of_variables : int | float | list[int | float]
+            Complexity of each variable in `X`. Overrides the `complexity_of_variables`
+            parameter set at initialization.
         X_units : list[str]
             A list of units for each variable in `X`. Each unit should be
             a string representing a Julia expression. See DynamicQuantities.jl
@@ -3129,7 +3133,7 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
 
         Returns
         -------
-        best_equation : str, list[str] of length nout_
+        best_equation : sympy.Expr | list[sympy.Expr]
             SymPy representation of the best equation.
         """
         if not self._supports_export("sympy"):

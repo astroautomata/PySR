@@ -24,12 +24,12 @@ These are described below.
 Also check out the [tuning page](tuning.md) for workflow tips.
 
 The program will output a pandas DataFrame containing the equations
-to `PySRRegressor.equations` containing the loss value
+to `PySRRegressor.equations_` containing the loss value
 and complexity.
 
 It will also dump to a csv
 at the end of every iteration,
-which is `.hall_of_fame_{date_time}.csv` by default.
+which is `outputs/<run_id>/hall_of_fame.csv` by default.
 It also prints the equations to stdout.
 
 ## Model selection
@@ -96,7 +96,7 @@ you want `pysr` to use.
 
 ## Populations
 
-By default, `populations=15`, but you can set a different
+By default, `populations=31`, but you can set a different
 number of populations with this option.
 More populations may increase
 the diversity of equations discovered, though will take longer to train.
@@ -114,7 +114,7 @@ instead of the default.
 sigma = ...
 weights = 1/sigma**2
 
-model = PySRRegressor(procs=10)
+model = PySRRegressor(parallelism="multiprocessing", procs=10)
 model.fit(X, y, weights=weights)
 ```
 
@@ -126,8 +126,9 @@ to control the maximum depth of an equation. These will make processing
 faster, as longer equations take longer to test.
 
 One can warm up the maxsize from a small number to encourage
-PySR to start simple, by using the `warmupMaxsize` argument.
-This specifies that maxsize increases every `warmupMaxsize`.
+PySR to start simple, by using the `warmup_maxsize_by` argument.
+This specifies the fraction of training time at which the current maxsize
+will reach `maxsize`.
 
 ## Batching
 
@@ -178,7 +179,7 @@ You may change this by configuring the options:
 ## LaTeX and SymPy
 
 After running `model.fit(...)`, you can look at
-`model.equations` which is a pandas dataframe.
+`model.equations_` which is a pandas dataframe.
 The `sympy_format` column gives sympy equations,
 and the `lambda_format` gives callable functions.
 You can optionally pass a pandas dataframe to the callable function,
@@ -224,7 +225,7 @@ torch_model = model.pytorch()
 torch_model(X)
 ```
 
-**Warning: If you are using custom operators, you must define `extra_torch_mappings` or `extra_jax_mappings` (both are `dict` of callables) to provide an equivalent definition of the functions.** (At any time you can set these parameters or any others with `model.set_params`.)
+**Warning: If you are using custom operators, you must define `extra_torch_mappings` (`dict[Callable, Callable]`) or `extra_jax_mappings` (`dict[Callable, str]`, e.g., `{sympy.sin: "jnp.sin"}`) to provide an equivalent definition of the functions.** (At any time you can set these parameters or any others with `model.set_params`.)
 
 For JAX, you can equivalently call `model.jax()`
 This will return a dictionary containing a `'callable'` (a JAX function),
@@ -272,7 +273,7 @@ model.fit(..., weights=weights)
 Weights can be used in arbitrary ways:
 
 ```python
-model = PySRRegressor(..., weights=weights, elementwise_loss="myloss(x, y, w) = abs(x - y)^2/w^2")
+model = PySRRegressor(..., elementwise_loss="myloss(x, y, w) = abs(x - y)^2/w^2")
 model.fit(..., weights=weights)
 ```
 
@@ -286,20 +287,20 @@ PySRRegressor(..., elementwise_loss="LPDistLoss{3}()")
 Can also uses these losses for weighted (weighted-average):
 
 ```python
-model = PySRRegressor(..., weights=weights, elementwise_loss="LPDistLoss{3}()")
+model = PySRRegressor(..., elementwise_loss="LPDistLoss{3}()")
 model.fit(..., weights=weights)
 ```
 
 ## Model loading
 
-PySR will automatically save a pickle file of the model state
+PySR will automatically save a `checkpoint.pkl` file of the model state
 when you call `model.fit`, once before the search starts,
-and again after the search finishes. The filename will
-have the same base name as the input file, but with a `.pkl` extension.
+and again after the search finishes, in `outputs/<run_id>/` (or
+`[output_directory]/[run_id]/`).
 You can load the saved model state with:
 
 ```python
-model = PySRRegressor.from_file(pickle_filename)
+model = PySRRegressor.from_file(run_directory="outputs/<run_id>")
 ```
 
 If you have a long-running job and would like to load the model
