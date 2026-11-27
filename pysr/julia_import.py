@@ -1,5 +1,6 @@
 import os
 import sys
+import threading
 import warnings
 from types import ModuleType
 from typing import cast
@@ -92,16 +93,36 @@ from juliacall import Main as jl  # type: ignore
 jl = cast(ModuleType, jl)
 
 
+def _import_python_dependencies() -> None:
+    import pandas  # noqa: F401
+    import sklearn.base  # noqa: F401
+    import sklearn.utils.validation  # noqa: F401
+    import sympy  # type: ignore  # noqa: F401
+    import sympy.codegen.cfunctions  # type: ignore  # noqa: F401
+    import sympy.printing.latex  # type: ignore  # noqa: F401
+
+
+# Loading SymbolicRegression takes time and doesn't need Python, so release the
+# GIL to let another thread import PySR's heavy Python dependencies meanwhile.
+_import_thread = threading.Thread(
+    target=_import_python_dependencies, name="pysr-import-dependencies"
+)
+_import_thread.start()
+try:
+    jl.seval(
+        """
+        using SymbolicRegression
+        using SymbolicRegression: D, less, greater_equal, less_equal, plus, sub, mult, div, pow
+        using Pkg: Pkg
+        using Serialization: Serialization
+        using PythonCall: PythonCall
+        """,
+        nogil=True,
+    )
+finally:
+    _import_thread.join()
+
 jl_version = (jl.VERSION.major, jl.VERSION.minor, jl.VERSION.patch)
 
-jl.seval("using SymbolicRegression")
 SymbolicRegression = jl.SymbolicRegression
-
-# Expose `D` operator:
-jl.seval("using SymbolicRegression: D")
-
-# Expose other operators:
-jl.seval("using SymbolicRegression: less, greater_equal, less_equal")
-
-jl.seval("using Pkg: Pkg")
 Pkg = jl.Pkg

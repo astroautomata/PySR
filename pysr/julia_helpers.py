@@ -8,13 +8,8 @@ from numpy.typing import NDArray
 from .deprecated import init_julia, install
 from .julia_import import AnyValue, jl
 
-jl.seval("using Serialization: Serialization")
-jl.seval("using PythonCall: PythonCall")
-
 Serialization = jl.Serialization
 PythonCall = jl.PythonCall
-
-jl.seval("using SymbolicRegression: plus, sub, mult, div, pow")
 
 
 def _escape_filename(filename):
