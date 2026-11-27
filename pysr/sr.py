@@ -2711,9 +2711,6 @@ class PySRRegressor(MultiOutputMixin, RegressorMixin, BaseEstimator):
             tuple(jl_operators_dict.values())
         )
 
-        # Build constraints dict only when at least one operator has a non-default
-        # constraint; passing `nothing` to Julia yields identical `-1` defaults without
-        # allocating or compiling PythonCall Dict{Int,Vector} conversion/setitem paths.
         has_active_constraints = any(
             c is not None and any(not _is_unconstrained_value(v) for v in c)
             for c in constraints_by_arity.values()
